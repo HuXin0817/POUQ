@@ -25,18 +25,18 @@ cd python/ && pip install .
 
 ### API Description
 
-- `QVector(data, c_bit, q_bit, learn_step_size=True, max_iter=128, grid_side_length=8, grid_scale_factor=0.1, initial_inertia=0.9, final_inertia=0.4, c1=1.8, c2=1.8)` -
+- `QVector(data, c_bit, q_bit, optimize_bound=True, max_iter=128, grid_side_length=8, grid_scale_factor=0.1, initial_inertia=0.9, final_inertia=0.4, c1=1.8, c2=1.8)` -
   Initializes a quantum vector with specified parameters
   - `data` numpy array of input data
   - `c_bit` number of classical bits
   - `q_bit` number of quantum bits
-  - `learn_step_size` flag to enable learning step size (default: True)
+  - `optimize_bound` flag to enable optimize bound (default: True)
   - `max_iter` maximum number of iterations (default: 128)
   - `grid_side_length` grid side length (default: 8)
   - `grid_scale_factor` grid scale factor (default: 0.1)
   - `initial_inertia` initial inertia value (default: 0.9)
   - `final_inertia` final inertia value (default: 0.4)
-  - `c1` cognitive learning factor (default: 1.8) 
+  - `c1` cognitive learning factor (default: 1.8)
   - `c2` social learning factor (default: 1.8)
 
 `QVector` methods:
@@ -89,10 +89,10 @@ def print_err(q):
     print(err / N)
 
 
-print_err(QVector(data, c_bit=0, q_bit=8, learn_step_size=False))
-print_err(QVector(data, c_bit=0, q_bit=8, learn_step_size=True))
-print_err(QVector(data, c_bit=4, q_bit=4, learn_step_size=False))
-print_err(QVector(data, c_bit=4, q_bit=4, learn_step_size=True))
+print_err(QVector(data, c_bit=0, q_bit=8, optimize_bound=False))
+print_err(QVector(data, c_bit=0, q_bit=8, optimize_bound=True))
+print_err(QVector(data, c_bit=4, q_bit=4, optimize_bound=False))
+print_err(QVector(data, c_bit=4, q_bit=4, optimize_bound=True))
 ```
 
 ## Reproduce

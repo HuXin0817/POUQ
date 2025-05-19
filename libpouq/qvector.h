@@ -43,7 +43,7 @@ public:
   explicit QVector(const py::array_t<float> &data,
       const uint64_t                         c_bit,
       const uint64_t                         q_bit,
-      const bool                             learn_step_size   = true,
+      const bool                             optimize_bound    = true,
       const uint64_t                         max_iterations    = 128,
       const uint64_t                         grid_side_length  = 8,
       const float                            grid_scale_factor = 0.1f,
@@ -74,7 +74,7 @@ public:
     for (uint64_t c = 0; c < lowers.size(); c++) {
       float lower = lowers[c];
       float upper = uppers[c];
-      if (learn_step_size && lower < upper) {
+      if (optimize_bound && lower < upper) {
         auto begin = std::lower_bound(data_freq_map.begin(),
             data_freq_map.end(),
             lower,

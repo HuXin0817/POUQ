@@ -22,7 +22,7 @@ PYBIND11_MODULE(pouq, m) {
           py::arg("data"),
           py::arg("c_bit"),
           py::arg("q_bit"),
-          py::arg("learn_step_size")   = true,
+          py::arg("optimize_bound")    = true,
           py::arg("max_iter")          = 128,
           py::arg("grid_side_length")  = 8,
           py::arg("grid_scale_factor") = 0.1f,

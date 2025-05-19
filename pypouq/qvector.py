@@ -39,7 +39,7 @@ class QVector:
         data: numpy.ndarray,
         c_bit: int,
         q_bit: int,
-        learn_step_size: bool = True,
+        optimize_bound: bool = True,
         max_iter: int = 128,
         grid_side_length: int = 8,
         grid_scale_factor: float = 0.1,
@@ -48,9 +48,9 @@ class QVector:
         c1: float = 1.8,
         c2: float = 1.8,
     ):
-        if learn_step_size:
+        if optimize_bound:
             if max_iter < 1:
-                raise ValueError("Invalid learn_step_size")
+                raise ValueError("Invalid optimize_bound")
             if grid_side_length < 1:
                 raise ValueError("Invalid grid_side_length")
             if grid_scale_factor <= 0:
@@ -67,7 +67,7 @@ class QVector:
             data=data,
             c_bit=c_bit,
             q_bit=q_bit,
-            learn_step_size=learn_step_size,
+            optimize_bound=optimize_bound,
             max_iter=max_iter,
             grid_side_length=grid_side_length,
             grid_scale_factor=grid_scale_factor,

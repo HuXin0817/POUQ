@@ -35,7 +35,7 @@ def print_err(q):
     print(err / N)
 
 
-print_err(QVector(data, c_bit=0, q_bit=8, learn_step_size=False))
-print_err(QVector(data, c_bit=0, q_bit=8, learn_step_size=True))
-print_err(QVector(data, c_bit=4, q_bit=4, learn_step_size=False))
-print_err(QVector(data, c_bit=4, q_bit=4, learn_step_size=True))
+print_err(QVector(data, c_bit=0, q_bit=8, optimize_bound=False))
+print_err(QVector(data, c_bit=0, q_bit=8, optimize_bound=True))
+print_err(QVector(data, c_bit=4, q_bit=4, optimize_bound=False))
+print_err(QVector(data, c_bit=4, q_bit=4, optimize_bound=True))
