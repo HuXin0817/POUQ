@@ -51,16 +51,16 @@ public:
       const float                            final_inertia     = 0.4f,
       const float                            c1                = 1.8f,
       const float                            c2                = 1.8f) {
-    c_bit_        = c_bit;
-    q_bit_        = q_bit;
-    ndim_         = data.ndim();
-    ssize_t size_ = data.size();
-    step_size_    = new float[1 << c_bit_];
-    lower_bound_  = new float[1 << c_bit_];
-    cid_          = new uint8_t[(c_bit_ * size_ + 7) / 8];
-    code_         = new uint8_t[(q_bit_ * size_ + 7) / 8];
-    shape_        = new uint64_t[ndim_];
-    for (ssize_t i = 0; i < ndim_; i++) {
+    c_bit_         = c_bit;
+    q_bit_         = q_bit;
+    ndim_          = data.ndim();
+    uint64_t size_ = data.size();
+    step_size_     = new float[1 << c_bit_];
+    lower_bound_   = new float[1 << c_bit_];
+    cid_           = new uint8_t[(c_bit_ * size_ + 7) / 8];
+    code_          = new uint8_t[(q_bit_ * size_ + 7) / 8];
+    shape_         = new uint64_t[ndim_];
+    for (uint64_t i = 0; i < ndim_; i++) {
       shape_[i] = data.shape(i);
     }
 

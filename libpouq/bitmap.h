@@ -17,9 +17,9 @@ void set(uint8_t *data, uint64_t index, uint64_t n, uint64_t bit_size) {
     uint64_t bit_offset = (pos + bit) % 8;
 
     if (n & 1ULL << bit) {
-      data[byte_idx] |= static_cast<uint8_t>(1) << bit_offset;
+      data[byte_idx] |= 1ULL << bit_offset;
     } else {
-      data[byte_idx] &= ~(static_cast<uint8_t>(1) << bit_offset);
+      data[byte_idx] &= ~(1ULL << bit_offset);
     }
   }
 }
@@ -36,7 +36,7 @@ uint64_t get(const uint8_t *data, uint64_t index, uint64_t bit_size) {
     uint64_t byte_idx   = (pos + bit) / 8;
     uint64_t bit_offset = (pos + bit) % 8;
 
-    if (data[byte_idx] & (static_cast<uint8_t>(1) << bit_offset)) {
+    if (data[byte_idx] & (1ULL << bit_offset)) {
       result |= 1ULL << bit;
     }
   }
