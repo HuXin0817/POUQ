@@ -5,7 +5,7 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(pouq, m) {
-  m.doc() = "Python bindings for the POUQ class";
+  m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
 
   py::class_<QVector>(m, "QVector")
       .def(py::init<const py::array_t<float> &,
@@ -29,9 +29,8 @@ PYBIND11_MODULE(pouq, m) {
           py::arg("initial_inertia")   = 0.9f,
           py::arg("final_inertia")     = 0.4f,
           py::arg("c1")                = 1.8f,
-          py::arg("c2")                = 1.8f,
-          "Initialize QVector.")
-      .def("at", &QVector::at, py::arg("i"), "Get value at index i")
-      .def("ndim", &QVector::ndim, "Get ndim of the vector")
-      .def("shape", &QVector::shape, "Get shape of the vector");
+          py::arg("c2")                = 1.8f)
+      .def("at", &QVector::at, py::arg("i"))
+      .def("ndim", &QVector::ndim)
+      .def("shape", &QVector::shape);
 }
