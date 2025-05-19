@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- OpenMP is required
+- [OpenMP](https://www.openmp.org/) is required
 
 ## Directory Structure
 
