@@ -75,24 +75,28 @@ def read_fvecs(filename, c_contiguous=True) -> np.ndarray:
     return fv
 
 
+if len(sys.argv) != 2:
+    print(f"usage: {sys.argv[0]} <dataset_name>")
+    exit(0)
 dataset_name = sys.argv[1]
 data = read_fvecs(f"../data/{dataset_name}/{dataset_name}_base.fvecs")
 
 N, Dim = data.shape
+print(f"N={N}, Dim={Dim}")
 
 
-def print_err(q):
+def print_err(method: str, qvector: QVector):
     err = 0
     for i in range(N):
         for j in range(Dim):
-            err += (data[i, j] - q[i, j]) ** 2
-    print(err / N)
+            err += (data[i, j] - qvector[i, j]) ** 2
+    print(f"Method: {method}, Error: {err / N}")
 
 
-print_err(QVector(data, c_bit=0, q_bit=8, optimize_bound=False))
-print_err(QVector(data, c_bit=0, q_bit=8, optimize_bound=True))
-print_err(QVector(data, c_bit=4, q_bit=4, optimize_bound=False))
-print_err(QVector(data, c_bit=4, q_bit=4, optimize_bound=True))
+print_err("UQ", QVector(data, c_bit=0, q_bit=8, optimize_bound=False))
+print_err("OUQ", QVector(data, c_bit=0, q_bit=8, optimize_bound=True))
+print_err("PUQ", QVector(data, c_bit=4, q_bit=4, optimize_bound=False))
+print_err("POUQ", QVector(data, c_bit=4, q_bit=4, optimize_bound=True))
 ```
 
 ## Reproduce
