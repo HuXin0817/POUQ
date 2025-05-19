@@ -1,3 +1,4 @@
+# ide
 .idea/
 .vscode/
 
@@ -13,15 +14,5 @@ python/build/
 python/*.egg-info/
 __pycache__
 
-# dataset
-data/imagenet/
-data/sift/
-data/gist/
-data/deep1M/
-data/word2vec/
-data/msong/
-*.tar.gz
-
-result/
-
+# MacOS
 .DS_Store

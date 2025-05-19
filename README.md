@@ -20,16 +20,16 @@
 - Install from sources in Python env (recommended version: 3.10):
 
 ```bash
-cd python/ && pip install .
+cd python/ && bash build.sh
 ```
 
 ### API Description
 
 - `QVector(data, c_bit, q_bit, optimize_bound=True, max_iter=128, grid_side_length=8, grid_scale_factor=0.1, initial_inertia=0.9, final_inertia=0.4, c1=1.8, c2=1.8)` -
-  Initializes a quantum vector with specified parameters
+  initializes a quantization vector with specified parameters
   - `data` numpy array of input data
-  - `c_bit` number of classical bits
-  - `q_bit` number of quantum bits
+  - `c_bit` number of cluster bits
+  - `q_bit` number of quantization bits
   - `optimize_bound` flag to enable optimize bound (default: True)
   - `max_iter` maximum number of iterations (default: 128)
   - `grid_side_length` grid side length (default: 8)
