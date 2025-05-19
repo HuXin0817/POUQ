@@ -1,0 +1,27 @@
+.idea/
+.vscode/
+
+# build
+build/
+cmake-build-debug/
+cmake-build-release/
+cmake-build-debug-clang-18/
+cmake-build-release-clang-18/
+
+# python
+python/build/
+python/*.egg-info/
+__pycache__
+
+# dataset
+data/imagenet/
+data/sift/
+data/gist/
+data/deep1M/
+data/word2vec/
+data/msong/
+*.tar.gz
+
+result/
+
+.DS_Store
