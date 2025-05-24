@@ -5,6 +5,7 @@ import numpy as np
 from pypouq import QVector
 
 
+# read_fvecs sourced from https://github.com/gaoj0017/RaBitQ/blob/main/data/utils/io.py
 def read_fvecs(filename, c_contiguous=True) -> np.ndarray:
     print(f"Reading from {filename}.")
     fv = np.fromfile(filename, dtype=np.float32)
