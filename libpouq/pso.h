@@ -6,6 +6,8 @@
 #include <random>
 #include <vector>
 
+namespace pouq {
+
 struct Particle {
   float center;
   float width;
@@ -148,3 +150,5 @@ std::pair<float, float> pso_optimize(const float                   div,
   const float optimized_upper = global_best_center + global_best_width * 0.5f;
   return {optimized_lower, optimized_upper};
 }
+
+}  // namespace pouq

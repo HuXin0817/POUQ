@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+namespace pouq {
+
 namespace bitmap {
 
 void set(uint8_t *data, uint64_t index, uint64_t n, uint64_t bit_size) {
@@ -45,3 +47,5 @@ uint64_t get(const uint8_t *data, uint64_t index, uint64_t bit_size) {
 }
 
 }  // namespace bitmap
+
+}  // namespace pouq

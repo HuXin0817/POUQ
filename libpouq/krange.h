@@ -5,6 +5,8 @@
 #include <map>
 #include <vector>
 
+namespace pouq {
+
 std::pair<std::vector<float>, std::vector<float>> krange(const uint64_t cluster_num,
     const std::vector<std::pair<float, uint64_t>>                      &data_freq_map) {
   std::vector<float>    data_values;
@@ -102,3 +104,5 @@ std::pair<std::vector<float>, std::vector<float>> krange(const uint64_t cluster_
 
   return {lower_bounds, upper_bounds};
 }
+
+}  // namespace pouq

@@ -13,6 +13,8 @@
 #include "krange.h"
 #include "pso.h"
 
+namespace pouq {
+
 namespace py = pybind11;
 
 std::vector<std::pair<float, uint64_t>> count_freq(const py::array_t<float> &data) {
@@ -148,3 +150,5 @@ private:
   uint8_t *cid_  = nullptr;
   uint8_t *code_ = nullptr;
 };
+
+}  // namespace pouq

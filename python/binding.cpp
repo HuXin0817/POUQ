@@ -7,6 +7,8 @@ namespace py = pybind11;
 PYBIND11_MODULE(pouq, m) {
   m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
 
+  using QVector = pouq::QVector;
+
   py::class_<QVector>(m, "QVector")
       .def(py::init<const py::array_t<float> &,
                const uint64_t,
