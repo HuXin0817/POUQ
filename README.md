@@ -1,5 +1,7 @@
 # [ESWA 2025 With Editor] POUQ: A Clustering and Swarm-Optimized Framework for Precision-Driven Uniform Quantization of Non-uniform Data
 
+![](GraphicalAbstract.png)
+
 ## Prerequisites
 
 - [OpenMP](https://www.openmp.org/) is required
