@@ -104,16 +104,18 @@ print_err("POUQ", QVector(data, c_bit=4, q_bit=4, optimize_bound=True))
 
 - For downloading datasets and preprocessing, please refer to `./data/README.md`
 
-## Comparison Table of Quantization Errors between Scalar Quantization (SQ) and POUQ Method across Different Datasets
+## Results
 
-| Dataset  | Dimension | Sample Size | Scalar Quantization (SQ) | POUQ (Ours)  |
-| -------- | --------- | ----------- | ------------------------ | ------------ |
-| SIFT     | 128       | 1,000,000   | 1.78e-02                 | **1.11e-03** |
-| GIST     | 960       | 1,000,000   | 1.34e-07                 | **3.02e-08** |
-| Deep1M   | 256       | 1,000,000   | 7.08e-08                 | **4.87e-08** |
-| ImageNet | 150       | 1,000,000   | 1.71e-07                 | **2.73e-08** |
-| MSong    | 420       | 994,185     | 3.40e-02                 | **3.50e-04** |
-| Word2Vec | 300       | 1,000,000   | 4.51e-06                 | **5.81e-07** |
+- Comparison table of quantization mean squared error (MSE) between scalar quantization (SQ) and POUQ method across different datasets (quantization bit depth k=8) as follows:
+
+| Dataset  | Dimension | Size      | SQ       | POUQ (Ours) | Reduction  |
+| -------- | --------- | --------- | -------- | ----------- | ---------- |
+| SIFT     | 128       | 1,000,000 | 1.78e-02 | 1.11e-03    | **93.76%** |
+| GIST     | 960       | 1,000,000 | 1.34e-07 | 3.02e-08    | **77.46%** |
+| Deep1M   | 256       | 1,000,000 | 7.08e-08 | 4.87e-08    | **31.21%** |
+| ImageNet | 150       | 1,000,000 | 1.71e-07 | 2.73e-08    | **83.92%** |
+| MSong    | 420       | 994,185   | 3.40e-02 | 3.50e-04    | **98.97%** |
+| Word2Vec | 300       | 1,000,000 | 4.51e-06 | 5.81e-07    | **87.12%** |
 
 ## License
 
