@@ -30,14 +30,14 @@ cd python/ && bash build.sh
   - `data` numpy array of input data
   - `c_bit` number of cluster bits
   - `q_bit` number of quantization bits
-  - `optimize_bound` flag to enable optimize bound (default: True)
-  - `max_iter` maximum number of iterations (default: 128)
-  - `grid_side_length` grid side length (default: 8)
-  - `grid_scale_factor` grid scale factor (default: 0.1)
-  - `initial_inertia` initial inertia value (default: 0.9)
-  - `final_inertia` final inertia value (default: 0.4)
-  - `c1` cognitive learning factor (default: 1.8)
-  - `c2` social learning factor (default: 1.8)
+  - `optimize_bound` flag to enable optimize bound (default: `True`)
+  - `max_iter` maximum number of iterations (default: `128`)
+  - `grid_side_length` grid side length (default: `8`)
+  - `grid_scale_factor` grid scale factor (default: `0.1`)
+  - `initial_inertia` initial inertia value (default: `0.9`)
+  - `final_inertia` final inertia value (default: `0.4`)
+  - `c1` cognitive learning factor (default: `1.8`)
+  - `c2` social learning factor (default: `1.8`)
 
 `QVector` methods:
 
@@ -106,7 +106,7 @@ print_err("POUQ", QVector(data, c_bit=4, q_bit=4, optimize_bound=True))
 
 ## Results
 
-- Comparison table of quantization mean squared error (MSE) between scalar quantization (SQ) and POUQ method across different datasets (quantization bit depth k=8) as follows:
+Comparison table of quantization mean squared error (MSE) between scalar quantization (SQ) and POUQ method across different datasets (quantization bit depth `k=8`) **as follows**:
 
 | Dataset  | Dimension | Size      | SQ       | POUQ (Ours) | Reduction  |
 | -------- | --------- | --------- | -------- | ----------- | ---------- |
