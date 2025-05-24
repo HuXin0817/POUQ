@@ -52,10 +52,8 @@ public:
       const float                            initial_inertia   = 0.9f,
       const float                            final_inertia     = 0.4f,
       const float                            c1                = 1.8f,
-      const float                            c2                = 1.8f) {
-    c_bit_         = c_bit;
-    q_bit_         = q_bit;
-    ndim_          = data.ndim();
+      const float                            c2                = 1.8f)
+      : c_bit_(c_bit), q_bit_(q_bit), ndim_(data.ndim()) {
     uint64_t size_ = data.size();
     step_size_     = new float[1 << c_bit_];
     lower_bound_   = new float[1 << c_bit_];
@@ -142,13 +140,11 @@ private:
   uint64_t  c_bit_;
   uint64_t  q_bit_;
   uint64_t  ndim_;
-  uint64_t *shape_;
-
-  float *lower_bound_ = nullptr;
-  float *step_size_   = nullptr;
-
-  uint8_t *cid_  = nullptr;
-  uint8_t *code_ = nullptr;
+  uint64_t *shape_       = nullptr;
+  float    *lower_bound_ = nullptr;
+  float    *step_size_   = nullptr;
+  uint8_t  *cid_         = nullptr;
+  uint8_t  *code_        = nullptr;
 };
 
 }  // namespace pouq
