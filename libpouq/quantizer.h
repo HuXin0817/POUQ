@@ -1,15 +1,12 @@
 #pragma once
 
 #include <omp.h>
-#include <pybind11/numpy.h>
 
 #include "bitmap.h"
 #include "krange.h"
 #include "pso.h"
 
 namespace pouq {
-
-namespace py = pybind11;
 
 class Quantizer {
 public:
@@ -70,13 +67,6 @@ public:
       }
     }
   }
-
-  explicit Quantizer(const py::array_t<float> &array,
-      const uint64_t                           c_bit,
-      const uint64_t                           q_bit,
-      const uint64_t                           groups    = 1,
-      const bool                               opt_bound = true)
-      : Quantizer(array.data(), array.size(), c_bit, q_bit, groups, opt_bound) {}
 
   float operator[](const uint64_t i) const {
     const uint64_t group  = i % this->groups_;
