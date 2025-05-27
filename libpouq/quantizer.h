@@ -11,14 +11,14 @@ namespace pouq {
 
 namespace py = pybind11;
 
-class QVector {
+class Quantizer {
 public:
-  explicit QVector(const float *data,
-      const uint64_t            size,
-      const uint64_t            c_bit,
-      const uint64_t            q_bit,
-      const uint64_t            groups    = 1,
-      const bool                opt_bound = true)
+  explicit Quantizer(const float *data,
+      const uint64_t              size,
+      const uint64_t              c_bit,
+      const uint64_t              q_bit,
+      const uint64_t              groups    = 1,
+      const bool                  opt_bound = true)
       : c_bit_(c_bit), q_bit_(q_bit), size_(size), groups_(groups) {
     this->step_size_   = new float[this->groups_ * (1 << this->c_bit_)];
     this->lower_bound_ = new float[this->groups_ * (1 << this->c_bit_)];
@@ -71,12 +71,12 @@ public:
     }
   }
 
-  explicit QVector(const py::array_t<float> &array,
-      const uint64_t                         c_bit,
-      const uint64_t                         q_bit,
-      const uint64_t                         groups    = 1,
-      const bool                             opt_bound = true)
-      : QVector(array.data(), array.size(), c_bit, q_bit, groups, opt_bound) {}
+  explicit Quantizer(const py::array_t<float> &array,
+      const uint64_t                           c_bit,
+      const uint64_t                           q_bit,
+      const uint64_t                           groups    = 1,
+      const bool                               opt_bound = true)
+      : Quantizer(array.data(), array.size(), c_bit, q_bit, groups, opt_bound) {}
 
   float operator[](const uint64_t i) const {
     const uint64_t group  = i % this->groups_;
@@ -87,7 +87,7 @@ public:
 
   uint64_t size() const { return this->size_; }
 
-  ~QVector() {
+  ~Quantizer() {
     delete[] this->lower_bound_;
     delete[] this->step_size_;
     delete[] this->code_;

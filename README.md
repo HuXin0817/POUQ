@@ -28,7 +28,7 @@ cd python/ && bash build.sh
 
 ### API Description
 
-- `QVector(data: np.ndarray, c_bit: int, q_bit: int, groups: int = 1, opt_bound: bool = True)` -
+- `Quantizer(data: np.ndarray, c_bit: int, q_bit: int, groups: int = 1, opt_bound: bool = True)` -
   Initializes a quantization vector with specified parameters
   - `data`: Input numpy array
   - `c_bit`: Number of cluster id bits
@@ -36,7 +36,7 @@ cd python/ && bash build.sh
   - `groups`: Number of quantization groups (default: `1`)
   - `opt_bound`: Flag to enable boundary optimization (default: `True`)
 
-`QVector` methods:
+`Quantizer` methods:
 
 - `size() -> int` - Returns the size of the quantization vector
 - `__getitem__(i: int) -> float` - Returns the value at the specified index
@@ -50,7 +50,7 @@ For examples on real-world datasets, please refer to `./reproduce`
 import sys
 
 import numpy as np
-from pouq import QVector, compute_mse
+from pouq import Quantizer, compute_mse
 
 
 # read_fvecs sourced from https://github.com/gaoj0017/RaBitQ/blob/main/data/utils/io.py
@@ -80,12 +80,12 @@ N, Dim = data.shape
 print(f"N={N}, Dim={Dim}")
 
 
-def print_err(method: str, qvector: QVector):
+def print_err(method: str, qvector: Quantizer):
   print(f"Method: {method}, Error: {compute_mse(data, qvector)}")
 
 
-print_err("SQ", QVector(data, c_bit=0, q_bit=8, groups=Dim, opt_bound=False))
-print_err("POUQ", QVector(data, c_bit=4, q_bit=4, groups=Dim, opt_bound=True))
+print_err("SQ", Quantizer(data, c_bit=0, q_bit=8, groups=Dim, opt_bound=False))
+print_err("POUQ", Quantizer(data, c_bit=4, q_bit=4, groups=Dim, opt_bound=True))
 ```
 
 ## Reproduce
