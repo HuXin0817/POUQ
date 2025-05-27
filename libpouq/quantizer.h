@@ -80,8 +80,8 @@ public:
   ~Quantizer() {
     delete[] this->lower_bound_;
     delete[] this->step_size_;
-    delete[] this->code_;
     delete[] this->cid_;
+    delete[] this->code_;
   }
 
 private:
