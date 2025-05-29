@@ -6,9 +6,7 @@
 #include <random>
 #include <vector>
 
-namespace pouq {
-
-namespace pso {
+namespace pouq::pso {
 
 static constexpr uint64_t max_iter          = 128;
 static constexpr uint64_t grid_side_length  = 8;
@@ -151,6 +149,4 @@ std::pair<float, float> optimize(const float                       div,
   return {opt_lower, opt_upper};
 }
 
-}  // namespace pso
-
-}  // namespace pouq
+}  // namespace pouq::pso
