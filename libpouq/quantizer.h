@@ -25,11 +25,9 @@ public:
     const auto div = static_cast<float>((1 << this->q_bit_) - 1);
 #pragma omp parallel for
     for (uint64_t group = 0; group < this->groups_; group++) {
-      const auto  data_freq_map = this->count_freq(data, group);
-      const auto  bounds        = krange(1 << this->c_bit_, data_freq_map);
-      const auto &lowers        = bounds.first;
-      const auto &uppers        = bounds.second;
-      const auto  offset        = group * (1 << this->c_bit_);
+      const auto data_freq_map    = this->count_freq(data, group);
+      const auto [lowers, uppers] = krange(1 << this->c_bit_, data_freq_map);
+      const auto offset           = group * (1 << this->c_bit_);
 
       for (uint64_t i = 0; i < lowers.size(); i++) {
         float lower = lowers[i];
