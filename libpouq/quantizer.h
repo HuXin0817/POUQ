@@ -54,6 +54,7 @@ public:
         }
       }
 
+      static_cast<std::vector<std::pair<float, uint64_t>>>(data_freq_map).clear();
       for (uint64_t i = group; i < this->size_; i += this->groups_) {
         const float    d  = data[i];
         const auto     it = std::upper_bound(lowers.begin(), lowers.end(), d);
