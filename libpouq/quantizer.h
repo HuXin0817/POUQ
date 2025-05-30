@@ -55,6 +55,7 @@ public:
       }
 
       static_cast<std::vector<std::pair<float, uint64_t>>>(data_freq_map).clear();
+      static_cast<std::vector<float>>(uppers).clear();
       for (uint64_t i = group; i < this->size_; i += this->groups_) {
         const float    d  = data[i];
         const auto     it = std::upper_bound(lowers.begin(), lowers.end(), d);
@@ -93,7 +94,7 @@ private:
   uint8_t *cid_         = nullptr;
   uint8_t *code_        = nullptr;
 
-  static Optimizer optimizer;
+  static inline Optimizer optimizer;
 
   std::vector<std::pair<float, uint64_t>> count_freq(const float *data, const uint64_t group) const {
     std::vector<float> sorted_data;
