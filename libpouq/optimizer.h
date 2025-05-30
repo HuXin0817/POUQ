@@ -12,18 +12,18 @@ class Optimizer {
 public:
   virtual ~Optimizer() = default;
 
-  virtual std::pair<float, float> operator()(float                   div,
-      float                                                          initial_min_bound,
-      float                                                          initial_max_bound,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_end) = 0;
+  virtual std::pair<float, float> operator()(float                 div,
+      float                                                        initial_min_bound,
+      float                                                        initial_max_bound,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) = 0;
 
 protected:
-  static float loss(const float                                      div,
-      float                                                          cluster_lower_bound,
-      float                                                          step_size_value,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_begin,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_end) {
+  static float loss(const float                                    div,
+      float                                                        cluster_lower_bound,
+      float                                                        step_size_value,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_begin,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
     step_size_value  = std::max(step_size_value, 1e-8f);
     float total_loss = 0.0f;
 
@@ -48,13 +48,13 @@ protected:
 };
 
 class PSOptimizer final : public Optimizer {
-  static constexpr uint64_t max_iter          = 128;
-  static constexpr uint64_t grid_side_length  = 8;
-  static constexpr float    grid_scale_factor = 0.1f;
-  static constexpr float    initial_inertia   = 0.9f;
-  static constexpr float    final_inertia     = 0.4f;
-  static constexpr float    c1                = 1.8f;
-  static constexpr float    c2                = 1.8f;
+  static constexpr size_t max_iter          = 128;
+  static constexpr size_t grid_side_length  = 8;
+  static constexpr float  grid_scale_factor = 0.1f;
+  static constexpr float  initial_inertia   = 0.9f;
+  static constexpr float  final_inertia     = 0.4f;
+  static constexpr float  c1                = 1.8f;
+  static constexpr float  c2                = 1.8f;
 
   struct Particle {
     float center;
@@ -76,11 +76,11 @@ class PSOptimizer final : public Optimizer {
   };
 
 public:
-  std::pair<float, float> operator()(float                           div,
-      float                                                          initial_min_bound,
-      float                                                          initial_max_bound,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_end) override {
+  std::pair<float, float> operator()(float                         div,
+      float                                                        initial_min_bound,
+      float                                                        initial_max_bound,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
     const float initial_range_width  = initial_max_bound - initial_min_bound;
     const float initial_range_center = (initial_min_bound + initial_max_bound) * 0.5f;
 
@@ -91,8 +91,8 @@ public:
 
     std::vector<Particle> particle_swarm;
 
-    for (uint64_t i = 0; i < grid_side_length; i++) {
-      for (uint64_t j = 0; j < grid_side_length; j++) {
+    for (size_t i = 0; i < grid_side_length; i++) {
+      for (size_t j = 0; j < grid_side_length; j++) {
         const float lower_bound =
             initial_min_bound - grid_scale_factor * initial_range_width +
             static_cast<float>(i) * 2 * grid_scale_factor * initial_range_width / grid_side_length;
@@ -122,7 +122,7 @@ public:
       }
     }
 
-    for (uint64_t iter = 0; iter < max_iter; ++iter) {
+    for (size_t iter = 0; iter < max_iter; ++iter) {
       const float current_inertia =
           initial_inertia - (initial_inertia - final_inertia) * static_cast<float>(iter) / max_iter;
 

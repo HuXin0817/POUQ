@@ -3,11 +3,11 @@
 #include <iomanip>
 #include <iostream>
 
-constexpr uint64_t N = 1e6;
+constexpr size_t N = 1e6;
 
-float compute_mse(const float *data, const uint64_t size, const pouq::Quantizer &quantizer) {
+float compute_mse(const float *data, const size_t size, const pouq::Quantizer &quantizer) {
   float mse = 0;
-  for (uint64_t i = 0; i < size; ++i) {
+  for (size_t i = 0; i < size; ++i) {
     const float dif = data[i] - quantizer[i];
     mse += dif * dif;
   }
@@ -18,7 +18,7 @@ template <typename DataType>
 void print_vector(const char *prefix, const DataType &data) {
   std::cout << prefix << "[";
   std::cout << std::fixed << std::setprecision(3);
-  for (uint64_t i = 0; i < 5; ++i) {
+  for (size_t i = 0; i < 5; ++i) {
     std::cout << data[i];
     if (i < 4) {
       std::cout << ", ";
@@ -35,7 +35,7 @@ int main() {
   std::uniform_real_distribution dis(0.0f, 256.0f);
 
   auto *data = new float[N];
-  for (uint64_t i = 0; i < N; ++i) {
+  for (size_t i = 0; i < N; ++i) {
     data[i] = dis(gen);
   }
 
