@@ -5,14 +5,14 @@
 
 namespace py = pybind11;
 
-class Quantizer : public pouq::Quantizer {
+class Quantizer final : public pouq::POUQuantizer<> {
 public:
   explicit Quantizer(const py::array_t<float> &array,
       const uint64_t                           c_bit,
       const uint64_t                           q_bit,
       const uint64_t                           groups    = 1,
       const bool                               opt_bound = true)
-      : pouq::Quantizer(array.data(), array.size(), c_bit, q_bit, groups, opt_bound) {}
+      : pouq::POUQuantizer<>(array.data(), array.size(), c_bit, q_bit, groups, opt_bound) {}
 };
 
 float compute_mse(const py::array_t<float> &data, const Quantizer &quantizer) {

@@ -3,19 +3,29 @@
 #include <omp.h>
 
 #include "bitmap.h"
-#include "krange.h"
+#include "clusterer.h"
 #include "optimizer.h"
 
 namespace pouq {
 
 class Quantizer {
 public:
-  explicit Quantizer(const float *data,
-      const uint64_t              size,
-      const uint64_t              c_bit,
-      const uint64_t              q_bit,
-      const uint64_t              groups    = 1,
-      const bool                  opt_bound = true)
+  virtual ~Quantizer() = default;
+
+  virtual float operator[](uint64_t i) const = 0;
+
+  virtual uint64_t size() const = 0;
+};
+
+template <typename Clusterer = KrangeClusterer, typename Optimizer = PSOptimizer>
+class POUQuantizer : public Quantizer {
+public:
+  explicit POUQuantizer(const float *data,
+      const uint64_t                 size,
+      const uint64_t                 c_bit,
+      const uint64_t                 q_bit,
+      const uint64_t                 groups    = 1,
+      const bool                     opt_bound = true)
       : c_bit_(c_bit), q_bit_(q_bit), size_(size), groups_(groups) {
     this->step_size_   = new float[this->groups_ * (1 << this->c_bit_)];
     this->lower_bound_ = new float[this->groups_ * (1 << this->c_bit_)];
@@ -25,13 +35,12 @@ public:
     const auto div = static_cast<float>((1 << this->q_bit_) - 1);
 #pragma omp parallel for
     for (uint64_t group = 0; group < this->groups_; group++) {
-      const auto data_freq_map    = this->count_freq(data, group);
-      const auto [lowers, uppers] = krange(1 << this->c_bit_, data_freq_map);
-      const auto offset           = group * (1 << this->c_bit_);
+      const auto data_freq_map = this->count_freq(data, group);
+      const auto bounds        = Clusterer()(1 << this->c_bit_, data_freq_map);
+      const auto offset        = group * (1 << this->c_bit_);
 
-      for (uint64_t i = 0; i < lowers.size(); i++) {
-        float lower = lowers[i];
-        float upper = uppers[i];
+      for (uint64_t i = 0; i < bounds.size(); i++) {
+        auto [lower, upper] = bounds[i];
         if (opt_bound && lower < upper) {
           auto data_start = std::lower_bound(data_freq_map.begin(),
               data_freq_map.end(),
@@ -42,7 +51,7 @@ public:
               upper,
               [](const float rhs, const std::pair<float, uint64_t> &lhs) -> bool { return rhs < lhs.first; });
 
-          const auto [opt_lower, opt_upper] = optimizer(div, lower, upper, data_start, data_end);
+          const auto [opt_lower, opt_upper] = Optimizer()(div, lower, upper, data_start, data_end);
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
@@ -55,29 +64,31 @@ public:
       }
 
       static_cast<std::vector<std::pair<float, uint64_t>>>(data_freq_map).clear();
-      static_cast<std::vector<float>>(uppers).clear();
       for (uint64_t i = group; i < this->size_; i += this->groups_) {
-        const float    d  = data[i];
-        const auto     it = std::upper_bound(lowers.begin(), lowers.end(), d);
-        const uint64_t c  = it - lowers.begin() - 1;
+        const float d  = data[i];
+        const auto  it = std::upper_bound(
+            bounds.begin(), bounds.end(), d, [](const float rhs, const std::pair<float, float> &lhs) -> bool {
+              return rhs < lhs.first;
+            });
+        const uint64_t c = it - bounds.begin() - 1;
         bitmap::set(this->cid_, i, c, this->c_bit_);
         const float x =
             std::clamp((d - this->lower_bound_[offset + c]) / this->step_size_[offset + c] + 0.5f, 0.0f, div);
-        bitmap::set(this->code_, i, x, this->q_bit_);
+        bitmap::set(this->code_, i, static_cast<uint64_t>(x), this->q_bit_);
       }
     }
   }
 
-  float operator[](const uint64_t i) const {
+  float operator[](uint64_t i) const override {
     const uint64_t group  = i % this->groups_;
     const uint64_t offset = bitmap::get(this->cid_, i, this->c_bit_) + group * (1 << this->c_bit_);
     const uint64_t x      = bitmap::get(this->code_, i, this->q_bit_);
     return this->lower_bound_[offset] + this->step_size_[offset] * static_cast<float>(x);
   }
 
-  uint64_t size() const { return this->size_; }
+  uint64_t size() const override { return this->size_; }
 
-  ~Quantizer() {
+  ~POUQuantizer() override {
     delete[] this->lower_bound_;
     delete[] this->step_size_;
     delete[] this->cid_;
@@ -93,8 +104,6 @@ private:
   float   *step_size_   = nullptr;
   uint8_t *cid_         = nullptr;
   uint8_t *code_        = nullptr;
-
-  static inline Optimizer optimizer;
 
   std::vector<std::pair<float, uint64_t>> count_freq(const float *data, const uint64_t group) const {
     std::vector<float> sorted_data;
