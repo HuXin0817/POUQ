@@ -11,6 +11,7 @@
 ```
 ../
 ├── data/       # datasets and indices
+├── example/    # cpp example
 ├── libpouq/    # cpp implements
 ├── python/     # python bindings
 └── reproduce/  # code for reproduction
