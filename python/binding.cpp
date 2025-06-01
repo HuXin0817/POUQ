@@ -1,4 +1,5 @@
 #include "../libpouq/quantizer.h"
+#include "../libpouq/utils.h"
 #include <memory>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -156,21 +157,11 @@ public:
 };
 
 float compute_mse(const py::array_t<float> &data, const POUQuantizer &quantizer) {
-  float mse = 0;
-  for (size_t i = 0; i < static_cast<size_t>(data.size()); ++i) {
-    const float diff = data.data()[i] - quantizer[i];
-    mse += diff * diff;
-  }
-  return mse / static_cast<float>(data.size());
+  return compute_mse(data.data(), quantizer, data.size());
 }
 
 float compute_mse(const py::array_t<float> &data, const ScaledQuantizer &quantizer) {
-  float mse = 0;
-  for (size_t i = 0; i < static_cast<size_t>(data.size()); ++i) {
-    const float diff = data.data()[i] - quantizer[i];
-    mse += diff * diff;
-  }
-  return mse / static_cast<float>(data.size());
+  return compute_mse(data.data(), quantizer, data.size());
 }
 
 PYBIND11_MODULE(pouq, m) {

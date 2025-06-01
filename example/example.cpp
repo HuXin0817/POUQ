@@ -1,18 +1,12 @@
 #include "../libpouq/quantizer.h"
+#include "../libpouq/utils.h"
 
 #include <iomanip>
 #include <iostream>
 
 constexpr size_t N = 1e6;
 
-float compute_mse(const float *data, const size_t size, const pouq::Quantizer &quantizer) {
-  float mse = 0;
-  for (size_t i = 0; i < size; ++i) {
-    const float dif = data[i] - quantizer[i];
-    mse += dif * dif;
-  }
-  return mse / static_cast<float>(size);
-}
+using Quantizer = pouq::POUQuantizer<4, 4>;
 
 template <typename DataType>
 void print_vector(const char *prefix, const DataType &data) {
@@ -39,9 +33,9 @@ int main() {
     data[i] = dis(gen);
   }
 
-  pouq::POUQuantizer<4, 4> quantizer(256);
+  Quantizer quantizer(256);
   quantizer.train(data, N);
-  std::cout << "Error: " << compute_mse(data, N, quantizer) << std::endl;
+  std::cout << "Error: " << compute_mse(data, quantizer, N) << std::endl;
 
   print_vector("Origin Vector:    ", data);
   print_vector("Quantized Vector: ", quantizer);
