@@ -69,7 +69,7 @@ public:
           upper                             = opt_upper;
         }
         this->lower_bound_[offset + i] = lower;
-        if (lower == upper) {
+        if (lower == upper || div == 0.0f) {
           this->step_size_[offset + i] = 1.0;
         } else {
           this->step_size_[offset + i] = (upper - lower) / div;
@@ -156,6 +156,11 @@ public:
 class OptimizedScaledQuantizer final : public QuantizerImpl<Clusterer, PSOptimizer> {
 public:
   explicit OptimizedScaledQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
+};
+
+class LloydMaxQuantizer final : public QuantizerImpl<KmeansClusterer, CenterCalculator> {
+public:
+  explicit LloydMaxQuantizer(size_t c_bit, size_t groups = 1) : QuantizerImpl(c_bit, 0, groups) {}
 };
 
 class POUQuantizer final : public QuantizerImpl<KrangeClusterer, PSOptimizer> {
