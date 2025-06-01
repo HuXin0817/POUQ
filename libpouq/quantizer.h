@@ -21,7 +21,7 @@ public:
 
 class Float32Quantizer : public Quantizer {
 public:
-  Float32Quantizer() {}
+  Float32Quantizer() = default;
 
   void train(const float *data, size_t size) override { data_ = std::vector(data, data + size); }
 
@@ -36,10 +36,10 @@ private:
 template <typename Clusterer = KrangeClusterer, typename Optimizer = PSOptimizer>
 class POUQuantizer : public Quantizer {
 public:
-  explicit POUQuantizer(const size_t c_bit, const size_t q_bit, const size_t groups = 1)
+  explicit POUQuantizer(size_t c_bit, size_t q_bit, size_t groups = 1)
       : c_bit_(c_bit), q_bit_(q_bit), groups_(groups) {}
 
-  void train(const float *data, const size_t size) override {
+  void train(const float *data, size_t size) override {
     this->size_        = size;
     this->step_size_   = new float[this->groups_ * (1 << this->c_bit_)];
     this->lower_bound_ = new float[this->groups_ * (1 << this->c_bit_)];
