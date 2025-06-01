@@ -13,11 +13,11 @@ public:
   virtual ~Optimizer() = default;
 
   virtual std::pair<float, float> operator()(float                 div,
-      float                                                        initial_min_bound,
-      float                                                        initial_max_bound,
+      float                                                        initial_lower_bound,
+      float                                                        initial_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
-    return {initial_min_bound, initial_max_bound};
+    return {initial_lower_bound, initial_upper_bound};
   }
 
 protected:
@@ -79,12 +79,12 @@ class PSOptimizer final : public Optimizer {
 
 public:
   std::pair<float, float> operator()(float                         div,
-      float                                                        initial_min_bound,
-      float                                                        initial_max_bound,
+      float                                                        initial_lower_bound,
+      float                                                        initial_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
-    const float initial_range_width  = initial_max_bound - initial_min_bound;
-    const float initial_range_center = (initial_min_bound + initial_max_bound) * 0.5f;
+    const float initial_range_width  = initial_upper_bound - initial_lower_bound;
+    const float initial_range_center = (initial_lower_bound + initial_upper_bound) * 0.5f;
 
     std::random_device             rd;
     std::mt19937                   gen(rd());
@@ -96,10 +96,10 @@ public:
     for (size_t i = 0; i < grid_side_length; i++) {
       for (size_t j = 0; j < grid_side_length; j++) {
         const float lower_bound =
-            initial_min_bound - grid_scale_factor * initial_range_width +
+            initial_lower_bound - grid_scale_factor * initial_range_width +
             static_cast<float>(i) * 2 * grid_scale_factor * initial_range_width / grid_side_length;
         const float upper_bound =
-            initial_max_bound - grid_scale_factor * initial_range_width +
+            initial_upper_bound - grid_scale_factor * initial_range_width +
             static_cast<float>(j) * 2 * grid_scale_factor * initial_range_width / grid_side_length;
         const float particle_center = (lower_bound + upper_bound) / 2.0f;
         const float particle_width  = upper_bound - lower_bound;
@@ -110,7 +110,7 @@ public:
 
     float global_best_center = initial_range_center;
     float global_best_width  = initial_range_width;
-    float global_min_loss    = loss(div, initial_min_bound, initial_range_width / div, data_start, data_end);
+    float global_min_loss    = loss(div, initial_lower_bound, initial_range_width / div, data_start, data_end);
 
     for (auto &particle : particle_swarm) {
       const float current_lower_bound = particle.center - particle.width * 0.5f;
