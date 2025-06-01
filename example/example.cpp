@@ -1,6 +1,7 @@
 #include "../libpouq/quantizer.h"
 #include "../libpouq/utils.h"
 
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 
@@ -32,7 +33,13 @@ int main() {
   }
 
   pouq::POUQuantizer quantizer(4, 4, 256);
+
+  const auto start_time = std::chrono::high_resolution_clock::now();
   quantizer.train(data.data(), N);
+  const auto end_time = std::chrono::high_resolution_clock::now();
+  const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
+
+  std::cout << "Training time: " << std::fixed << std::setprecision(3) << duration.count() << "s" << std::endl;
   std::cout << "Error: " << compute_mse(data, quantizer, N) << std::endl;
 
   print_vector("Origin Vector:    ", data);
