@@ -50,7 +50,7 @@ public:
 #pragma omp parallel for
     for (size_t group = 0; group < this->groups_; group++) {
       const auto data_freq_map = this->count_freq(data, group);
-      const auto bounds        = Clusterer()(1 << this->c_bit_, data_freq_map);
+      const auto bounds        = clusterer(1 << this->c_bit_, data_freq_map);
       const auto offset        = group * (1 << this->c_bit_);
 
       for (size_t i = 0; i < bounds.size(); i++) {
@@ -65,7 +65,7 @@ public:
               upper,
               [](const float rhs, const std::pair<float, size_t> &lhs) -> bool { return rhs < lhs.first; });
 
-          const auto [opt_lower, opt_upper] = Optimizer()(div, lower, upper, data_start, data_end);
+          const auto [opt_lower, opt_upper] = optimizer(div, lower, upper, data_start, data_end);
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
@@ -118,6 +118,9 @@ private:
   float   *step_size_   = nullptr;
   uint8_t *cid_         = nullptr;
   uint8_t *code_        = nullptr;
+
+  static inline Clusterer clusterer;
+  static inline Optimizer optimizer;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, const size_t group) const {
     std::vector<float> sorted_data;
