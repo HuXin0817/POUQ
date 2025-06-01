@@ -29,19 +29,34 @@ cd python/ && bash build.sh
 
 ### API Description
 
-- `Quantizer(data: np.ndarray, c_bit: int, q_bit: int, groups: int = 1, opt_bound: bool = True)` -
-  Initializes a quantization vector with specified parameters
-  - `data`: Input numpy array
-  - `c_bit`: Number of cluster id bits
-  - `q_bit`: Number of quantization bits
+#### POUQuantizer
+
+- `POUQuantizer(c_bit: int, q_bit: int, groups: int = 1)` - Initializes a POUQ quantizer with specified parameters
+  - `c_bit`: Number of cluster id bits (0-16)
+  - `q_bit`: Number of quantization bits (1-16)
   - `groups`: Number of quantization groups (default: `1`)
-  - `opt_bound`: Flag to enable boundary optimization (default: `True`)
 
-`Quantizer` methods:
+`POUQuantizer` methods:
 
+- `train(data: np.ndarray) -> None` - Trains the quantizer with input data
+  - `data`: Input numpy array of float32 values
 - `size() -> int` - Returns the size of the quantization vector
-- `__getitem__(i: int) -> float` - Returns the value at the specified index
-  - `i`: specified index
+- `__getitem__(i: int) -> float` - Returns the quantized value at the specified index
+  - `i`: Index to retrieve
+
+#### ScaledQuantizer
+
+- `ScaledQuantizer(q_bit: int, groups: int = 1)` - Initializes a scaled quantizer with specified parameters
+  - `q_bit`: Number of quantization bits (1-16)
+  - `groups`: Number of quantization groups (default: `1`)
+
+`ScaledQuantizer` methods:
+
+- `train(data: np.ndarray) -> None` - Trains the quantizer with input data
+  - `data`: Input numpy array of float32 values
+- `size() -> int` - Returns the size of the quantization vector
+- `__getitem__(i: int) -> float` - Returns the quantized value at the specified index
+  - `i`: Index to retrieve
 
 ### Example
 

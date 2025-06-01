@@ -39,7 +39,8 @@ int main() {
     data[i] = dis(gen);
   }
 
-  const pouq::POUQuantizer<4, 4> quantizer(data, N, 256, true);
+  pouq::POUQuantizer<4, 4> quantizer(256);
+  quantizer.train(data, N);
   std::cout << "Error: " << compute_mse(data, N, quantizer) << std::endl;
 
   print_vector("Origin Vector:    ", data);
