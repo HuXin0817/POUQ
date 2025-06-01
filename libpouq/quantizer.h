@@ -19,7 +19,7 @@ public:
   virtual size_t size() const = 0;
 };
 
-class Float32Quantizer : public Quantizer {
+class Float32Quantizer final : public Quantizer {
 public:
   Float32Quantizer() = default;
 
@@ -33,11 +33,10 @@ private:
   std::vector<float> data_;
 };
 
-template <typename Clusterer = KrangeClusterer, typename Optimizer = PSOptimizer>
-class POUQuantizer : public Quantizer {
+template <typename Clusterer, typename Optimizer>
+class QuantizerImpl : public Quantizer {
 public:
-  explicit POUQuantizer(size_t c_bit, size_t q_bit, size_t groups = 1)
-      : c_bit_(c_bit), q_bit_(q_bit), groups_(groups) {}
+  explicit QuantizerImpl(size_t c_bit, size_t q_bit, size_t groups) : c_bit_(c_bit), q_bit_(q_bit), groups_(groups) {}
 
   void train(const float *data, size_t size) override {
     this->size_        = size;
@@ -102,7 +101,7 @@ public:
 
   size_t size() const override { return this->size_; }
 
-  ~POUQuantizer() override {
+  ~QuantizerImpl() override {
     delete[] this->lower_bound_;
     delete[] this->step_size_;
     delete[] this->cid_;
@@ -149,9 +148,19 @@ private:
   }
 };
 
-class ScaledQuantizer : public POUQuantizer<Clusterer, Optimizer> {
+class ScaledQuantizer final : public QuantizerImpl<Clusterer, Optimizer> {
 public:
-  explicit ScaledQuantizer(size_t q_bit, size_t groups = 1) : POUQuantizer(0, q_bit, groups) {}
+  explicit ScaledQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
+};
+
+class OptimizedScaledQuantizer final : public QuantizerImpl<Clusterer, PSOptimizer> {
+public:
+  explicit OptimizedScaledQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
+};
+
+class POUQuantizer final : public QuantizerImpl<KrangeClusterer, PSOptimizer> {
+public:
+  explicit POUQuantizer(size_t c_bit, size_t q_bit, size_t groups = 1) : QuantizerImpl(c_bit, q_bit, groups) {}
 };
 
 }  // namespace pouq
