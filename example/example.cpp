@@ -9,7 +9,7 @@ constexpr size_t N = 1e6;
 
 template <typename DataType>
 void print_vector(const char *prefix, const DataType &data) {
-  std::cout << prefix << "[";
+  std::cout << std::left << std::setw(18) << prefix << "[";
   std::cout << std::fixed << std::setprecision(3);
   for (size_t i = 0; i < 5; ++i) {
     std::cout << data[i];
@@ -39,8 +39,8 @@ int main() {
   const auto end_time = std::chrono::high_resolution_clock::now();
   const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
 
-  std::cout << "Training time: " << std::fixed << std::setprecision(3) << duration.count() << "s" << std::endl;
-  std::cout << "Error: " << compute_mse(data, quantizer, N) << std::endl;
+  std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
+  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(data, quantizer, N) << std::endl;
 
   print_vector("Origin Vector:    ", data);
   print_vector("Quantized Vector: ", quantizer);
