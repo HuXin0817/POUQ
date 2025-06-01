@@ -22,5 +22,8 @@ data/msong/
 data/sift/
 data/word2vec/
 
+# result
+result/
+
 # MacOS
 .DS_Store
