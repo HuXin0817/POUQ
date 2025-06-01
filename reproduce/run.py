@@ -118,12 +118,17 @@ def plot_tradeoff(results_dict, dataset_name):
         log_max = np.log10(max_mse)
         log_range = log_max - log_min
 
-        if log_range > 3:
-            zero_replacement = min_nonzero_mse / 10
+        if log_range > 4:
+            zero_replacement = 10 ** (log_min - 1)
+        elif log_range > 2:
+            zero_replacement = 10 ** (log_min - 0.5)
         elif log_range > 1:
-            zero_replacement = min_nonzero_mse / 5
+            zero_replacement = 10 ** (log_min - 0.3)
         else:
-            zero_replacement = min_nonzero_mse / 2
+            zero_replacement = 10 ** (log_min - 0.1)
+
+        # 确保零MSE阈值不会过小，至少为最小非零MSE的1/1000
+        zero_replacement = max(zero_replacement, min_nonzero_mse / 1000)
     else:
         zero_replacement = (
             min_nonzero_mse / 100 if min_nonzero_mse != float("inf") else min_threshold
