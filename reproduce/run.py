@@ -40,9 +40,9 @@ def run(data: np.ndarray, results_dict):
     print(f"N={N}, Dim={Dim}")
 
     methods = [
-        ("SQ", ScaledQuantizer(q_bit=8, groups=Dim)),
+        ("SQ", ScaledQuantizer(q_bit=8, groups=Dim * 16)),
         ("POUQ", POUQuantizer(c_bit=4, q_bit=4, groups=Dim)),
-        ("LloydMax", LloydMaxQuantizer(c_bit=8, groups=Dim)),
+        ("LloydMax", LloydMaxQuantizer(c_bit=8, groups=Dim // 16)),
     ]
 
     for method_name, quantizer in methods:
@@ -62,11 +62,12 @@ def plot_tradeoff(results_dict, dataset_name):
     result_dir = "../result"
     os.makedirs(result_dir, exist_ok=True)
 
-    plt.figure(figsize=(10, 6))
-
     colors = {"SQ": "blue", "POUQ": "red", "LloydMax": "green"}
-    markers = {"SQ": "o", "POUQ": "s", "LloydMax": "^"}
+    markers = {"SQ": "o", "POUQ": "^", "LloydMax": "s"}
 
+    fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+    # 处理零MSE值
     has_zero_mse = False
     min_nonzero_mse = float("inf")
 
@@ -84,7 +85,7 @@ def plot_tradeoff(results_dict, dataset_name):
     for method_name, data in results_dict.items():
         adjusted_mses = [mse if mse > 0 else zero_replacement for mse in data["mses"]]
 
-        plt.scatter(
+        ax.scatter(
             data["times"],
             adjusted_mses,
             c=colors.get(method_name, "black"),
@@ -94,7 +95,7 @@ def plot_tradeoff(results_dict, dataset_name):
             alpha=0.7,
         )
 
-        plt.plot(
+        ax.plot(
             data["times"],
             adjusted_mses,
             c=colors.get(method_name, "black"),
@@ -103,7 +104,7 @@ def plot_tradeoff(results_dict, dataset_name):
         )
 
     if has_zero_mse:
-        plt.axhline(
+        ax.axhline(
             y=zero_replacement,
             color="blue",
             linestyle="--",
@@ -112,17 +113,17 @@ def plot_tradeoff(results_dict, dataset_name):
             label="MSE=0",
         )
 
-    plt.xlabel("Training Time (seconds)")
-    plt.ylabel("MSE")
-    plt.title(f"Training Time vs MSE Trade-off ({dataset_name})")
+    ax.set_xlabel("Training Time (seconds)")
+    ax.set_ylabel("MSE")
+    ax.set_title(f"Training Time vs MSE Trade-off ({dataset_name})")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_yscale("log")
+    ax.set_xscale("log")
 
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
 
-    plt.yscale("log")
-    plt.xscale("log")
-
-    output_path = os.path.join(result_dir, f"{dataset_name}_tradeoff.png")
+    output_path = os.path.join(result_dir, f"{dataset_name}_tradeoff_plot.png")
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"Trade-off plot saved to: {output_path}")
 
@@ -139,10 +140,13 @@ if __name__ == "__main__":
     N, Dim = data.shape
     results_dict = {}
 
-    i = 100
-    while i < N:
-        run(data[:i, :], results_dict)
-        i *= 10
+    log_min = np.log10(100)
+    log_max = np.log10(N)
+    log_samples = np.linspace(log_min, log_max, 10)
 
-    run(data, results_dict)
+    for log_sample in log_samples:
+        sample_size = int(10**log_sample)
+        sample_size = min(sample_size, N)
+        run(data[:sample_size, :], results_dict)
+
     plot_tradeoff(results_dict, dataset_name)
