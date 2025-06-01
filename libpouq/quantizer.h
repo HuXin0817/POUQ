@@ -19,6 +19,20 @@ public:
   virtual size_t size() const = 0;
 };
 
+class Float32Quantizer : public Quantizer {
+public:
+  Float32Quantizer() {}
+
+  void train(const float *data, size_t size) override { data_ = std::vector(data, data + size); }
+
+  float operator[](size_t i) const override { return data_[i]; }
+
+  size_t size() const override { return data_.size(); }
+
+private:
+  std::vector<float> data_;
+};
+
 template <typename Clusterer = KrangeClusterer, typename Optimizer = PSOptimizer>
 class POUQuantizer : public Quantizer {
 public:
