@@ -14,7 +14,19 @@ IF (BUILD_PYTHON_BINDINGS)
     pybind11_add_module(binding python/binding.cpp)
 
     TARGET_COMPILE_FEATURES(binding PRIVATE cxx_std_17)
-    TARGET_COMPILE_OPTIONS(binding PRIVATE -O3)
+    TARGET_COMPILE_OPTIONS(binding PRIVATE
+            -O3
+            -march=native
+            -ffast-math
+            -DNDEBUG
+            -flto
+    )
+
+    SET_TARGET_PROPERTIES(binding PROPERTIES
+            CXX_VISIBILITY_PRESET "hidden"
+            VISIBILITY_INLINES_HIDDEN YES
+            INTERPROCEDURAL_OPTIMIZATION TRUE
+    )
 
     TARGET_LINK_LIBRARIES(binding PRIVATE OpenMP::OpenMP_CXX)
 

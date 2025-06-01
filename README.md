@@ -27,37 +27,6 @@
 cd python/ && bash build.sh
 ```
 
-### API Description
-
-#### POUQuantizer
-
-- `POUQuantizer(c_bit: int, q_bit: int, groups: int = 1)` - Initializes a POUQ quantizer with specified parameters
-  - `c_bit`: Number of cluster id bits (0-16)
-  - `q_bit`: Number of quantization bits (1-16)
-  - `groups`: Number of quantization groups (default: `1`)
-
-`POUQuantizer` methods:
-
-- `train(data: np.ndarray) -> None` - Trains the quantizer with input data
-  - `data`: Input numpy array of float32 values
-- `size() -> int` - Returns the size of the quantization vector
-- `__getitem__(i: int) -> float` - Returns the quantized value at the specified index
-  - `i`: Index to retrieve
-
-#### ScaledQuantizer
-
-- `ScaledQuantizer(q_bit: int, groups: int = 1)` - Initializes a scaled quantizer with specified parameters
-  - `q_bit`: Number of quantization bits (1-16)
-  - `groups`: Number of quantization groups (default: `1`)
-
-`ScaledQuantizer` methods:
-
-- `train(data: np.ndarray) -> None` - Trains the quantizer with input data
-  - `data`: Input numpy array of float32 values
-- `size() -> int` - Returns the size of the quantization vector
-- `__getitem__(i: int) -> float` - Returns the quantized value at the specified index
-  - `i`: Index to retrieve
-
 ### Example
 
 For examples on real-world datasets, please refer to `./reproduce`
@@ -66,29 +35,29 @@ For examples on real-world datasets, please refer to `./reproduce`
 import sys
 
 import numpy as np
-from pouq import Quantizer, compute_mse
+from pouq import POUQuantizer4_4, ScaledQuantizer8, compute_mse
 
 
 # read_fvecs sourced from https://github.com/gaoj0017/RaBitQ/blob/main/data/utils/io.py
 def read_fvecs(filename, c_contiguous=True) -> np.ndarray:
-  print(f"Reading from {filename}.")
-  fv = np.fromfile(filename, dtype=np.float32)
-  if fv.size == 0:
-    return np.zeros((0, 0))
-  dim = fv.view(np.int32)[0]
-  assert dim > 0
-  fv = fv.reshape(-1, 1 + dim)
-  if not all(fv.view(np.int32)[:, 0] == dim):
-    raise IOError("Non-uniform vector sizes in " + filename)
-  fv = fv[:, 1:]
-  if c_contiguous:
-    fv = fv.copy()
-  return fv
+    print(f"Reading from {filename}.")
+    fv = np.fromfile(filename, dtype=np.float32)
+    if fv.size == 0:
+        return np.zeros((0, 0))
+    dim = fv.view(np.int32)[0]
+    assert dim > 0
+    fv = fv.reshape(-1, 1 + dim)
+    if not all(fv.view(np.int32)[:, 0] == dim):
+        raise IOError("Non-uniform vector sizes in " + filename)
+    fv = fv[:, 1:]
+    if c_contiguous:
+        fv = fv.copy()
+    return fv
 
 
 if len(sys.argv) != 2:
-  print(f"usage: {sys.argv[0]} <dataset_name>")
-  exit(0)
+    print(f"usage: {sys.argv[0]} <dataset_name>")
+    exit(0)
 dataset_name = sys.argv[1]
 data = read_fvecs(f"../data/{dataset_name}/{dataset_name}_base.fvecs")
 
@@ -96,12 +65,13 @@ N, Dim = data.shape
 print(f"N={N}, Dim={Dim}")
 
 
-def print_err(method: str, quantizer: Quantizer):
-  print(f"Method: {method}, Error: {compute_mse(data, quantizer)}")
+def print_err(method: str, quantizer):
+    quantizer.train(data)
+    print(f"Method: {method}, Error: {compute_mse(data, quantizer)}")
 
 
-print_err("SQ", Quantizer(data, c_bit=0, q_bit=8, groups=Dim, opt_bound=False))
-print_err("POUQ", Quantizer(data, c_bit=4, q_bit=4, groups=Dim, opt_bound=True))
+print_err("SQ", ScaledQuantizer8(Dim))
+print_err("POUQ", POUQuantizer4_4(Dim))
 ```
 
 ## Reproduce
