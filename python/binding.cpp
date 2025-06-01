@@ -32,6 +32,7 @@ PYBIND11_MODULE(pouq, m) {
       .def(py::init<size_t, size_t, size_t>(), py::arg("c_bit"), py::arg("q_bit"), py::arg("groups") = 1)
           BIND_QUANTIZER_METHODS(pouq::POUQuantizer<>);
 
+  BIND_COMPUTE_MSE(pouq::Float32Quantizer)
   BIND_COMPUTE_MSE(pouq::POUQuantizer<>)
   BIND_COMPUTE_MSE(pouq::ScaledQuantizer)
 }
