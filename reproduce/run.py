@@ -6,7 +6,8 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import LogFormatter
-from pouq import LloydMaxQuantizer, POUQuantizer, ScaledQuantizer, compute_mse
+from pouq import (LloydMaxQuantizer, OptimizedScaledQuantizer, POUQuantizer,
+                  ScaledQuantizer, compute_mse)
 
 
 def read_fvecs(filename, c_contiguous=True) -> np.ndarray:
@@ -42,9 +43,10 @@ def run(data: np.ndarray, results_dict):
     print(f"N={N}, Dim={Dim}")
 
     methods = [
-        ("SQ", ScaledQuantizer(q_bit=8, groups=Dim * 16)),
+        ("SQ", ScaledQuantizer(q_bit=8, groups=Dim)),
+        ("OSQ", OptimizedScaledQuantizer(q_bit=8, groups=Dim)),
         ("POUQ", POUQuantizer(c_bit=4, q_bit=4, groups=Dim)),
-        ("LloydMax", LloydMaxQuantizer(c_bit=8, groups=Dim // 16)),
+        ("LloydMax", LloydMaxQuantizer(c_bit=8, groups=Dim)),
     ]
 
     for method_name, quantizer in methods:
@@ -72,6 +74,12 @@ def plot_tradeoff(results_dict, dataset_name):
             "linestyles": ["-", "--", ":"],
             "fill_styles": ["full", "full", "full"],
         },
+        "OSQ": {
+            "color": "#ff7f0e",
+            "marker": "s",
+            "linestyles": ["-", "--", ":"],
+            "fill_styles": ["full", "full", "full"],
+        },
         "POUQ": {
             "color": "#2ca02c",
             "marker": "^",
@@ -93,17 +101,33 @@ def plot_tradeoff(results_dict, dataset_name):
 
     has_zero_mse = False
     min_nonzero_mse = float("inf")
+    max_mse = 0
+    all_nonzero_mses = []
 
     for method_name, data in results_dict.items():
         for mse in data["mses"]:
             if mse == 0:
                 has_zero_mse = True
-            elif mse > 0 and mse < min_nonzero_mse:
-                min_nonzero_mse = mse
+            elif mse > 0:
+                min_nonzero_mse = min(min_nonzero_mse, mse)
+                max_mse = max(max_mse, mse)
+                all_nonzero_mses.append(mse)
 
-    zero_replacement = (
-        min_nonzero_mse / 100 if min_nonzero_mse != float("inf") else min_threshold
-    )
+    if has_zero_mse and all_nonzero_mses:
+        log_min = np.log10(min_nonzero_mse)
+        log_max = np.log10(max_mse)
+        log_range = log_max - log_min
+
+        if log_range > 3:
+            zero_replacement = min_nonzero_mse / 10
+        elif log_range > 1:
+            zero_replacement = min_nonzero_mse / 5
+        else:
+            zero_replacement = min_nonzero_mse / 2
+    else:
+        zero_replacement = (
+            min_nonzero_mse / 100 if min_nonzero_mse != float("inf") else min_threshold
+        )
 
     for method_name, data in results_dict.items():
         times = data["times"]
@@ -234,7 +258,7 @@ if __name__ == "__main__":
     N, Dim = data.shape
     results_dict = {}
 
-    log_min = np.log10(100)
+    log_min = np.log10(1000)
     log_max = np.log10(N)
     log_samples = np.linspace(log_min, log_max, 10)
 
