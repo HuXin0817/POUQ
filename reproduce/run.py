@@ -1,9 +1,11 @@
 import os
+import subprocess
 import sys
 import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import LogFormatter
 from pouq import LloydMaxQuantizer, POUQuantizer, ScaledQuantizer, compute_mse
 
 
@@ -62,12 +64,33 @@ def plot_tradeoff(results_dict, dataset_name):
     result_dir = "../result"
     os.makedirs(result_dir, exist_ok=True)
 
-    colors = {"SQ": "blue", "POUQ": "red", "LloydMax": "green"}
-    markers = {"SQ": "o", "POUQ": "^", "LloydMax": "s"}
+    min_threshold = 1e-9
+    marker_config = {
+        "SQ": {
+            "color": "#1f77b4",
+            "marker": "o",
+            "linestyles": ["-", "--", ":"],
+            "fill_styles": ["full", "full", "full"],
+        },
+        "POUQ": {
+            "color": "#2ca02c",
+            "marker": "^",
+            "linestyles": ["-", "--", ":"],
+            "fill_styles": ["full", "full", "full"],
+        },
+        "LloydMax": {
+            "color": "#d62728",
+            "marker": "D",
+            "linestyles": ["-", "--", ":"],
+            "fill_styles": ["full", "full", "full"],
+        },
+    }
 
-    fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+    plt.style.use("seaborn-v0_8")
+    fig, ax = plt.subplots(figsize=(12, 7))
 
-    # 处理零MSE值
+    legend_handles = []
+
     has_zero_mse = False
     min_nonzero_mse = float("inf")
 
@@ -79,55 +102,126 @@ def plot_tradeoff(results_dict, dataset_name):
                 min_nonzero_mse = mse
 
     zero_replacement = (
-        min_nonzero_mse / 100 if min_nonzero_mse != float("inf") else 1e-17
+        min_nonzero_mse / 100 if min_nonzero_mse != float("inf") else min_threshold
     )
 
     for method_name, data in results_dict.items():
+        times = data["times"]
         adjusted_mses = [mse if mse > 0 else zero_replacement for mse in data["mses"]]
 
-        ax.scatter(
-            data["times"],
-            adjusted_mses,
-            c=colors.get(method_name, "black"),
-            marker=markers.get(method_name, "o"),
-            label=method_name,
-            s=60,
-            alpha=0.7,
+        if not times:
+            continue
+
+        config = marker_config.get(
+            method_name,
+            {
+                "color": "#000000",
+                "marker": "o",
+                "linestyles": ["-"],
+                "fill_styles": ["full"],
+            },
         )
 
-        ax.plot(
-            data["times"],
+        (line,) = ax.plot(
+            times,
             adjusted_mses,
-            c=colors.get(method_name, "black"),
-            alpha=0.3,
-            linewidth=1,
+            label=method_name,
+            color=config["color"],
+            marker=config["marker"],
+            markersize=8,
+            linewidth=2,
+            linestyle=config["linestyles"][0],
+            alpha=0.8,
         )
+
+        legend_handles.append(line)
+
+        fill_style = config["fill_styles"][0]
+        if fill_style == "full":
+            line.set_markerfacecolor(config["color"])
+            line.set_markeredgecolor(config["color"])
+        elif fill_style == "none":
+            line.set_markerfacecolor("white")
+            line.set_alpha(0.9)
+            line.set_markeredgecolor(config["color"])
+        elif fill_style == "top":
+            line.set_markerfacecolor(config["color"])
+            line.set_alpha(0.5)
+            line.set_markeredgecolor(config["color"])
 
     if has_zero_mse:
         ax.axhline(
             y=zero_replacement,
-            color="blue",
+            color="#00008B",
             linestyle="--",
             linewidth=2,
-            alpha=0.8,
-            label="MSE=0",
+            alpha=0.7,
+            label="Zero MSE Threshold",
+            zorder=-1,
         )
 
-    ax.set_xlabel("Training Time (seconds)")
-    ax.set_ylabel("MSE")
-    ax.set_title(f"Training Time vs MSE Trade-off ({dataset_name})")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.set_yscale("log")
+        xlim = ax.get_xlim()
+        ax.text(
+            x=xlim[1] * 0.95,
+            y=zero_replacement * 1.1,
+            s="Zero MSE Threshold",
+            color="#00008B",
+            fontsize=14,
+            fontweight="bold",
+            verticalalignment="bottom",
+            horizontalalignment="right",
+            zorder=-1,
+        )
+
     ax.set_xscale("log")
+    ax.set_yscale("log")
 
-    plt.tight_layout()
+    class ExponentOnlyFormatter(LogFormatter):
+        def __call__(self, x, pos=None):
+            if x <= 0:
+                return ""
+            exponent = int(np.log10(x))
+            return f"{exponent}"
 
-    output_path = os.path.join(result_dir, f"{dataset_name}_tradeoff_plot.png")
+    ax.xaxis.set_major_formatter(ExponentOnlyFormatter())
+    ax.yaxis.set_major_formatter(ExponentOnlyFormatter())
+
+    ax.tick_params(axis="both", which="major", labelsize=16)
+    ax.tick_params(axis="both", which="minor", labelsize=16)
+
+    ax.grid(True, which="major", linestyle="-", linewidth=2, alpha=0.3)
+    ax.grid(True, which="minor", linestyle=":", linewidth=0.3, alpha=0.2)
+
+    ax.set_xlabel(r"Training Time ($\log_{10}$ seconds)", fontsize=20)
+    ax.set_ylabel(r"MSE Error ($\log_{10}$)", fontsize=20)
+    ax.set_title(dataset_name, fontsize=20)
+
+    plt.subplots_adjust(right=0.75)
+
+    output_path = os.path.join(result_dir, f"{dataset_name}_tradeoff_plot.pdf")
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"Trade-off plot saved to: {output_path}")
+    subprocess.run(["open", output_path])
 
-    plt.show()
+    fig_legend = plt.figure(figsize=(12, 1.5))
+    ax_legend = fig_legend.add_subplot(111)
+    ax_legend.axis("off")
+
+    legend_labels = [line.get_label() for line in legend_handles]
+    if has_zero_mse:
+        legend_labels.append("Zero MSE Threshold")
+
+    legend = fig_legend.legend(
+        handles=legend_handles + ([ax.lines[-1]] if has_zero_mse else []),
+        labels=legend_labels,
+        loc="center",
+        fontsize=12,
+        frameon=False,
+        ncol=len(legend_labels),
+    )
+
+    legend_path = os.path.join(result_dir, f"{dataset_name}_legend.pdf")
+    plt.savefig(legend_path, dpi=300, bbox_inches="tight")
 
 
 if __name__ == "__main__":
