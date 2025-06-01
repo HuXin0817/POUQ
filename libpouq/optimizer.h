@@ -13,11 +13,11 @@ public:
   virtual ~Optimizer() = default;
 
   virtual std::pair<float, float> operator()(float                 div,
-      float                                                        initial_lower_bound,
-      float                                                        initial_upper_bound,
+      float                                                        init_lower_bound,
+      float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
-    return {initial_lower_bound, initial_upper_bound};
+    return {init_lower_bound, init_upper_bound};
   }
 
 protected:
@@ -53,7 +53,7 @@ class PSOptimizer final : public Optimizer {
   static constexpr size_t max_iter          = 128;
   static constexpr size_t grid_side_length  = 8;
   static constexpr float  grid_scale_factor = 0.1f;
-  static constexpr float  initial_inertia   = 0.9f;
+  static constexpr float  init_inertia      = 0.9f;
   static constexpr float  final_inertia     = 0.4f;
   static constexpr float  c1                = 1.8f;
   static constexpr float  c2                = 1.8f;
@@ -79,63 +79,60 @@ class PSOptimizer final : public Optimizer {
 
 public:
   std::pair<float, float> operator()(float                         div,
-      float                                                        initial_lower_bound,
-      float                                                        initial_upper_bound,
+      float                                                        init_lower_bound,
+      float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
-    const float initial_range_width  = initial_upper_bound - initial_lower_bound;
-    const float initial_range_center = (initial_lower_bound + initial_upper_bound) * 0.5f;
+    const float init_range_width  = init_upper_bound - init_lower_bound;
+    const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
 
     std::random_device             rd;
     std::mt19937                   gen(rd());
-    std::uniform_real_distribution v_dis(-initial_range_width * 0.1f, initial_range_width * 0.1f);
+    std::uniform_real_distribution v_dis(-init_range_width * 0.1f, init_range_width * 0.1f);
     std::uniform_real_distribution p_dis(0.0f, 1.0f);
 
-    std::vector<Particle> particle_swarm;
-
+    std::vector<Particle> swarm;
+    swarm.reserve(grid_side_length * grid_side_length);
     for (size_t i = 0; i < grid_side_length; i++) {
       for (size_t j = 0; j < grid_side_length; j++) {
-        const float lower_bound =
-            initial_lower_bound - grid_scale_factor * initial_range_width +
-            static_cast<float>(i) * 2 * grid_scale_factor * initial_range_width / grid_side_length;
-        const float upper_bound =
-            initial_upper_bound - grid_scale_factor * initial_range_width +
-            static_cast<float>(j) * 2 * grid_scale_factor * initial_range_width / grid_side_length;
+        const float lower_bound = init_lower_bound - grid_scale_factor * init_range_width +
+                                  static_cast<float>(i) * 2 * grid_scale_factor * init_range_width / grid_side_length;
+        const float upper_bound = init_upper_bound - grid_scale_factor * init_range_width +
+                                  static_cast<float>(j) * 2 * grid_scale_factor * init_range_width / grid_side_length;
         const float particle_center = (lower_bound + upper_bound) / 2.0f;
         const float particle_width  = upper_bound - lower_bound;
 
-        particle_swarm.emplace_back(particle_center, particle_width, v_dis(gen), v_dis(gen));
+        swarm.emplace_back(particle_center, particle_width, v_dis(gen), v_dis(gen));
       }
     }
 
-    float global_best_center = initial_range_center;
-    float global_best_width  = initial_range_width;
-    float global_min_loss    = loss(div, initial_lower_bound, initial_range_width / div, data_start, data_end);
+    float global_best_center = init_range_center;
+    float global_best_width  = init_range_width;
+    float global_min_loss    = loss(div, init_lower_bound, init_range_width / div, data_start, data_end);
 
-    for (auto &particle : particle_swarm) {
-      const float current_lower_bound = particle.center - particle.width * 0.5f;
-      const float current_loss        = loss(div, current_lower_bound, particle.width / div, data_start, data_end);
+    for (auto &particle : swarm) {
+      const float curr_lower_bound = particle.center - particle.width * 0.5f;
+      const float curr_loss        = loss(div, curr_lower_bound, particle.width / div, data_start, data_end);
 
-      particle.min_loss = current_loss;
-      if (current_loss < global_min_loss) {
-        global_min_loss    = current_loss;
+      particle.min_loss = curr_loss;
+      if (curr_loss < global_min_loss) {
+        global_min_loss    = curr_loss;
         global_best_center = particle.center;
         global_best_width  = particle.width;
       }
     }
 
     for (size_t iter = 0; iter < max_iter; ++iter) {
-      const float current_inertia =
-          initial_inertia - (initial_inertia - final_inertia) * static_cast<float>(iter) / max_iter;
+      const float inertia = init_inertia - (init_inertia - final_inertia) * static_cast<float>(iter) / max_iter;
 
-      for (auto &particle : particle_swarm) {
+      for (auto &particle : swarm) {
         const float r1 = p_dis(gen);
         const float r2 = p_dis(gen);
 
-        particle.v_center = current_inertia * particle.v_center + c1 * r1 * (particle.best_center - particle.center) +
+        particle.v_center = inertia * particle.v_center + c1 * r1 * (particle.best_center - particle.center) +
                             c2 * r2 * (global_best_center - particle.center);
 
-        particle.v_width = current_inertia * particle.v_width + c1 * r1 * (particle.best_width - particle.width) +
+        particle.v_width = inertia * particle.v_width + c1 * r1 * (particle.best_width - particle.width) +
                            c2 * r2 * (global_best_width - particle.width);
 
         particle.center += particle.v_center;
@@ -145,17 +142,17 @@ public:
           particle.width = std::numeric_limits<float>::epsilon();
         }
 
-        const float current_lower = particle.center - particle.width * 0.5f;
-        const float current_loss  = loss(div, current_lower, particle.width / div, data_start, data_end);
+        const float curr_lower = particle.center - particle.width * 0.5f;
+        const float curr_loss  = loss(div, curr_lower, particle.width / div, data_start, data_end);
 
-        if (current_loss < particle.min_loss) {
-          particle.min_loss    = current_loss;
+        if (curr_loss < particle.min_loss) {
+          particle.min_loss    = curr_loss;
           particle.best_center = particle.center;
           particle.best_width  = particle.width;
         }
 
-        if (current_loss < global_min_loss) {
-          global_min_loss    = current_loss;
+        if (curr_loss < global_min_loss) {
+          global_min_loss    = curr_loss;
           global_best_center = particle.center;
           global_best_width  = particle.width;
         }
