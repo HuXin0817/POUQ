@@ -230,7 +230,6 @@ def plot_tradeoff(results_dict, dataset_name):
     output_path = os.path.join(result_dir, f"{dataset_name}_tradeoff_plot.pdf")
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"Trade-off plot saved to: {output_path}")
-    subprocess.run(["open", output_path])
 
     fig_legend = plt.figure(figsize=(12, 1.5))
     ax_legend = fig_legend.add_subplot(111)

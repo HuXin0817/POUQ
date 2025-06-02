@@ -35,15 +35,15 @@ public:
     const size_t size = data_freq_map.size();
     k                 = std::min(size, k);
 
-    std::vector sum_count(size + 1, 0.0f);
+    std::vector sum_count(size + 1, 0.0);
     for (size_t i = 1; i <= size; ++i) {
-      sum_count[i] = sum_count[i - 1] + static_cast<float>(data_freq_map[i - 1].second);
+      sum_count[i] = sum_count[i - 1] + static_cast<double>(data_freq_map[i - 1].second);
     }
 
-    std::vector prev_dp(size + 1, std::numeric_limits<float>::infinity());
-    std::vector curr_dp(size + 1, std::numeric_limits<float>::infinity());
+    std::vector prev_dp(size + 1, std::numeric_limits<double>::infinity());
+    std::vector curr_dp(size + 1, std::numeric_limits<double>::infinity());
     std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
-    prev_dp[0] = 0.0f;
+    prev_dp[0] = 0.0;
 
     for (size_t j = 1; j <= k; ++j) {
       std::vector<Task> tasks{{j, j, size, 0, size - 1}};
@@ -59,12 +59,13 @@ public:
         const size_t mid       = (l + r) / 2;
         const size_t start     = std::max(j - 1, opt_l);
         const size_t end       = std::min(mid - 1, opt_r);
-        float        min_cost  = std::numeric_limits<float>::infinity();
+        double       min_cost  = std::numeric_limits<double>::infinity();
         size_t       split_pos = 0;
         for (size_t m = start; m <= end; ++m) {
-          const float width = data_freq_map[mid - 1].first - data_freq_map[m].first;
-          const float count = sum_count[mid] - sum_count[m];
-          const float cost  = prev_dp[m] + width * width * count;
+          const double width =
+              static_cast<double>(data_freq_map[mid - 1].first) - static_cast<double>(data_freq_map[m].first);
+          const double count = sum_count[mid] - sum_count[m];
+          const double cost  = prev_dp[m] + width * width * count;
           if (cost < min_cost) {
             min_cost  = cost;
             split_pos = m;
@@ -80,7 +81,7 @@ public:
       }
 
       std::swap(prev_dp, curr_dp);
-      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<float>::infinity());
+      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<double>::infinity());
     }
 
     std::vector<size_t> split_pos(k);
@@ -121,23 +122,23 @@ public:
     const size_t size = data_freq_map.size();
     k                 = std::min(size, k);
 
-    std::vector sum_count(size + 1, 0.0f);
-    std::vector sum_weighted(size + 1, 0.0f);
-    std::vector sum_squared_weighted(size + 1, 0.0f);
+    std::vector sum_count(size + 1, 0.0);
+    std::vector sum_weighted(size + 1, 0.0);
+    std::vector sum_squared_weighted(size + 1, 0.0);
 
     for (size_t i = 1; i <= size; ++i) {
-      const float value = data_freq_map[i - 1].first;
-      const float count = static_cast<float>(data_freq_map[i - 1].second);
+      const double value = data_freq_map[i - 1].first;
+      const double count = data_freq_map[i - 1].second;
 
       sum_count[i]            = sum_count[i - 1] + count;
       sum_weighted[i]         = sum_weighted[i - 1] + value * count;
       sum_squared_weighted[i] = sum_squared_weighted[i - 1] + value * value * count;
     }
 
-    std::vector prev_dp(size + 1, std::numeric_limits<float>::infinity());
-    std::vector curr_dp(size + 1, std::numeric_limits<float>::infinity());
+    std::vector prev_dp(size + 1, std::numeric_limits<double>::infinity());
+    std::vector curr_dp(size + 1, std::numeric_limits<double>::infinity());
     std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
-    prev_dp[0] = 0.0f;
+    prev_dp[0] = 0.0;
 
     for (size_t j = 1; j <= k; ++j) {
       std::vector<Task> tasks{{j, j, size, 0, size - 1}};
@@ -153,18 +154,18 @@ public:
         const size_t mid       = (l + r) / 2;
         const size_t start     = std::max(j - 1, opt_l);
         const size_t end       = std::min(mid - 1, opt_r);
-        float        min_cost  = std::numeric_limits<float>::infinity();
+        double       min_cost  = std::numeric_limits<double>::infinity();
         size_t       split_pos = 0;
 
         for (size_t m = start; m <= end; ++m) {
-          const float total_count = sum_count[mid] - sum_count[m];
+          const double total_count = sum_count[mid] - sum_count[m];
 
           if (total_count > 0) {
-            const float total_weighted         = sum_weighted[mid] - sum_weighted[m];
-            const float total_squared_weighted = sum_squared_weighted[mid] - sum_squared_weighted[m];
-            const float centroid               = total_weighted / total_count;
-            const float cluster_cost           = total_squared_weighted - centroid * total_weighted;
-            const float cost                   = prev_dp[m] + cluster_cost;
+            const double total_weighted         = sum_weighted[mid] - sum_weighted[m];
+            const double total_squared_weighted = sum_squared_weighted[mid] - sum_squared_weighted[m];
+            const double centroid               = total_weighted / total_count;
+            const double cluster_cost           = total_squared_weighted - centroid * total_weighted;
+            const double cost                   = prev_dp[m] + cluster_cost;
             if (cost < min_cost) {
               min_cost  = cost;
               split_pos = m;
@@ -181,7 +182,7 @@ public:
       }
 
       std::swap(prev_dp, curr_dp);
-      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<float>::infinity());
+      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<double>::infinity());
     }
 
     std::vector<size_t> split_pos(k);
