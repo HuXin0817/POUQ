@@ -1,5 +1,5 @@
-#include "../libpouq/quantizer.h"
-#include "../libpouq/utils.h"
+#include "../libpouq/quantizer.hpp"
+#include "../libpouq/utils.hpp"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

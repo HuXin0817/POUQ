@@ -2,9 +2,9 @@
 
 #include <omp.h>
 
-#include "bitmap.h"
-#include "clusterer.h"
-#include "optimizer.h"
+#include "bitmap.hpp"
+#include "clusterer.hpp"
+#include "optimizer.hpp"
 
 namespace pouq {
 
