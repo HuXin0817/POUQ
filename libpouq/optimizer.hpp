@@ -12,11 +12,9 @@ public:
   virtual ~Optimizer() = default;
 
   virtual std::pair<float, float> operator()(float                 div,
-      float                                                        init_lower_bound,
-      float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
-    return {init_lower_bound, init_upper_bound};
+    return {data_start->first, (data_end - 1)->first};
   }
 
 protected:
@@ -78,11 +76,10 @@ class PSOptimizer final : public Optimizer {
 
 public:
   std::pair<float, float> operator()(float                         div,
-      float                                                        init_lower_bound,
-      float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
-    const float init_range_width  = init_upper_bound - init_lower_bound;
+    const auto [init_lower_bound, init_upper_bound] = Optimizer::operator()(div, data_start, data_end);
+    const float                                                  init_range_width = init_upper_bound - init_lower_bound;
     const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
 
     std::random_device             rd;
@@ -167,8 +164,6 @@ public:
 class CenterCalculator final : public Optimizer {
 public:
   std::pair<float, float> operator()(float                         div,
-      float                                                        init_lower_bound,
-      float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
     size_t count = 0;

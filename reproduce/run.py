@@ -4,8 +4,7 @@ import sys
 import time
 
 import numpy as np
-from pouq import (LloydMaxQuantizer, OSQQuantizer, POUQQuantizer,
-                  SQQuantizer, compute_mse)
+from pouq import *
 
 
 def read_fvecs(filename, c_contiguous=True) -> np.ndarray:
