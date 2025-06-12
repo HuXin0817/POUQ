@@ -56,9 +56,9 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
+        auto [lb, s]   = codebook_[offset + c];
+        const float x  = std::clamp((d - lb) / s + 0.5f, 0.0f, div);
         set(codes_, 2 * i, c);
-        auto [lb, s]  = codebook_[offset + c];
-        const float x = std::clamp((d - lb) / s + 0.5f, 0.0f, div);
         set(codes_, 2 * i + 1, x);
       }
     }
