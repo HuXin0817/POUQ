@@ -182,15 +182,13 @@ private:
 
   void set(uint8_t *data, size_t index, size_t n) {
     n &= (1 << 4) - 1;
-    const size_t pos = index * 4;
-    for (size_t bit = 0; bit < 4; ++bit) {
-      const size_t i      = (pos + bit) / 8;
-      const size_t offset = (pos + bit) % 8;
-      if (n & 1 << bit) {
-        data[i] |= 1 << offset;
-      } else {
-        data[i] &= ~(1 << offset);
-      }
+    const size_t byte_index = index / 2;
+    const size_t nibble_pos = index % 2;
+
+    if (nibble_pos == 0) {
+      data[byte_index] = data[byte_index] & 0xF0 | n;
+    } else {
+      data[byte_index] = data[byte_index] & 0x0F | n << 4;
     }
   }
 };
