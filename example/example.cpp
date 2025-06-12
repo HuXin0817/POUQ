@@ -5,7 +5,7 @@
 #include <iostream>
 #include <random>
 
-constexpr size_t N   = 1e4;
+constexpr size_t N   = 1e5;
 constexpr size_t Dim = 256;
 
 float compute_mse(const pouq::POUQ8bit &quant, const std::vector<float> &data) {
@@ -27,11 +27,18 @@ int main() {
 
   pouq::POUQ8bit quantizer(Dim);
 
-  const auto start_time = std::chrono::high_resolution_clock::now();
-  quantizer.train(data.data(), N);
-  const auto end_time = std::chrono::high_resolution_clock::now();
-  const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
-
-  std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
-  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(quantizer, data) << std::endl;
+  {
+    const auto start_time = std::chrono::high_resolution_clock::now();
+    quantizer.train(data.data(), data.size());
+    const auto end_time = std::chrono::high_resolution_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
+    std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
+  }
+  {
+    const auto start_time = std::chrono::high_resolution_clock::now();
+    std::cout << std::left << std::setw(18) << "Error:" << compute_mse(quantizer, data) << std::endl;
+    const auto end_time = std::chrono::high_resolution_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
+    std::cout << std::left << std::setw(18) << "QPS:" << N / duration.count() << " vec/s" << std::endl;
+  }
 }
