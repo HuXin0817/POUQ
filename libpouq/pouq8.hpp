@@ -41,7 +41,7 @@ public:
                 return threshold < value_freq.first;
               });
 
-          const auto [optimized_lower, optimized_upper] = optimizing(div, data_start, data_end);
+          const auto [optimized_lower, optimized_upper] = optimize_quantization_range(div, data_start, data_end);
           lower_bound                                   = optimized_lower;
           upper_bound                                   = optimized_upper;
         }
@@ -52,10 +52,7 @@ public:
         }
       }
 
-      // Clear the temporary frequency map to free memory
       static_cast<std::vector<std::pair<float, size_t>>>(value_frequency_map).clear();
-
-      // Encode the data using the computed codebook
       for (size_t i = group; i < data_size; i += dimension_) {
         const float  data_value      = data[i];
         const auto   cluster_it      = std::upper_bound(cluster_bounds.begin(),
@@ -75,7 +72,6 @@ public:
   float l2distance(const float *data, size_t data_index) const {
     float distance = 0.0f;
 
-    // Process data in SIMD blocks for efficiency
     const size_t simd_end   = (dimension_ / 8) * 8;
     __m256       sum_vector = _mm256_setzero_ps();
 
@@ -113,7 +109,6 @@ public:
       sum_vector         = _mm256_fmadd_ps(diff_vector, diff_vector, sum_vector);
     }
 
-    // Combine SIMD results
     __m128 sum_high = _mm256_extractf128_ps(sum_vector, 1);
     __m128 sum_low  = _mm256_castps256_ps128(sum_vector);
     __m128 sum_128  = _mm_add_ps(sum_high, sum_low);
@@ -122,7 +117,6 @@ public:
     sum_128  = _mm_hadd_ps(sum_128, sum_128);
     distance = _mm_cvtss_f32(sum_128);
 
-    // Process remaining elements
     for (size_t i = simd_end; i < dimension_; i++) {
       uint8_t encoded_value     = encoded_codes_[data_index + i];
       auto [lower_bound, scale] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
