@@ -1,11 +1,10 @@
 #pragma once
 
-#include <algorithm>
 #include <limits>
 #include <random>
 #include <vector>
 
-#include "simd.hpp"
+#include "simd/quantization_loss.hpp"
 
 namespace pouq {
 

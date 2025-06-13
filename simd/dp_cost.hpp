@@ -27,45 +27,4 @@ inline std::pair<float, size_t> dp_cost_simd(size_t j,
   return {min_cost, split_pos};
 }
 
-inline float quantization_loss_simd(const float                  d,
-    float                                                        l,
-    float                                                        s,
-    const std::vector<std::pair<float, size_t>>::const_iterator &begin,
-    const std::vector<std::pair<float, size_t>>::const_iterator &end) {
-  s          = std::max(s, 1e-8f);
-  float loss = 0.0f;
-
-  for (auto it = begin; it != end; ++it) {
-    const auto &[v, c] = *it;
-    const float rc     = (v - l) / s;
-    float       qc     = 0.0f;
-    if (v > l) {
-      qc = std::round(rc);
-      if (qc > d) {
-        qc = d;
-      }
-    }
-    const float err = rc - qc;
-    loss += err * err * static_cast<float>(c);
-  }
-
-  return loss * s * s;
-}
-
-inline float l2distance_simd(const float *data,
-    size_t                                index,
-    size_t                                dim,
-    const std::pair<float, float>        *code,
-    const uint8_t                        *encode) {
-  float dis = 0.0f;
-  for (size_t i = 0; i < dim; i++) {
-    const uint8_t c   = encode[index + i];
-    const auto [l, s] = code[((c & 0xF) + i * 16)];
-    const float v     = l + s * (c >> 4 & 0xF);
-    const float diff  = data[i] - v;
-    dis += diff * diff;
-  }
-  return dis;
-}
-
 };  // namespace pouq::simd

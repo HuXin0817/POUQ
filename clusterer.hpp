@@ -4,7 +4,7 @@
 #include <limits>
 #include <vector>
 
-#include "simd.hpp"
+#include "simd/dp_cost.hpp"
 
 namespace pouq {
 

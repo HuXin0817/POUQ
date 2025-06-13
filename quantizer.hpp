@@ -4,7 +4,7 @@
 
 #include "clusterer.hpp"
 #include "optimizer.hpp"
-#include "simd.hpp"
+#include "simd/l2distance.hpp"
 
 namespace pouq {
 
