@@ -13,11 +13,6 @@
 
 namespace pouq {
 
-struct QuantParam {
-  float lower_bound;
-  float step_size;
-};
-
 class Quantizer {
 public:
   Quantizer() = default;
@@ -29,7 +24,7 @@ public:
   size_t get_dimension() const { return dimension_; }
 
   void train(const float *data, size_t data_size) {
-    codebook_      = new QuantParam[dimension_ * (1 << 4)];
+    codebook_      = new std::pair<float, float>[dimension_ * (1 << 4)];
     encoded_codes_ = new uint8_t[data_size];
 
 #pragma omp parallel for
@@ -218,9 +213,9 @@ public:
   }
 
 private:
-  size_t      dimension_     = 0;
-  QuantParam *codebook_      = nullptr;
-  uint8_t    *encoded_codes_ = nullptr;
+  size_t                   dimension_     = 0;
+  std::pair<float, float> *codebook_      = nullptr;
+  uint8_t                 *encoded_codes_ = nullptr;
 
   static constexpr auto div = static_cast<float>((1 << 4) - 1);
 
