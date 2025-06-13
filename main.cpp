@@ -1,4 +1,4 @@
-#include "libpouq/pouq8.hpp"
+#include "pouq8.hpp"
 
 #include <chrono>
 #include <iomanip>
