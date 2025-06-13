@@ -63,12 +63,12 @@ inline std::pair<float, float> optimize_quantization_range(float division_count,
 
   float global_best_lower = initial_lower_bound;
   float global_best_upper = initial_upper_bound;
-  float global_min_loss   = calculate_quantization_loss(
+  float global_min_loss   = simd::quantization_loss_simd(
       division_count, initial_lower_bound, initial_range_width / division_count, data_start, data_end);
 
   for (auto &particle : particle_swarm) {
     const float current_width = particle.position_upper - particle.position_lower;
-    const float current_loss  = calculate_quantization_loss(
+    const float current_loss  = simd::quantization_loss_simd(
         division_count, particle.position_lower, current_width / division_count, data_start, data_end);
 
     particle.best_loss = current_loss;
@@ -113,7 +113,7 @@ inline std::pair<float, float> optimize_quantization_range(float division_count,
       }
 
       const float current_width = particle.position_upper - particle.position_lower;
-      const float current_loss  = calculate_quantization_loss(
+      const float current_loss  = simd::quantization_loss_simd(
           division_count, particle.position_lower, current_width / division_count, data_start, data_end);
 
       if (current_loss < particle.best_loss) {
