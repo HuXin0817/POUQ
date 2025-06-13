@@ -13,12 +13,17 @@
 
 namespace pouq {
 
+struct QuantParam {
+  float lower_bound;
+  float step_size;
+};
+
 class POUQ8bit {
 public:
   explicit POUQ8bit(size_t dimension) : dimension_(dimension) {}
 
   void train(const float *data, size_t data_size) {
-    codebook_      = new std::pair<float, float>[dimension_ * (1 << 4)];
+    codebook_      = new QuantParam[dimension_ * (1 << 4)];
     encoded_codes_ = new uint8_t[data_size];
 
 #pragma omp parallel for
@@ -56,15 +61,15 @@ public:
 
       static_cast<std::vector<std::pair<float, size_t>>>(value_frequency_map).clear();
       for (size_t i = group; i < data_size; i += dimension_) {
-        const float  data_value      = data[i];
-        const auto   cluster_it      = std::upper_bound(cluster_bounds.begin(),
+        const float  data_value       = data[i];
+        const auto   cluster_it       = std::upper_bound(cluster_bounds.begin(),
             cluster_bounds.end(),
             data_value,
             [](const float value, const std::pair<float, float> &bound) -> bool { return value < bound.first; });
-        const size_t cluster_index   = cluster_it - cluster_bounds.begin() - 1;
-        auto [lower_bound, scale]    = codebook_[codebook_offset + cluster_index];
-        const float normalized_value = std::clamp((data_value - lower_bound) / scale + 0.5f, 0.0f, div);
-        encoded_codes_[i]            = cluster_index | static_cast<size_t>(normalized_value) << 4;
+        const size_t cluster_index    = cluster_it - cluster_bounds.begin() - 1;
+        auto [lower_bound, step_size] = codebook_[codebook_offset + cluster_index];
+        const float normalized_value  = std::clamp((data_value - lower_bound) / step_size + 0.5f, 0.0f, div);
+        encoded_codes_[i]             = cluster_index | static_cast<size_t>(normalized_value) << 4;
       }
     }
   }
@@ -98,9 +103,9 @@ public:
         _mm256_store_si256((__m256i *)upper_values, upper_nibbles);
 
         for (size_t j = 0; j < 8; j++) {
-          const size_t codebook_index = lower_indices[j] + (i + j) * (1 << 4);
-          auto [lower_bound, scale]   = codebook_[codebook_index];
-          decoded_values[j]           = lower_bound + scale * static_cast<float>(upper_values[j]);
+          const size_t codebook_index   = lower_indices[j] + (i + j) * (1 << 4);
+          auto [lower_bound, step_size] = codebook_[codebook_index];
+          decoded_values[j]             = lower_bound + step_size * static_cast<float>(upper_values[j]);
         }
 
         decoded_vector = _mm256_load_ps(decoded_values);
@@ -119,10 +124,10 @@ public:
     distance = _mm_cvtss_f32(sum_128);
 
     for (size_t i = simd_end; i < dimension_; i++) {
-      uint8_t encoded_value     = encoded_codes_[data_index + i];
-      auto [lower_bound, scale] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
-      float decoded_value       = lower_bound + scale * (encoded_value >> 4 & 0xF);
-      float diff                = data[i] - decoded_value;
+      uint8_t encoded_value         = encoded_codes_[data_index + i];
+      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
+      float decoded_value           = lower_bound + step_size * (encoded_value >> 4 & 0xF);
+      float diff                    = data[i] - decoded_value;
       distance += diff * diff;
     }
 
@@ -157,9 +162,9 @@ public:
         vst1q_u32(upper_values, upper_nibbles);
 
         for (size_t j = 0; j < 4; j++) {
-          const size_t codebook_index = lower_indices[j] + (i + j) * (1 << 4);
-          auto [lower_bound, scale]   = codebook_[codebook_index];
-          decoded_values[j]           = lower_bound + scale * static_cast<float>(upper_values[j]);
+          const size_t codebook_index   = lower_indices[j] + (i + j) * (1 << 4);
+          auto [lower_bound, step_size] = codebook_[codebook_index];
+          decoded_values[j]             = lower_bound + step_size * static_cast<float>(upper_values[j]);
         }
 
         decoded_vector = vld1q_f32(decoded_values);
@@ -176,10 +181,10 @@ public:
     distance               = vget_lane_f32(sum_paired, 0);
 
     for (size_t i = simd_end; i < dimension_; i++) {
-      uint8_t encoded_value     = encoded_codes_[data_index + i];
-      auto [lower_bound, scale] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
-      float decoded_value       = lower_bound + scale * (encoded_value >> 4 & 0xF);
-      float diff                = data[i] - decoded_value;
+      uint8_t encoded_value         = encoded_codes_[data_index + i];
+      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
+      float decoded_value           = lower_bound + step_size * (encoded_value >> 4 & 0xF);
+      float diff                    = data[i] - decoded_value;
       distance += diff * diff;
     }
 
@@ -190,10 +195,10 @@ public:
   float l2distance(const float *data, size_t data_index) const {
     float distance = 0.0f;
     for (size_t i = 0; i < dimension_; i++) {
-      uint8_t encoded_value     = encoded_codes_[data_index + i];
-      auto [lower_bound, scale] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
-      float decoded_value       = lower_bound + scale * (encoded_value >> 4 & 0xF);
-      float diff                = data[i] - decoded_value;
+      uint8_t encoded_value         = encoded_codes_[data_index + i];
+      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
+      float decoded_value           = lower_bound + step_size * (encoded_value >> 4 & 0xF);
+      float diff                    = data[i] - decoded_value;
       distance += diff * diff;
     }
     return distance;
@@ -207,9 +212,9 @@ public:
   }
 
 private:
-  size_t                   dimension_     = 0;
-  std::pair<float, float> *codebook_      = nullptr;
-  uint8_t                 *encoded_codes_ = nullptr;
+  size_t      dimension_     = 0;
+  QuantParam *codebook_      = nullptr;
+  uint8_t    *encoded_codes_ = nullptr;
 
   static constexpr auto div = static_cast<float>((1 << 4) - 1);
 
