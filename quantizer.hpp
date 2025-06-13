@@ -24,14 +24,14 @@ public:
   size_t get_dimension() const { return dimension_; }
 
   void train(const float *data, size_t data_size) {
-    codebook_      = new std::pair<float, float>[dimension_ * (1 << 4)];
+    codebook_      = new std::pair<float, float>[dimension_ * 16];
     encoded_codes_ = new uint8_t[data_size];
 
 #pragma omp parallel for
     for (size_t group = 0; group < dimension_; group++) {
       const auto   value_frequency_map = count_freq(data, data_size, group);
-      const auto   cluster_bounds      = clustering(1 << 4, value_frequency_map);
-      const size_t codebook_offset     = group * (1 << 4);
+      const auto   cluster_bounds      = clustering(16, value_frequency_map);
+      const size_t codebook_offset     = group * 16;
 
       for (size_t i = 0; i < cluster_bounds.size(); i++) {
         auto [lower_bound, upper_bound] = cluster_bounds[i];
@@ -49,14 +49,14 @@ public:
                 return threshold < value_freq.first;
               });
 
-          const auto [optimized_lower, optimized_upper] = optimize_quantization_range(div, data_start, data_end);
+          const auto [optimized_lower, optimized_upper] = optimize_quantization_range(15.0f, data_start, data_end);
           lower_bound                                   = optimized_lower;
           upper_bound                                   = optimized_upper;
         }
         if (lower_bound == upper_bound) {
           codebook_[codebook_offset + i] = {lower_bound, 1.0};
         } else {
-          codebook_[codebook_offset + i] = {lower_bound, (upper_bound - lower_bound) / div};
+          codebook_[codebook_offset + i] = {lower_bound, (upper_bound - lower_bound) / 15.0f};
         }
       }
 
@@ -69,7 +69,7 @@ public:
             [](const float value, const std::pair<float, float> &bound) -> bool { return value < bound.first; });
         const size_t cluster_index    = cluster_it - cluster_bounds.begin() - 1;
         auto [lower_bound, step_size] = codebook_[codebook_offset + cluster_index];
-        const float normalized_value  = std::clamp((data_value - lower_bound) / step_size + 0.5f, 0.0f, div);
+        const float normalized_value  = std::clamp((data_value - lower_bound) / step_size + 0.5f, 0.0f, 15.0f);
         encoded_codes_[i]             = cluster_index | static_cast<size_t>(normalized_value) << 4;
       }
     }
@@ -104,7 +104,7 @@ public:
         _mm256_store_si256((__m256i *)upper_values, upper_nibbles);
 
         for (size_t j = 0; j < 8; j++) {
-          const size_t codebook_index   = lower_indices[j] + (i + j) * (1 << 4);
+          const size_t codebook_index   = lower_indices[j] + (i + j) * 16;
           auto [lower_bound, step_size] = codebook_[codebook_index];
           decoded_values[j]             = lower_bound + step_size * static_cast<float>(upper_values[j]);
         }
@@ -126,7 +126,7 @@ public:
 
     for (size_t i = simd_end; i < dimension_; i++) {
       uint8_t encoded_value         = encoded_codes_[data_index + i];
-      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
+      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * 16)];
       float decoded_value           = lower_bound + step_size * (encoded_value >> 4 & 0xF);
       float diff                    = data[i] - decoded_value;
       distance += diff * diff;
@@ -163,7 +163,7 @@ public:
         vst1q_u32(upper_values, upper_nibbles);
 
         for (size_t j = 0; j < 4; j++) {
-          const size_t codebook_index   = lower_indices[j] + (i + j) * (1 << 4);
+          const size_t codebook_index   = lower_indices[j] + (i + j) * 16;
           auto [lower_bound, step_size] = codebook_[codebook_index];
           decoded_values[j]             = lower_bound + step_size * static_cast<float>(upper_values[j]);
         }
@@ -183,7 +183,7 @@ public:
 
     for (size_t i = simd_end; i < dimension_; i++) {
       uint8_t encoded_value         = encoded_codes_[data_index + i];
-      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
+      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * 16)];
       float decoded_value           = lower_bound + step_size * (encoded_value >> 4 & 0xF);
       float diff                    = data[i] - decoded_value;
       distance += diff * diff;
@@ -197,7 +197,7 @@ public:
     float distance = 0.0f;
     for (size_t i = 0; i < dimension_; i++) {
       uint8_t encoded_value         = encoded_codes_[data_index + i];
-      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * (1 << 4))];
+      auto [lower_bound, step_size] = codebook_[((encoded_value & 0xF) + i * 16)];
       float decoded_value           = lower_bound + step_size * (encoded_value >> 4 & 0xF);
       float diff                    = data[i] - decoded_value;
       distance += diff * diff;
@@ -216,8 +216,6 @@ private:
   size_t                   dimension_     = 0;
   std::pair<float, float> *codebook_      = nullptr;
   uint8_t                 *encoded_codes_ = nullptr;
-
-  static constexpr auto div = static_cast<float>((1 << 4) - 1);
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t data_size, const size_t group) const {
     std::vector<float> sorted_data;
