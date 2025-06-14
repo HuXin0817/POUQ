@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
     std::cout << std::left << std::setw(18) << "Error:" << compute_mse(Dim, quantizer, data) << std::endl;
     const auto end_time = std::chrono::high_resolution_clock::now();
     const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
-    std::cout << std::left << std::setw(18) << "QPS:" << static_cast<float>(data.size()) / duration.count() << " vec/s"
-              << std::endl;
+    std::cout << std::left << std::setw(18) << "QPS:" << static_cast<float>(data.size() / Dim) / duration.count()
+              << " vec/s" << std::endl;
   }
 }
