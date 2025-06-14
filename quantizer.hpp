@@ -23,10 +23,10 @@ public:
     encoded_codes_ = new uint8_t[data_size];
 
 #pragma omp parallel for
-    for (size_t group = 0; group < dimension_; group++) {
-      const auto   value_frequency_map = count_freq(data, data_size, group);
+    for (size_t dim = 0; dim < dimension_; dim++) {
+      const auto   value_frequency_map = count_freq(data, data_size, dim);
       const auto   cluster_bounds      = clustering(16, value_frequency_map);
-      const size_t codebook_offset     = group * 16;
+      const size_t codebook_offset     = dim * 16;
 
       for (size_t i = 0; i < cluster_bounds.size(); i++) {
         auto [lower_bound, upper_bound] = cluster_bounds[i];
@@ -56,7 +56,7 @@ public:
       }
 
       static_cast<std::vector<std::pair<float, size_t>>>(value_frequency_map).clear();
-      for (size_t i = group; i < data_size; i += dimension_) {
+      for (size_t i = dim; i < data_size; i += dimension_) {
         const float  data_value       = data[i];
         const auto   cluster_it       = std::upper_bound(cluster_bounds.begin(),
             cluster_bounds.end(),
@@ -84,10 +84,10 @@ private:
   std::pair<float, float> *codebook_      = nullptr;
   uint8_t                 *encoded_codes_ = nullptr;
 
-  std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t data_size, const size_t group) const {
+  std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t data_size, const size_t dim) const {
     std::vector<float> sorted_data;
     sorted_data.reserve(data_size / dimension_);
-    for (size_t i = group; i < data_size; i += dimension_) {
+    for (size_t i = dim; i < data_size; i += dimension_) {
       sorted_data.push_back(data[i]);
     }
     std::sort(sorted_data.begin(), sorted_data.end());
