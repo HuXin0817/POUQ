@@ -5,8 +5,10 @@ SET(CMAKE_CXX_STANDARD 17)
 
 FIND_PACKAGE(OpenMP REQUIRED)
 
-ADD_EXECUTABLE(example main.cpp)
+if (ENABLE_TEST)
+    ADD_EXECUTABLE(compare_error test/compare_error.cpp)
 
-TARGET_LINK_LIBRARIES(example PRIVATE
-        OpenMP::OpenMP_CXX
-)
+    TARGET_LINK_LIBRARIES(compare_error PRIVATE
+            OpenMP::OpenMP_CXX
+    )
+endif ()
