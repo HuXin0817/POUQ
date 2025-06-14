@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <iostream>
 
+constexpr auto now = std::chrono::high_resolution_clock::now;
+
 float compute_mse(size_t Dim, const pouq::Quantizer &quant, const std::vector<float> &data) {
   float err = 0;
   for (size_t i = 0; i < data.size(); i += Dim) {
@@ -56,23 +58,17 @@ std::pair<size_t, std::vector<float>> read_fvecs(const std::string &path) {
 
 int main(int argc, char *argv[]) {
   const std::string dataset = argv[1];
-  auto [Dim, data]          = read_fvecs("../data/" + dataset + "/" + dataset + "_base.fvecs");
+  const auto [Dim, data]    = read_fvecs("../data/" + dataset + "/" + dataset + "_base.fvecs");
 
   pouq::Quantizer quantizer(Dim);
 
-  {
-    const auto start_time = std::chrono::high_resolution_clock::now();
-    quantizer.train(data.data(), data.size());
-    const auto end_time = std::chrono::high_resolution_clock::now();
-    const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
-    std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
-  }
-  {
-    const auto start_time = std::chrono::high_resolution_clock::now();
-    std::cout << std::left << std::setw(18) << "Error:" << compute_mse(Dim, quantizer, data) << std::endl;
-    const auto end_time = std::chrono::high_resolution_clock::now();
-    const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
-    std::cout << std::left << std::setw(18) << "QPS:" << static_cast<float>(data.size() / Dim) / duration.count()
-              << " vec/s" << std::endl;
-  }
+  auto start_time = now();
+  quantizer.train(data.data(), data.size());
+  auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(now() - start_time);
+  std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
+  start_time = now();
+  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(Dim, quantizer, data) << std::endl;
+  duration = std::chrono::duration_cast<std::chrono::duration<double>>(now() - start_time);
+  std::cout << std::left << std::setw(18) << "QPS:" << static_cast<float>(data.size() / Dim) / duration.count()
+            << " vec/s" << std::endl;
 }
