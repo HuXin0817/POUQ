@@ -10,12 +10,11 @@ public:
   explicit POUQ4(size_t sub) : dim_(sub) {}
 
   void train(const float *data, size_t size) {
-    size_          = size;
-    step_size_     = new float[dim_ * (1 << 2)];
-    lower_bound_   = new float[dim_ * (1 << 2)];
-    cid_           = new uint8_t[(2 * size_ + 7) / 8];
-    code_          = new uint8_t[(2 * size_ + 7) / 8];
-    const auto div = static_cast<float>((1 << 2) - 1);
+    size_              = size;
+    step_size_         = new float[dim_ * (1 << 2)];
+    lower_bound_       = new float[dim_ * (1 << 2)];
+    codes_             = new uint8_t[(4 * size_ + 7) / 8];
+    constexpr auto div = static_cast<float>((1 << 2) - 1);
 
 #pragma omp parallel for default(none) shared(data, div)
     for (size_t group = 0; group < dim_; group++) {
@@ -40,7 +39,7 @@ public:
           upper                             = opt_upper;
         }
         lower_bound_[offset + i] = lower;
-        if (lower == upper || div == 0.0f) {
+        if (lower == upper) {
           step_size_[offset + i] = 1.0;
         } else {
           step_size_[offset + i] = (upper - lower) / div;
@@ -55,9 +54,9 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        set(cid_, i, c);
+        set(codes_, i * 2, c);
         const float x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
-        set(code_, i, static_cast<size_t>(x));
+        set(codes_, i * 2 + 1, static_cast<size_t>(x));
       }
     }
   }
@@ -73,8 +72,8 @@ public:
 
   float operator[](size_t i) const {
     const size_t group  = i % dim_;
-    const size_t offset = get(cid_, i) + group * (1 << 2);
-    const size_t x      = get(code_, i);
+    const size_t offset = get(codes_, i * 2) + group * (1 << 2);
+    const size_t x      = get(codes_, i * 2 + 1);
     return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
   }
 
@@ -83,8 +82,7 @@ public:
   ~POUQ4() {
     delete[] lower_bound_;
     delete[] step_size_;
-    delete[] cid_;
-    delete[] code_;
+    delete[] codes_;
   }
 
 private:
@@ -92,8 +90,7 @@ private:
   size_t   dim_         = 0;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
-  uint8_t *cid_         = nullptr;
-  uint8_t *code_        = nullptr;
+  uint8_t *codes_       = nullptr;
 
   static inline pouq::KrangeClusterer clusterer;
   static inline pouq::PSOptimizer     optimizer;
