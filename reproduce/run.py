@@ -22,17 +22,7 @@ def read_fvecs(filename, c_contiguous=True) -> np.ndarray:
     return fv
 
 
-if len(sys.argv) != 2:
-    print(f"usage: {sys.argv[0]} <dataset_name>")
-    exit(0)
-dataset_name = sys.argv[1]
-data = read_fvecs(f"../data/{dataset_name}/{dataset_name}_base.fvecs")
-
-N, Dim = data.shape
-print(f"N={N}, Dim={Dim}")
-
-
-def print_err(method: str, quantizer):
+def print_err(method: str, data: np.ndarray, quantizer):
     start_time = time.time()
     quantizer.train(data)
     end_time = time.time()
@@ -44,6 +34,27 @@ def print_err(method: str, quantizer):
     )
 
 
-print_err("SQ", ScaledQuantizer(q_bit=8, groups=Dim))
-print_err("POUQ", POUQuantizer(c_bit=4, q_bit=4, groups=Dim))
-print_err("LloydMax", LloydMaxQuantizer(c_bit=8, groups=Dim))
+def run(data: np.ndarray):
+    N, Dim = data.shape
+    print(f"N={N}, Dim={Dim}")
+
+    print_err("SQ", data, ScaledQuantizer(q_bit=8, groups=Dim))
+    print_err("POUQ", data, POUQuantizer(c_bit=4, q_bit=4, groups=Dim))
+    print_err("LloydMax", data, LloydMaxQuantizer(c_bit=8, groups=Dim))
+    print()
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"usage: {sys.argv[0]} <dataset_name>")
+        exit(0)
+    dataset_name = sys.argv[1]
+    data = read_fvecs(f"../data/{dataset_name}/{dataset_name}_base.fvecs")
+
+    N, Dim = data.shape
+    i = 100
+    while i < N:
+        run(data[:i, :])
+        i *= 10
+
+    run(data)
