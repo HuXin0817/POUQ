@@ -1,7 +1,7 @@
 cd python
 pip install .
 
-cd experiment
+cd ../experiment
 python exp1.py sift
 python exp1.py word2vec
 python exp1.py gist
