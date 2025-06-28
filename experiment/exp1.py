@@ -6,12 +6,12 @@ import sys
 import time
 from multiprocessing import Process, Queue
 
-# 设置OpenMP线程数为当前设备CPU核心数
+# Set OpenMP thread count to current device CPU core count
 os.environ["OMP_NUM_THREADS"] = str(os.cpu_count())
 
 import faiss
 
-# 设置faiss使用所有可用CPU核心
+# Set faiss to use all available CPU cores
 faiss.omp_set_num_threads(os.cpu_count())
 
 print("faiss version:", faiss.__version__)
@@ -23,30 +23,30 @@ import posq
 
 from util.io import fvecs_read
 
-# 存储结果的列表
+# List to store results
 results = []
 
 
-# 子进程训练函数
+# Subprocess training function
 def train_worker(name, bitwidth, quantizer, data_f32, result_queue):
-    """在子进程中执行训练"""
+    """Execute training in subprocess"""
     try:
         start_time = time.time()
 
-        # 执行训练
+        # Execute training
         quantizer.train(data_f32)
         codes = quantizer.compute_codes(data_f32)
 
         train_time = time.time() - start_time
 
-        # 计算MSE
+        # Calculate MSE
         reconstructed = quantizer.decode(codes)
         if isinstance(reconstructed, list):
             mse = np.mean((data_f32.reshape(-1) - reconstructed) ** 2)
         else:
             mse = np.mean((data_f32 - reconstructed) ** 2)
 
-        # 将结果放入队列
+        # Put result into queue
         result_queue.put(
             {
                 "success": True,
@@ -58,53 +58,53 @@ def train_worker(name, bitwidth, quantizer, data_f32, result_queue):
         )
 
     except Exception as e:
-        # 如果出现异常，也放入队列
+        # If exception occurs, also put into queue
         result_queue.put(
             {"success": False, "method": name, "bitwidth": bitwidth, "error": str(e)}
         )
 
 
 def run(name, bitwidth, quantizer, data_f32):
-    """主进程中的run函数，管理子进程训练"""
-    # 12小时的时间限制（43200秒）
-    max_train_time = 12 * 60 * 60  # 12小时 = 43200秒
+    """Run function in main process, manages subprocess training"""
+    # 12-hour time limit (43200 seconds)
+    max_train_time = 12 * 60 * 60  # 12 hours = 43200 seconds
 
-    # 创建进程间通信队列
+    # Create inter-process communication queue
     result_queue = Queue()
 
-    # 创建子进程
+    # Create subprocess
     process = Process(
         target=train_worker, args=(name, bitwidth, quantizer, data_f32, result_queue)
     )
 
-    # print(f"开始训练: {name} (bitwidth={bitwidth})")
+    # print(f"Starting training: {name} (bitwidth={bitwidth})")
     start_time = time.time()
 
-    # 启动子进程
+    # Start subprocess
     process.start()
 
-    # 等待子进程完成或超时
+    # Wait for subprocess to complete or timeout
     process.join(timeout=max_train_time)
 
     if process.is_alive():
-        # 如果子进程仍在运行，说明超时了
-        print(f"警告: {name} (bitwidth={bitwidth}) 训练时间超过12小时，强制终止训练")
+        # If subprocess is still running, it means timeout occurred
+        print(f"Warning: {name} (bitwidth={bitwidth}) training time exceeded 12 hours, forcibly terminating training")
 
-        # 强制终止子进程
+        # Forcibly terminate subprocess
         process.terminate()
-        process.join(timeout=5)  # 等待5秒让进程优雅退出
+        process.join(timeout=5)  # Wait 5 seconds for graceful exit
 
         if process.is_alive():
-            # 如果还是没有退出，强制杀死
+            # If still not exited, force kill
             process.kill()
             process.join()
 
-        print(f"{name} (bitwidth={bitwidth}) 训练已被终止")
+        print(f"{name} (bitwidth={bitwidth}) training has been terminated")
         return
 
-    # 检查子进程是否正常完成
+    # Check if subprocess completed normally
     if process.exitcode == 0:
-        # 获取训练结果
+        # Get training results
         try:
             result = result_queue.get_nowait()
             if result["success"]:
@@ -113,7 +113,7 @@ def run(name, bitwidth, quantizer, data_f32):
 
                 print(f"| {name} | {bitwidth} | {train_time:.4f} | {mse:.6e} |")
 
-                # 将结果添加到列表中
+                # Add result to list
                 results.append(
                     {
                         "method": name,
@@ -123,12 +123,12 @@ def run(name, bitwidth, quantizer, data_f32):
                     }
                 )
             else:
-                print(f"错误: {name} (bitwidth={bitwidth}) 训练失败: {result['error']}")
+                print(f"Error: {name} (bitwidth={bitwidth}) training failed: {result['error']}")
         except:
-            print(f"错误: {name} (bitwidth={bitwidth}) 无法获取训练结果")
+            print(f"Error: {name} (bitwidth={bitwidth}) unable to get training results")
     else:
         print(
-            f"错误: {name} (bitwidth={bitwidth}) 子进程异常退出 (退出码: {process.exitcode})"
+            f"Error: {name} (bitwidth={bitwidth}) subprocess exited abnormally (exit code: {process.exitcode})"
         )
 
 
@@ -182,11 +182,11 @@ if __name__ == "__main__":
     rabitq = faiss.RaBitQuantizer(d, faiss.METRIC_L2)
     run("RaBitQ", 1, rabitq, data_f32)
 
-    # 创建结果目录（如果不存在）
+    # Create result directory (if it doesn't exist)
     result_dir = "../result"
     os.makedirs(result_dir, exist_ok=True)
 
-    # 保存结果到CSV文件
+    # Save results to CSV file
     csv_file = f"../result/exp1_{dataset_name}.csv"
     with open(csv_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
@@ -195,4 +195,4 @@ if __name__ == "__main__":
         writer.writeheader()
         writer.writerows(results)
 
-    print(f"\n结果已保存到: {csv_file}")
+    print(f"\nResults saved to: {csv_file}")
