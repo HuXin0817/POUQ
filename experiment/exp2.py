@@ -124,12 +124,23 @@ def benchmark_index(
     # 计算内存占用
     memory_usage = calculate_memory_usage(index, data, index_name)
 
+    # QPS测试
+    start_time = time.time()
+    # 为保证公平性，所有索引都使用单个查询向量的方式
+    for i in range(len(queries)):
+        if index_name == "IVFPOSQ":
+            index.search(queries[i : i + 1].astype("float32"), k, search_param)
+        else:
+            index.search(queries[i : i + 1].astype("float32"), k)
+    end_time = time.time()
+
     # 为保证公平性，所有索引都使用单个查询向量的方式
     all_results = []
     all_distances = []
     for i in range(len(queries)):
         if index_name == "IVFPOSQ":
-            ret = index.search(queries[i].astype("float32"), k, search_param)
+            assert search_param is not None
+            ret = index.search(queries[i : i + 1].astype("float32"), k, search_param)
             result = []
             distances = []
             for r, d in ret:
@@ -143,29 +154,6 @@ def benchmark_index(
             )
             all_results.append(result_indices[0])  # 取出第一个结果
             all_distances.append(distances[0])  # 取出第一个距离结果
-
-    # QPS测试
-    start_time = time.time()
-    # 为保证公平性，所有索引都使用单个查询向量的方式
-    for i in range(len(queries)):
-        if index_name == "IVFPOSQ":
-            index.search(queries[i : i + 1].astype("float32"), k, search_param)
-        else:
-            index.search(queries[i : i + 1].astype("float32"), k)
-    end_time = time.time()
-
-    if index_name == "IVFPOSQ":
-        all_result_copy = all_results.copy()
-        all_results = []
-        all_distances = []
-        for ret in all_result_copy:
-            result = []
-            distances = []
-            for r, d in ret:
-                result.append(r)
-                distances.append(d)
-            all_results.append(result)
-            all_distances.append(distances)
 
     search_results = np.array(
         [r[:k] if len(r) >= k else r + [0] * (k - len(r)) for r in all_results]
