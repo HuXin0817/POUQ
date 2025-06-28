@@ -1,4 +1,5 @@
 #include "../libpouq/quantizer.h"
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -13,10 +14,18 @@ float compute_mse(const py::array_t<float> &data, const pouq::Quantizer &quantiz
   return mse / static_cast<float>(data.size());
 }
 
+class Quantizer : public pouq::Quantizer {
+public:
+  explicit Quantizer(const py::array_t<float> &array,
+      const uint64_t                           c_bit,
+      const uint64_t                           q_bit,
+      const uint64_t                           groups    = 1,
+      const bool                               opt_bound = true)
+      : pouq::Quantizer(array.data(), array.size(), c_bit, q_bit, groups, opt_bound) {}
+};
+
 PYBIND11_MODULE(pouq, m) {
   m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
-
-  using Quantizer = pouq::Quantizer;
 
   py::class_<Quantizer>(m, "Quantizer")
       .def(py::init<const py::array_t<float> &, const uint64_t, const uint64_t, const uint64_t, const bool>(),
