@@ -4,7 +4,7 @@
 
 #include "bitmap.h"
 #include "krange.h"
-#include "pso.h"
+#include "optimizer.h"
 
 namespace pouq {
 
@@ -42,7 +42,7 @@ public:
               upper,
               [](const float rhs, const std::pair<float, uint64_t> &lhs) -> bool { return rhs < lhs.first; });
 
-          const auto [opt_lower, opt_upper] = pso::optimize(div, lower, upper, data_start, data_end);
+          const auto [opt_lower, opt_upper] = optimizer(div, lower, upper, data_start, data_end);
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
@@ -92,6 +92,8 @@ private:
   float   *step_size_   = nullptr;
   uint8_t *cid_         = nullptr;
   uint8_t *code_        = nullptr;
+
+  static Optimizer optimizer;
 
   std::vector<std::pair<float, uint64_t>> count_freq(const float *data, const uint64_t group) const {
     std::vector<float> sorted_data;
