@@ -5,7 +5,7 @@
 #include <random>
 #include <vector>
 
-namespace pouq {
+namespace plsq {
 
 class Optimizer {
 public:
@@ -241,4 +241,4 @@ public:
   }
 };
 
-}  // namespace pouq
+}  // namespace plsq

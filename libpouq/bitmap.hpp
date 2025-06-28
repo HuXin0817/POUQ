@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace pouq::bitmap {
+namespace plsq::bitmap {
 
 inline void set(uint8_t *data, size_t index, size_t n, size_t bit_size) {
   if (bit_size == 0) {
@@ -40,4 +40,4 @@ inline size_t get(const uint8_t *data, size_t index, size_t bit_size) {
   return result;
 }
 
-}  // namespace pouq::bitmap
+}  // namespace plsq::bitmap
