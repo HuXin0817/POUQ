@@ -1,5 +1,5 @@
+#include "../libposq/index/ivf-sq8.hpp"
 #include "../libposq/index/ivf.hpp"
-#include "index/ivf-sq8.hpp"
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -72,15 +72,15 @@ PYBIND11_MODULE(posq, m) {
           py::arg("k"),
           py::arg("nprobe"));
 
-  py::class_<IvfSQ8Index>(m, "IvfIndex")
+  py::class_<IvfSQ8Index>(m, "IvfSQ8Index")
       .def(py::init<size_t, size_t>(), py::arg("nlist"), py::arg("dim"))
       .def(
           "train",
-          [](IvfIndex &self, const py::array_t<float> &data) { self.train(data.data(), data.size()); },
+          [](IvfSQ8Index &self, const py::array_t<float> &data) { self.train(data.data(), data.size()); },
           py::arg("data"))
       .def(
           "search",
-          [](IvfIndex &self, const py::array_t<float> &query, size_t k, size_t nprobe) {
+          [](IvfSQ8Index &self, const py::array_t<float> &query, size_t k, size_t nprobe) {
             return self.search(query.data(), k, nprobe);
           },
           py::arg("query"),
