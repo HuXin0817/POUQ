@@ -10,42 +10,9 @@ namespace pouq {
 
 class Quantizer {
 public:
-  virtual ~Quantizer() = default;
+  explicit Quantizer(size_t c_bit, size_t q_bit, size_t groups) : c_bit_(c_bit), q_bit_(q_bit), groups_(groups) {}
 
-  virtual void train(const float *data, size_t size) = 0;
-
-  virtual float operator[](size_t i) const = 0;
-
-  virtual size_t size() const = 0;
-};
-
-class Float32Quantizer final : public Quantizer {
-public:
-  Float32Quantizer() = default;
-
-  void train(const float *data, size_t size) override {
-    this->size_ = size;
-    this->data_ = new float[this->size_];
-    std::memcpy(this->data_, data, this->size_ * sizeof(float));
-  }
-
-  float operator[](size_t i) const override { return this->data_[i]; }
-
-  size_t size() const override { return this->size_; }
-
-  ~Float32Quantizer() override { delete[] data_; }
-
-private:
-  size_t size_ = 0;
-  float *data_ = nullptr;
-};
-
-template <typename Clusterer, typename Optimizer>
-class QuantizerImpl : public Quantizer {
-public:
-  explicit QuantizerImpl(size_t c_bit, size_t q_bit, size_t groups) : c_bit_(c_bit), q_bit_(q_bit), groups_(groups) {}
-
-  void train(const float *data, size_t size) override {
+  void train(const float *data, size_t size) {
     this->size_        = size;
     this->step_size_   = new float[this->groups_ * (1 << this->c_bit_)];
     this->lower_bound_ = new float[this->groups_ * (1 << this->c_bit_)];
@@ -56,7 +23,7 @@ public:
 #pragma omp parallel for default(none) shared(data, div)
     for (size_t group = 0; group < this->groups_; group++) {
       const auto data_freq_map = this->count_freq(data, group);
-      const auto bounds        = clusterer(1 << this->c_bit_, data_freq_map);
+      const auto bounds        = cluster(1 << this->c_bit_, data_freq_map);
       const auto offset        = group * (1 << this->c_bit_);
 
       for (size_t i = 0; i < bounds.size(); i++) {
@@ -71,7 +38,7 @@ public:
               upper,
               [](const float rhs, const std::pair<float, size_t> &lhs) -> bool { return rhs < lhs.first; });
 
-          const auto [opt_lower, opt_upper] = optimizer(div, lower, upper, data_start, data_end);
+          const auto [opt_lower, opt_upper] = optimise(div, lower, upper, data_start, data_end);
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
@@ -99,16 +66,16 @@ public:
     }
   }
 
-  float operator[](size_t i) const override {
+  float operator[](size_t i) const {
     const size_t group  = i % this->groups_;
     const size_t offset = bitmap::get(this->cid_, i, this->c_bit_) + group * (1 << this->c_bit_);
     const size_t x      = bitmap::get(this->code_, i, this->q_bit_);
     return this->lower_bound_[offset] + this->step_size_[offset] * static_cast<float>(x);
   }
 
-  size_t size() const override { return this->size_; }
+  size_t size() const { return this->size_; }
 
-  ~QuantizerImpl() override {
+  ~Quantizer() {
     delete[] this->lower_bound_;
     delete[] this->step_size_;
     delete[] this->cid_;
@@ -124,9 +91,6 @@ private:
   float   *step_size_   = nullptr;
   uint8_t *cid_         = nullptr;
   uint8_t *code_        = nullptr;
-
-  static inline Clusterer clusterer;
-  static inline Optimizer optimizer;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, const size_t group) const {
     std::vector<float> sorted_data;
@@ -153,26 +117,6 @@ private:
     data_freq_map.emplace_back(curr_value, count);
     return data_freq_map;
   }
-};
-
-class SQQuantizer final : public QuantizerImpl<Clusterer, Optimizer> {
-public:
-  explicit SQQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
-};
-
-class OSQQuantizer final : public QuantizerImpl<Clusterer, PSOptimizer> {
-public:
-  explicit OSQQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
-};
-
-class LloydMaxQuantizer final : public QuantizerImpl<KmeansClusterer, CenterCalculator> {
-public:
-  explicit LloydMaxQuantizer(size_t c_bit, size_t groups = 1) : QuantizerImpl(c_bit, 0, groups) {}
-};
-
-class POUQQuantizer final : public QuantizerImpl<KrangeClusterer, PSOptimizer> {
-public:
-  explicit POUQQuantizer(size_t c_bit, size_t q_bit, size_t groups = 1) : QuantizerImpl(c_bit, q_bit, groups) {}
 };
 
 }  // namespace pouq
