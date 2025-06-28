@@ -123,6 +123,6 @@ private:
   }
 };
 
-using PLSQQuantizer = QuantizerImpl<KrangeClusterer, PSOptimizer>;
+using POSQQuantizer = QuantizerImpl<KrangeClusterer, PSOptimizer>;
 
 }  // namespace posq

@@ -51,24 +51,24 @@ if __name__ == "__main__":
         run("SQ", i, q, data_f32)
 
     for i in range(4, 9):
-        q = posq.LSQQuantizer(c_bit=0, q_bit=i, sub=d)
+        q = posq.OSQQuantizer(c_bit=0, q_bit=i, sub=d)
         run("OSQ-Baseline", i, q, data_f32)
 
     for i in range(4, 9):
-        q = posq.LSQ2Quantizer(c_bit=0, q_bit=i, sub=d)
+        q = posq.OSQ2Quantizer(c_bit=0, q_bit=i, sub=d)
         run("OSQ-PSO", i, q, data_f32)
 
     for i in range(2, 5):
-        q = posq.PLSQKMeansQuantizer(c_bit=i, q_bit=4, sub=d)
+        q = posq.POSQKMeansQuantizer(c_bit=i, q_bit=4, sub=d)
         run("POSQ-KMeans-MinMax", i + 4, q, data_f32)
 
     for i in range(2, 5):
-        q = posq.PLSQKRangeQuantizer(c_bit=i, q_bit=4, sub=d)
-        run("PLSQ-KRange-MinMax", i + 4, q, data_f32)
+        q = posq.POSQKRangeQuantizer(c_bit=i, q_bit=4, sub=d)
+        run("POSQ-KRange-MinMax", i + 4, q, data_f32)
 
     for i in range(4, 9):
-        q = posq.PLSQQuantizer(c_bit=i // 2, q_bit=i - (i // 2), sub=d)
-        run("PLSQ (Ours)", i, q, data_f32)
+        q = posq.POSQQuantizer(c_bit=i // 2, q_bit=i - (i // 2), sub=d)
+        run("POSQ (Ours)", i, q, data_f32)
 
     for M in range(2, d // 4 + 1):
         if d % M > 0:

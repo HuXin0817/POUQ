@@ -44,16 +44,16 @@ PYBIND11_MODULE(posq, m) {
   m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
 
   using SQQuantizer         = posq::QuantizerImpl<posq::Clusterer, posq::MinMaxOptimizer>;
-  using LSQQuantizer        = posq::QuantizerImpl<posq::Clusterer, posq::SGDOptimizer>;
-  using LSQ2Quantizer       = posq::QuantizerImpl<posq::Clusterer, posq::PSOptimizer>;
-  using PLSQKRangeQuantizer = posq::QuantizerImpl<posq::KrangeClusterer, posq::MinMaxOptimizer>;
-  using PLSQKMeansQuantizer = posq::QuantizerImpl<posq::CKmeansClusterer, posq::MinMaxOptimizer>;
+  using OSQQuantizer        = posq::QuantizerImpl<posq::Clusterer, posq::SGDOptimizer>;
+  using OSQ2Quantizer       = posq::QuantizerImpl<posq::Clusterer, posq::PSOptimizer>;
+  using POSQKRangeQuantizer = posq::QuantizerImpl<posq::KrangeClusterer, posq::MinMaxOptimizer>;
+  using POSQKMeansQuantizer = posq::QuantizerImpl<posq::CKmeansClusterer, posq::MinMaxOptimizer>;
   BIND_Quantizer("SQQuantizer", SQQuantizer);
-  BIND_Quantizer("LSQQuantizer", LSQQuantizer);
-  BIND_Quantizer("LSQ2Quantizer", LSQ2Quantizer);
-  BIND_Quantizer("PLSQKRangeQuantizer", PLSQKRangeQuantizer);
-  BIND_Quantizer("PLSQKMeansQuantizer", PLSQKMeansQuantizer);
-  BIND_Quantizer("PLSQQuantizer", posq::PLSQQuantizer);
+  BIND_Quantizer("OSQQuantizer", OSQQuantizer);
+  BIND_Quantizer("OSQ2Quantizer", OSQ2Quantizer);
+  BIND_Quantizer("POSQKRangeQuantizer", POSQKRangeQuantizer);
+  BIND_Quantizer("POSQKMeansQuantizer", POSQKMeansQuantizer);
+  BIND_Quantizer("POSQQuantizer", posq::POSQQuantizer);
 
   py::class_<IvfIndex>(m, "IvfIndex")
       .def(py::init<size_t, size_t>(), py::arg("nlist"), py::arg("dim"))
@@ -74,7 +74,7 @@ PYBIND11_MODULE(posq, m) {
     return l2distance(sq, data.data(), data.size()) / static_cast<float>(data.size());
   });
 
-  m.def("compute_mse", [](const posq::PLSQQuantizer &sq, const py::array_t<float> &data) {
+  m.def("compute_mse", [](const posq::POSQQuantizer &sq, const py::array_t<float> &data) {
     return l2distance(sq, data.data(), data.size()) / static_cast<float>(data.size());
   });
 }
