@@ -5,6 +5,8 @@
 #include <random>
 #include <vector>
 
+#include "simd.hpp"
+
 namespace pouq {
 
 static constexpr size_t MAX_ITERATIONS    = 128;
@@ -33,33 +35,6 @@ struct Particle {
         best_position_upper(upper_val),
         best_loss(std::numeric_limits<float>::max()) {}
 };
-
-inline float calculate_quantization_loss(const float             division_count,
-    float                                                        cluster_lower_bound,
-    float                                                        step_size,
-    const std::vector<std::pair<float, size_t>>::const_iterator &data_begin,
-    const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
-  step_size        = std::max(step_size, 1e-8f);
-  float total_loss = 0.0f;
-
-  for (auto it = data_begin; it != data_end; ++it) {
-    const auto &[data_value, point_count] = *it;
-    const float real_quantized_code       = (data_value - cluster_lower_bound) / step_size;
-    float       quantized_code            = 0.0f;
-
-    if (data_value > cluster_lower_bound) {
-      quantized_code = std::round(real_quantized_code);
-      if (quantized_code > division_count) {
-        quantized_code = division_count;
-      }
-    }
-
-    const float quantization_error = real_quantized_code - quantized_code;
-    total_loss += quantization_error * quantization_error * static_cast<float>(point_count);
-  }
-
-  return total_loss * step_size * step_size;
-}
 
 inline std::pair<float, float> optimize_quantization_range(float division_count,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
