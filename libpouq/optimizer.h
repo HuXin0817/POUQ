@@ -9,7 +9,7 @@
 namespace pouq {
 
 class Optimizer {
-
+private:
   static constexpr uint64_t max_iter          = 128;
   static constexpr uint64_t grid_side_length  = 8;
   static constexpr float    grid_scale_factor = 0.1f;
@@ -37,7 +37,7 @@ class Optimizer {
           min_loss(std::numeric_limits<float>::max()) {}
   };
 
-  float loss(const float                                             div,
+  static float loss(const float                                      div,
       float                                                          cluster_lower_bound,
       float                                                          step_size_value,
       const std::vector<std::pair<float, uint64_t>>::const_iterator &data_begin,
