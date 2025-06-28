@@ -2,9 +2,7 @@
 
 #include <cstdint>
 
-namespace pouq {
-
-namespace bitmap {
+namespace pouq::bitmap {
 
 void set(uint8_t *data, uint64_t index, uint64_t n, uint64_t bit_size) {
   if (bit_size == 0) {
@@ -46,6 +44,4 @@ uint64_t get(const uint8_t *data, uint64_t index, uint64_t bit_size) {
   return result;
 }
 
-}  // namespace bitmap
-
-}  // namespace pouq
+}  // namespace pouq::bitmap
