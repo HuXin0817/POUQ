@@ -14,9 +14,8 @@ public:
 
   void train(const float *data, size_t size) {
     // size_        = size;
-    step_size_   = new float[dim_ * (1 << 4)];
-    lower_bound_ = new float[dim_ * (1 << 4)];
-    codes_       = new uint8_t[size];
+    codebook_ = new float[dim_ * (1 << 4) * 2];
+    codes_    = new uint8_t[size];
 
 #pragma omp parallel for
     for (size_t group = 0; group < dim_; group++) {
@@ -40,11 +39,12 @@ public:
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
-        lower_bound_[offset + i] = lower;
-        if (lower == upper || div == 0.0f) {
-          step_size_[offset + i] = 1.0;
+        auto off_       = (offset + i) << 1;
+        codebook_[off_] = lower;
+        if (lower == upper) {
+          codebook_[off_ + 1] = 1.0;
         } else {
-          step_size_[offset + i] = (upper - lower) / div;
+          codebook_[off_ + 1] = (upper - lower) / div;
         }
       }
 
@@ -57,7 +57,8 @@ public:
             });
         const size_t c = it - bounds.begin() - 1;
         set(codes_, 2 * i, c);
-        const float x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
+        auto        off_ = (offset + c) << 1;
+        const float x    = std::clamp((d - codebook_[off_]) / codebook_[off_ + 1] + 0.5f, 0.0f, div);
         set(codes_, 2 * i + 1, x);
       }
     }
@@ -75,16 +76,16 @@ public:
   // size_t size() const { return size_; }
 
   ~POSQ8() {
-    delete[] lower_bound_;
-    delete[] step_size_;
+    delete[] codebook_;
     delete[] codes_;
   }
 
 private:
   // size_t   size_        = 0;
-  size_t dim_         = 0;
-  float *lower_bound_ = nullptr;
-  float *step_size_   = nullptr;
+  size_t dim_ = 0;
+  // float *codebook_ = nullptr;
+  // float *codebook_   = nullptr;
+  float *codebook_ = nullptr;
   // uint8_t *cid_         = nullptr;
   // uint8_t *code_        = nullptr;
   uint8_t *codes_ = nullptr;
@@ -122,9 +123,9 @@ private:
 
   float at(size_t i) const {
     const size_t group  = i % dim_;
-    const size_t offset = get(codes_, 2 * i) + group * (1 << 4);
+    const size_t offset = 2 * (get(codes_, 2 * i) + group * (1 << 4));
     const size_t x      = get(codes_, 2 * i + 1);
-    return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
+    return codebook_[offset] + codebook_[offset + 1] * static_cast<float>(x);
   }
 
   void set(uint8_t *data, size_t index, size_t n) {
