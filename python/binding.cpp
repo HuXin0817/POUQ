@@ -1,5 +1,6 @@
-#include "../libpouq/index/ivf-sq8.hpp"
+// #include "../libpouq/index/ivf-sq8.hpp"
 #include "../libpouq/index/ivf.hpp"
+#include "../libpouq/quantizer.hpp"
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -57,35 +58,27 @@ PYBIND11_MODULE(pouq, m) {
   BIND_Quantizer("POUQKMeansQuantizer", POUQKMeansQuantizer);
   BIND_Quantizer("POUQQuantizer", pouq::POUQQuantizer);
 
-  py::class_<IvfIndex>(m, "IvfIndex")
-      .def(py::init<size_t, size_t>(), py::arg("nlist"), py::arg("dim"))
-      .def(
-          "train",
-          [](IvfIndex &self, const py::array_t<float> &data) { self.train(data.data(), data.size()); },
-          py::arg("data"))
-      .def(
-          "search",
-          [](IvfIndex &self, const py::array_t<float> &query, size_t k, size_t nprobe) {
-            return self.search(query.data(), k, nprobe);
-          },
-          py::arg("query"),
-          py::arg("k"),
+#define BIND_Index(name, type)                                                                                         \
+  py::class_<type>(m, name)                                                                                            \
+      .def(py::init<size_t, size_t>(), py::arg("nlist"), py::arg("dim"))                                               \
+      .def(                                                                                                            \
+          "train",                                                                                                     \
+          [](type &self, const py::array_t<float> &data) { self.train(data.data(), data.size()); },                    \
+          py::arg("data"))                                                                                             \
+      .def(                                                                                                            \
+          "search",                                                                                                    \
+          [](type &self, const py::array_t<float> &query, size_t k, size_t nprobe) {                                   \
+            return self.search(query.data(), k, nprobe);                                                               \
+          },                                                                                                           \
+          py::arg("query"),                                                                                            \
+          py::arg("k"),                                                                                                \
           py::arg("nprobe"));
 
-  py::class_<IvfSQ8Index>(m, "IvfSQ8Index")
-      .def(py::init<size_t, size_t>(), py::arg("nlist"), py::arg("dim"))
-      .def(
-          "train",
-          [](IvfSQ8Index &self, const py::array_t<float> &data) { self.train(data.data(), data.size()); },
-          py::arg("data"))
-      .def(
-          "search",
-          [](IvfSQ8Index &self, const py::array_t<float> &query, size_t k, size_t nprobe) {
-            return self.search(query.data(), k, nprobe);
-          },
-          py::arg("query"),
-          py::arg("k"),
-          py::arg("nprobe"));
+  BIND_Index("IVFSQ4", IVFSQ4);
+  BIND_Index("IVFSQ8", IVFSQ8);
+
+  BIND_Index("IVFPOUQ4", IVFPOUQ4);
+  BIND_Index("IVFPOUQ8", IVFPOUQ8);
 
   m.def("compute_mse", [](const SQQuantizer &sq, const py::array_t<float> &data) {
     return l2distance(sq, data.data(), data.size()) / static_cast<float>(data.size());

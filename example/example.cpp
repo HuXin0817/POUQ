@@ -1,41 +1,14 @@
 #include "../libpouq/index/ivf.hpp"
+
 #include <chrono>
 #include <iomanip>
 #include <queue>
 #include <string>
 #include <unordered_set>
 
-std::vector<float> generate_vector(size_t size) {
-  // std::random_device                    rd;
-  std::mt19937                          gen(42);
-  std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-
-  std::vector<float> result(size);
-
-#pragma omp parallel for
-  for (size_t i = 0; i < size; i++) {
-    result[i] = dis(gen);
-  }
-
-  return result;
-}
-
-int main(int argc, char *argv[]) {
-  const std::string dataset_name = argv[1];
-  // size_t dim        = 100;
-  // auto   data       = generate_vector(dim * 50000);
-  // auto   query_data = generate_vector(dim * 10);
-
-  auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
-  auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
-  data                 = std::vector(data.begin(), data.begin() + dim * 100000);
-  query_data           = std::vector(query_data.begin(), query_data.begin() + dim * 100);
-  auto Nq              = query_data.size() / dim;
-
-  std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
-  std::cout << "Query shape: (" << Nq << ", " << dim << ")" << std::endl;
-
-  IvfIndex index(100, dim);
+template <typename Index>
+void run(size_t dim, std::vector<float> data, size_t Nq, std::vector<float> query_data) {
+  Index index(128, dim);
   index.train(data.data(), data.size());
 
   constexpr auto topk = 10;
@@ -60,11 +33,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // QPS测试
-  std::cout << "\n=== Testing POUQ IVF Index ===" << std::endl;
-
   // 测试不同的nprobe值
-  std::vector<size_t> nprobe_values = {1, 5, 10, 20, 50};
+  std::vector<size_t> nprobe_values = {1, 2, 4, 8, 16, 32, 64, 128};
 
   std::cout << std::left << std::setw(15) << "nprobe" << std::setw(15) << "QPS" << std::setw(15) << "Recall@10"
             << std::setw(15) << "Time(s)" << std::endl;
@@ -108,6 +78,24 @@ int main(int argc, char *argv[]) {
               << std::setw(15) << std::fixed << std::setprecision(4) << avg_recall << std::setw(15) << std::fixed
               << std::setprecision(4) << total_time << std::endl;
   }
+}
 
+int main(int argc, char *argv[]) {
+  const std::string dataset_name = argv[1];
+
+  auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
+  auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
+  data                 = std::vector(data.begin(), data.begin() + dim * 10000);
+  query_data           = std::vector(query_data.begin(), query_data.begin() + dim * 100);
+  const auto Nq        = query_data.size() / dim;
+
+  std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
+  std::cout << "Query shape: (" << Nq << ", " << dim << ")" << std::endl;
+
+  run<IVF>(dim, data, Nq, query_data);
+  run<IVFSQ4>(dim, data, Nq, query_data);
+  run<IVFSQ8>(dim, data, Nq, query_data);
+  run<IVFPOUQ4>(dim, data, Nq, query_data);
+  run<IVFPOUQ8>(dim, data, Nq, query_data);
   return 0;
 }

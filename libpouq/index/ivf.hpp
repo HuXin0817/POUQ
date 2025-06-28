@@ -1,8 +1,8 @@
 #pragma once
-
-#include "../quantizer.hpp"
 #include "../utils.hpp"
-#include "pouq8.hpp"
+#include "f32q.hpp"
+#include "pouq.hpp"
+#include "sq.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -11,14 +11,15 @@
 #include <random>
 #include <vector>
 
-class IvfIndex {
+template <typename Quantizer>
+class IVFIndex {
   struct ClusterNode {
     std::vector<float>  centroid;
     std::vector<size_t> indices;
   };
 
 public:
-  IvfIndex(size_t nlist, size_t dim) : candidate_centroids(nlist), nlist_(nlist), dim_(dim), quantizer_(dim_) {
+  IVFIndex(size_t nlist, size_t dim) : candidate_centroids(nlist), nlist_(nlist), dim_(dim), quantizer_(dim_) {
     centroids_.resize(nlist_);
     for (auto &centroid : centroids_) {
       centroid.centroid.resize(dim_);
@@ -88,7 +89,7 @@ private:
   size_t                   nlist_;
   size_t                   dim_;
   std::vector<ClusterNode> centroids_;
-  pouq::POUQ8              quantizer_;
+  Quantizer                quantizer_;
 
   std::vector<std::pair<size_t, float>> sum_result;
   std::vector<std::pair<size_t, float>> candidate_centroids;
@@ -244,3 +245,23 @@ private:
     }
   }
 };
+
+template <size_t bit>
+class SQ : public SQQuantizer {
+public:
+  explicit SQ(size_t dim) : SQQuantizer(bit, dim) {}
+};
+
+using IVFSQ4 = IVFIndex<SQ<4>>;
+using IVFSQ8 = IVFIndex<SQ<8>>;
+
+template <size_t cbit, size_t qbit>
+class POUQ : public pouq::POUQQuantizerFast {
+public:
+  explicit POUQ(size_t dim) : pouq::POUQQuantizerFast(cbit, qbit, dim) {}
+};
+
+using IVFPOUQ4 = IVFIndex<POUQ<2, 2>>;
+using IVFPOUQ8 = IVFIndex<POUQ<4, 4>>;
+
+using IVF = IVFIndex<Float32Quantizer>;

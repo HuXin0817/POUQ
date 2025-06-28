@@ -2,23 +2,21 @@
 
 #include <omp.h>
 
-#include "bitmap.hpp"
-#include "clusterer.hpp"
-#include "optimizer.hpp"
+#include "../bitmap.hpp"
+#include "../clusterer.hpp"
+#include "../optimizer.hpp"
 
 namespace pouq {
 
-template <typename Clusterer, typename Optimizer>
-class QuantizerImpl {
+class POUQQuantizerFast {
 public:
-  explicit QuantizerImpl(size_t c_bit, size_t q_bit, size_t sub) : c_bit_(c_bit), q_bit_(q_bit), dim_(sub) {}
+  explicit POUQQuantizerFast(size_t c_bit, size_t q_bit, size_t sub) : c_bit_(c_bit), q_bit_(q_bit), dim_(sub) {}
 
   void train(const float *data, size_t size) {
     size_          = size;
     step_size_     = new float[dim_ * (1 << c_bit_)];
     lower_bound_   = new float[dim_ * (1 << c_bit_)];
-    cid_           = new uint8_t[(c_bit_ * size_ + 7) / 8];
-    code_          = new uint8_t[(q_bit_ * size_ + 7) / 8];
+    codes_         = new uint8_t[(q_bit_ * 2 * size_ + 7) / 8];
     const auto div = static_cast<float>((1 << q_bit_) - 1);
 
 #pragma omp parallel for default(none) shared(data, div)
@@ -59,9 +57,9 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        bitmap::set(cid_, i, c, c_bit_);
+        bitmap::set(codes_, 2 * i, c, c_bit_);
         const float x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
-        bitmap::set(code_, i, static_cast<size_t>(x), q_bit_);
+        bitmap::set(codes_, 2 * i + 1, static_cast<size_t>(x), q_bit_);
       }
     }
   }
@@ -77,18 +75,17 @@ public:
 
   float operator[](size_t i) const {
     const size_t group  = i % dim_;
-    const size_t offset = bitmap::get(cid_, i, c_bit_) + group * (1 << c_bit_);
-    const size_t x      = bitmap::get(code_, i, q_bit_);
+    const size_t offset = bitmap::get(codes_, 2 * i, c_bit_) + group * (1 << c_bit_);
+    const size_t x      = bitmap::get(codes_, 2 * i + 1, q_bit_);
     return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
   }
 
   size_t size() const { return size_; }
 
-  ~QuantizerImpl() {
+  ~POUQQuantizerFast() {
     delete[] lower_bound_;
     delete[] step_size_;
-    delete[] cid_;
-    delete[] code_;
+    delete[] codes_;
   }
 
 private:
@@ -98,11 +95,10 @@ private:
   size_t   dim_         = 0;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
-  uint8_t *cid_         = nullptr;
-  uint8_t *code_        = nullptr;
+  uint8_t *codes_       = nullptr;
 
-  static inline Clusterer clusterer;
-  static inline Optimizer optimizer;
+  static inline KrangeClusterer clusterer;
+  static inline PSOptimizer     optimizer;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, const size_t group) const {
     std::vector<float> sorted_data;
@@ -130,7 +126,5 @@ private:
     return data_freq_map;
   }
 };
-
-using POUQQuantizer = QuantizerImpl<KrangeClusterer, PSOptimizer>;
 
 }  // namespace pouq
