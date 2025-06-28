@@ -9,7 +9,45 @@
 namespace pouq {
 
 class Optimizer {
-private:
+public:
+  virtual ~Optimizer() = default;
+
+  virtual std::pair<float, float> operator()(float                   div,
+      float                                                          initial_min_bound,
+      float                                                          initial_max_bound,
+      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_start,
+      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_end) = 0;
+
+protected:
+  static float loss(const float                                      div,
+      float                                                          cluster_lower_bound,
+      float                                                          step_size_value,
+      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_begin,
+      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_end) {
+    step_size_value  = std::max(step_size_value, 1e-8f);
+    float total_loss = 0.0f;
+
+    for (auto it = data_begin; it != data_end; ++it) {
+      const auto &[data_value, point_count] = *it;
+      const float real_quantized_code       = (data_value - cluster_lower_bound) / step_size_value;
+      float       quantized_code            = 0.0f;
+
+      if (data_value > cluster_lower_bound) {
+        quantized_code = std::round(real_quantized_code);
+        if (quantized_code > div) {
+          quantized_code = div;
+        }
+      }
+
+      const float code_loss = real_quantized_code - quantized_code;
+      total_loss += code_loss * code_loss * static_cast<float>(point_count);
+    }
+
+    return total_loss * step_size_value * step_size_value;
+  }
+};
+
+class PSOptimizer final : public Optimizer {
   static constexpr uint64_t max_iter          = 128;
   static constexpr uint64_t grid_side_length  = 8;
   static constexpr float    grid_scale_factor = 0.1f;
@@ -37,39 +75,12 @@ private:
           min_loss(std::numeric_limits<float>::max()) {}
   };
 
-  static float loss(const float                                      div,
-      float                                                          cluster_lower_bound,
-      float                                                          step_size_value,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_begin,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_end) {
-    step_size_value  = std::max(step_size_value, 1e-8f);
-    float total_loss = 0.0f;
-
-    for (auto it = data_begin; it != data_end; ++it) {
-      const auto &[data_value, point_count] = *it;
-      const float real_quantized_code       = (data_value - cluster_lower_bound) / step_size_value;
-      float       quantized_code            = 0.0f;
-
-      if (data_value > cluster_lower_bound) {
-        quantized_code = std::round(real_quantized_code);
-        if (quantized_code > div) {
-          quantized_code = div;
-        }
-      }
-
-      const float code_loss = real_quantized_code - quantized_code;
-      total_loss += code_loss * code_loss * static_cast<float>(point_count);
-    }
-
-    return total_loss * step_size_value * step_size_value;
-  }
-
 public:
-  std::pair<float, float> operator()(const float                     div,
-      const float                                                    initial_min_bound,
-      const float                                                    initial_max_bound,
+  std::pair<float, float> operator()(float                           div,
+      float                                                          initial_min_bound,
+      float                                                          initial_max_bound,
       const std::vector<std::pair<float, uint64_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_end) {
+      const std::vector<std::pair<float, uint64_t>>::const_iterator &data_end) override {
     const float initial_range_width  = initial_max_bound - initial_min_bound;
     const float initial_range_center = (initial_min_bound + initial_max_bound) * 0.5f;
 
