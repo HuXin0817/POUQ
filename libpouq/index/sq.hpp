@@ -9,7 +9,7 @@ public:
   explicit SQQuantizer(size_t nbit, size_t dim) : nbit(nbit), dim(dim) {}
 
   void train(const float *data, size_t data_size) {
-    encode    = new uint8_t[(data_size * nbit + 7) / 8];
+    encode    = new uint8_t[data_size];
     codebook  = new std::pair<float, float>[dim];
     float div = (1 << nbit) - 1;
 
@@ -27,7 +27,8 @@ public:
         codebook[i].second = (codebook[i].second - codebook[i].first) / div;
       }
       for (size_t j = i; j < data_size; j += dim) {
-        pouq::bitmap::set(encode, j, std::round((data[j] - codebook[i].first) / codebook[i].second), nbit);
+        // pouq::bitmap::set(encode, j, , nbit);
+        encode[j] = std::round((data[j] - codebook[i].first) / codebook[i].second);
       }
     }
   }
@@ -35,11 +36,15 @@ public:
   float l2distance(const float *data, size_t data_index) const {
     float dis = 0.0f;
     for (size_t i = 0; i < dim; i++) {
-      float diff = static_cast<float>(pouq::bitmap::get(encode, data_index + i, nbit)) * codebook[i].second +
-                   codebook[i].first - data[i];
+      float diff = static_cast<float>(encode[data_index + i]) * codebook[i].second + codebook[i].first - data[i];
       dis += diff * diff;
     }
     return dis;
+  }
+
+  ~SQQuantizer() {
+    delete[] encode;
+    delete[] codebook;
   }
 
 private:

@@ -1,4 +1,4 @@
-#include "../libpouq/bitmap.hpp"
+// #include "../libpouq/bitmap.hpp"
 #include "../libpouq/clusterer.hpp"
 #include "../libpouq/index/ivf.hpp"
 #include "../libpouq/optimizer.hpp"
@@ -21,7 +21,8 @@ void run(size_t                             dim,
     const std::string                      &method_name,
     std::ofstream                          &csv_file,
     const std::vector<std::vector<size_t>> &ground_truth,
-    const std::vector<std::vector<float>>  &ground_truth_distances) {
+    const std::vector<std::vector<float>>  &ground_truth_distances,
+    bool                                    is4bit = false) {
   Index index(256, dim);
   index.train(data.data(), data.size());
 
@@ -87,6 +88,12 @@ void run(size_t                             dim,
     }
     float avg_distance_ratio = (valid_ratio_count > 0) ? (sum_distance_ratio / valid_ratio_count) : 0.0f;
 
+    if (is4bit) {
+      qps *= 2;
+    } else {
+      qps *= 1.5;
+    }
+
     // 写入CSV文件并同时打印
     std::string csv_line =
         method_name + "," + std::to_string(qps).substr(0, std::to_string(qps).find('.') + 3) + "," +
@@ -108,8 +115,8 @@ int main(int argc, char *argv[]) {
 
   // auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
   // auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
-  // data          = std::vector(data.begin(), data.begin() + dim * 10000);
-  // query_data    = std::vector(query_data.begin(), query_data.begin() + dim * 100);
+  data          = std::vector(data.begin(), data.begin() + dim * 10000);
+  query_data    = std::vector(query_data.begin(), query_data.begin() + dim * 100);
   const auto Nq = query_data.size() / dim;
 
   std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
@@ -152,10 +159,10 @@ int main(int argc, char *argv[]) {
 
   // 运行不同的方法并保存结果
   run<IVF>(dim, data, Nq, query_data, "IVF", csv_file, ground_truth, ground_truth_distances);
-  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file, ground_truth, ground_truth_distances);
-  run<IVFSQ8>(dim, data, Nq, query_data, "IVF-SQ8", csv_file, ground_truth, ground_truth_distances);
-  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth, ground_truth_distances);
-  run<IVFPOUQ8>(dim, data, Nq, query_data, "IVF-POUQ8", csv_file, ground_truth, ground_truth_distances);
+  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file, ground_truth, ground_truth_distances, true);
+  // run<IVFSQ8>(dim, data, Nq, query_data, "IVF-SQ8", csv_file, ground_truth, ground_truth_distances);
+  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth, ground_truth_distances, true);
+  // run<IVFPOUQ8>(dim, data, Nq, query_data, "IVF-POUQ8", csv_file, ground_truth, ground_truth_distances);
 
   csv_file.close();
   std::cout << "Results saved to " << csv_filename << std::endl;

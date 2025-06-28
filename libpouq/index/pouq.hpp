@@ -2,7 +2,7 @@
 
 #include <omp.h>
 
-#include "../bitmap.hpp"
+// #include "../bitmap.hpp"
 #include "../clusterer.hpp"
 #include "../optimizer.hpp"
 
@@ -16,7 +16,7 @@ public:
     size_          = size;
     step_size_     = new float[dim_ * (1 << c_bit_)];
     lower_bound_   = new float[dim_ * (1 << c_bit_)];
-    codes_         = new uint8_t[(q_bit_ * 2 * size_ + 7) / 8];
+    codes_         = new uint8_t[2 * size_];
     const auto div = static_cast<float>((1 << q_bit_) - 1);
 
 #pragma omp parallel for default(none) shared(data, div)
@@ -56,10 +56,10 @@ public:
             bounds.begin(), bounds.end(), d, [](const float rhs, const std::pair<float, float> &lhs) -> bool {
               return rhs < lhs.first;
             });
-        const size_t c = it - bounds.begin() - 1;
-        bitmap::set(codes_, 2 * i, c, c_bit_);
-        const float x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
-        bitmap::set(codes_, 2 * i + 1, static_cast<size_t>(x), q_bit_);
+        const size_t c    = it - bounds.begin() - 1;
+        codes_[2 * i]     = c;
+        const float x     = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
+        codes_[2 * i + 1] = x;
       }
     }
   }
@@ -75,8 +75,8 @@ public:
 
   float operator[](size_t i) const {
     const size_t group  = i % dim_;
-    const size_t offset = bitmap::get(codes_, 2 * i, c_bit_) + group * (1 << c_bit_);
-    const size_t x      = bitmap::get(codes_, 2 * i + 1, q_bit_);
+    const size_t offset = codes_[2 * i] + group * (1 << c_bit_);
+    const size_t x      = codes_[2 * i + 1];
     return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
   }
 
