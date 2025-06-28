@@ -84,25 +84,26 @@ public:
       }
     }
 
-    lower_bound_ = new float[dim_ * 256];
-    step_size_   = new float[dim_ * 256];
+    lower_bound_ = new __m128[dim_ / 4 * 256];
+    step_size_   = new __m128[dim_ / 4 * 256];
 
 #pragma omp parallel for
-    for (size_t i = 0; i < dim_; i += 4) {
-      const size_t base_idx = (i / 4) * 1024;
+    for (size_t g = 0; g < dim_ / 4; g++) {
       for (size_t j = 0; j < 256; j++) {
         auto [x0, x1, x2, x3] = get(j);
-        const size_t offset   = base_idx + j * 4;
+        const size_t base_idx = g * 16;
 
-        lower_bound_[offset + 0] = lower_bound[(i + 0) * 4 + x0];
-        lower_bound_[offset + 1] = lower_bound[(i + 1) * 4 + x1];
-        lower_bound_[offset + 2] = lower_bound[(i + 2) * 4 + x2];
-        lower_bound_[offset + 3] = lower_bound[(i + 3) * 4 + x3];
+        __m128 lb = _mm_setr_ps(lower_bound[base_idx + 0 * 4 + x0],
+            lower_bound[base_idx + 1 * 4 + x1],
+            lower_bound[base_idx + 2 * 4 + x2],
+            lower_bound[base_idx + 3 * 4 + x3]);
+        __m128 st = _mm_setr_ps(step_size[base_idx + 0 * 4 + x0],
+            step_size[base_idx + 1 * 4 + x1],
+            step_size[base_idx + 2 * 4 + x2],
+            step_size[base_idx + 3 * 4 + x3]);
 
-        step_size_[offset + 0] = step_size[(i + 0) * 4 + x0];
-        step_size_[offset + 1] = step_size[(i + 1) * 4 + x1];
-        step_size_[offset + 2] = step_size[(i + 2) * 4 + x2];
-        step_size_[offset + 3] = step_size[(i + 3) * 4 + x3];
+        lower_bound_[g * 256 + j] = lb;
+        step_size_[g * 256 + j]   = st;
       }
     }
   }
@@ -112,7 +113,6 @@ public:
     __m256       sum8        = _mm256_setzero_ps();
 
     for (size_t i = 0; i < dim_; i += 8) {
-
       const size_t group_idx1 = i / 4;
       const size_t group_idx2 = (i + 4) / 4;
 
@@ -121,16 +121,13 @@ public:
       const uint8_t code_byte1 = code_[base_offset + group_idx1];
       const uint8_t code_byte2 = code_[base_offset + group_idx2];
 
-      const size_t lookup_base1 = group_idx1 * 1024 + cid_byte1 * 4;
-      const size_t lookup_base2 = group_idx2 * 1024 + cid_byte2 * 4;
+      __m128 lb1 = lower_bound_[group_idx1 * 256 + cid_byte1];
+      __m128 lb2 = lower_bound_[group_idx2 * 256 + cid_byte2];
+      __m128 st1 = step_size_[group_idx1 * 256 + cid_byte1];
+      __m128 st2 = step_size_[group_idx2 * 256 + cid_byte2];
 
-      __m128 step1  = _mm_loadu_ps(step_size_ + lookup_base1);
-      __m128 step2  = _mm_loadu_ps(step_size_ + lookup_base2);
-      __m128 lower1 = _mm_loadu_ps(lower_bound_ + lookup_base1);
-      __m128 lower2 = _mm_loadu_ps(lower_bound_ + lookup_base2);
-
-      __m256 step_vec  = _mm256_set_m128(step2, step1);
-      __m256 lower_vec = _mm256_set_m128(lower2, lower1);
+      __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
+      __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
 
       __m256 code_vec = _mm256_setr_ps((code_byte1 >> 0) & 3,
           (code_byte1 >> 2) & 3,
@@ -141,13 +138,10 @@ public:
           (code_byte2 >> 4) & 3,
           (code_byte2 >> 6) & 3);
 
-      __m256 reconstructed = _mm256_fmadd_ps(code_vec, step_vec, lower_vec);
-
-      __m256 data_vec = _mm256_loadu_ps(data + i);
-
-      __m256 diff = _mm256_sub_ps(reconstructed, data_vec);
-
-      sum8 = _mm256_add_ps(sum8, _mm256_mul_ps(diff, diff));
+      __m256 reconstructed = _mm256_fmadd_ps(code_vec, st_vec, lb_vec);
+      __m256 data_vec      = _mm256_loadu_ps(data + i);
+      __m256 diff          = _mm256_sub_ps(reconstructed, data_vec);
+      sum8                 = _mm256_add_ps(sum8, _mm256_mul_ps(diff, diff));
     }
 
     __m128 sum4 = _mm_add_ps(_mm256_extractf128_ps(sum8, 1), _mm256_castps256_ps128(sum8));
@@ -158,11 +152,11 @@ public:
   }
 
 private:
-  size_t   dim_ = 0;
-  float   *lower_bound_;
-  float   *step_size_;
-  uint8_t *cid_;
-  uint8_t *code_;
+  size_t   dim_         = 0;
+  __m128  *lower_bound_ = nullptr;
+  __m128  *step_size_   = nullptr;
+  uint8_t *cid_         = nullptr;
+  uint8_t *code_        = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, size_t group) const {
     std::vector<float> sorted_data;
