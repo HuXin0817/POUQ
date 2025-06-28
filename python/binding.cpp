@@ -43,8 +43,16 @@ namespace py = pybind11;
 PYBIND11_MODULE(plsq, m) {
   m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
 
-  using SQQuantizer = plsq::QuantizerImpl<plsq::Clusterer, plsq::MinMaxOptimizer>;
+  using SQQuantizer         = plsq::QuantizerImpl<plsq::Clusterer, plsq::MinMaxOptimizer>;
+  using LSQQuantizer        = plsq::QuantizerImpl<plsq::Clusterer, plsq::SGDOptimizer>;
+  using LSQ2Quantizer       = plsq::QuantizerImpl<plsq::Clusterer, plsq::PSOptimizer>;
+  using PLSQKRangeQuantizer = plsq::QuantizerImpl<plsq::KrangeClusterer, plsq::MinMaxOptimizer>;
+  using PLSQKMeansQuantizer = plsq::QuantizerImpl<plsq::CKmeansClusterer, plsq::MinMaxOptimizer>;
   BIND_Quantizer("SQQuantizer", SQQuantizer);
+  BIND_Quantizer("LSQQuantizer", LSQQuantizer);
+  BIND_Quantizer("LSQ2Quantizer", LSQ2Quantizer);
+  BIND_Quantizer("PLSQKRangeQuantizer", PLSQKRangeQuantizer);
+  BIND_Quantizer("PLSQKMeansQuantizer", PLSQKMeansQuantizer);
   BIND_Quantizer("PLSQQuantizer", plsq::PLSQQuantizer);
 
   py::class_<IvfIndex>(m, "IvfIndex")

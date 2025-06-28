@@ -20,13 +20,10 @@ from util.io import fvecs_read
 
 
 def run(name, bitwidth, quantizer, data_f32):
-    print(f"{name} bitwidth: {bitwidth}")
-
     start_time = time.time()
     quantizer.train(data_f32)
     codes = quantizer.compute_codes(data_f32)
     train_time = time.time() - start_time
-    print(f"{name} training time: {train_time} seconds")
 
     # 计算MSE
     reconstructed = quantizer.decode(codes)
@@ -34,15 +31,14 @@ def run(name, bitwidth, quantizer, data_f32):
         mse = np.mean((data_f32.reshape(-1) - reconstructed) ** 2)
     else:
         mse = np.mean((data_f32 - reconstructed) ** 2)
-    print(f"{name} MSE: {mse}")
 
-    print()
+    print(f"| {name} | {bitwidth} | {train_time:.4f} | {mse:.6e} |")
 
 
 if __name__ == "__main__":
     dataset_name = sys.argv[1]
     data = fvecs_read(f"../data/{dataset_name}/{dataset_name}_base.fvecs")
-    query_data = fvecs_read(f"../data/{dataset_name}/{dataset_name}_query.fvecs")
+    data = data[:10000]
 
     n, d = data.shape
     data_f32 = data.astype(np.float32)
@@ -50,19 +46,41 @@ if __name__ == "__main__":
     print(f"Dataset: {dataset_name}, Shape: {data.shape}")
     print("=" * 50)
 
-    # PLSQ8量化器
-    plsq8 = plsq.PLSQQuantizer(c_bit=4, q_bit=4, sub=1)
-    run("PLSQ", 8, plsq8, data_f32)
+    for i in range(4, 9):
+        q = plsq.SQQuantizer(c_bit=0, q_bit=i, sub=d)
+        run("SQ", i, q, data_f32)
 
-    # Faiss Scalar Quantizer (类似SQ8的基线)
-    sq = faiss.ScalarQuantizer(d, faiss.ScalarQuantizer.QT_8bit)
-    run("SQ", 8, sq, data_f32)
+    for i in range(4, 9):
+        q = plsq.LSQQuantizer(c_bit=0, q_bit=i, sub=d)
+        run("OSQ-Baseline", i, q, data_f32)
 
-    # Faiss PQ (Product Quantization)
-    m = max(1, d // 4)  # 子空间数量
-    pq = faiss.ProductQuantizer(d, m, 8)
-    run("PQ", 2, pq, data_f32)
+    for i in range(4, 9):
+        q = plsq.LSQ2Quantizer(c_bit=0, q_bit=i, sub=d)
+        run("OSQ-PSO", i, q, data_f32)
 
-    # RaBit Quantizer
+    for i in range(2, 5):
+        q = plsq.PLSQKMeansQuantizer(c_bit=i, q_bit=4, sub=d)
+        run("POSQ-KMeans-MinMax", i + 4, q, data_f32)
+
+    for i in range(2, 5):
+        q = plsq.PLSQKRangeQuantizer(c_bit=i, q_bit=4, sub=d)
+        run("PLSQ-KRange-MinMax", i + 4, q, data_f32)
+
+    for i in range(4, 9):
+        q = plsq.PLSQQuantizer(c_bit=i // 2, q_bit=i - (i // 2), sub=d)
+        run("PLSQ (Ours)", i, q, data_f32)
+
+    for M in range(2, d // 4 + 1):
+        if d % M > 0:
+            continue
+        q = faiss.ProductQuantizer(d, M, 8)
+        run("PQ", M * 8 / d, q, data_f32)
+
+    for M in range(2, d // 4 + 1):
+        if d % M > 0:
+            continue
+        q = faiss.LocalSearchQuantizer(d, M, 8)
+        run("LSQ", M * 8 / d, q, data_f32)
+
     rabitq = faiss.RaBitQuantizer(d, faiss.METRIC_L2)
     run("RaBitQ", 1, rabitq, data_f32)
