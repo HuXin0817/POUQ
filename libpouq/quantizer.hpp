@@ -165,7 +165,7 @@ public:
   explicit LSQQuantizer(size_t q_bit, size_t sub = 1) : QuantizerImpl(0, q_bit, sub) {}
 };
 
-class LloydMaxQuantizer final : public QuantizerImpl<KmeansClusterer, CenterCalculator> {
+class LloydMaxQuantizer final : public QuantizerImpl<CKmeansClusterer, CenterCalculator> {
 public:
   explicit LloydMaxQuantizer(size_t c_bit, size_t sub = 1) : QuantizerImpl(c_bit, 0, sub) {}
 };

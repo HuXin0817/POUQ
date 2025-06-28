@@ -103,7 +103,7 @@ public:
   }
 };
 
-class KmeansClusterer final : public Clusterer {
+class CKmeansClusterer final : public Clusterer {
 
   struct Task {
     size_t j;
