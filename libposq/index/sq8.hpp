@@ -88,10 +88,8 @@ public:
       __m256i codes_256   = _mm256_cvtepu8_epi32(codes_128);
       __m256  codes_float = _mm256_cvtepi32_ps(codes_256);
 
-      // 右移4位并与0xF进行AND操作
-      __m256i shifted  = _mm256_srli_epi32(_mm256_cvtps_epi32(codes_float), 4);
-      __m256i masked   = _mm256_and_si256(shifted, _mm256_set1_epi32(0xF));
-      __m256  v_values = _mm256_cvtepi32_ps(masked);
+      // 直接使用完整的8位值，不进行位移操作
+      __m256 v_values = codes_float;
 
       // 加载lower_bound和step_size
       __m256 lb_vec = _mm256_loadu_ps(&lower_bound_[i]);
@@ -124,7 +122,8 @@ public:
       auto    lb = lower_bound_[i];
       auto    s  = step_size_[i];
 
-      float decode = lb + s * (v >> 4 & 0xF);
+      // 修正：直接使用完整的8位值
+      float decode = lb + s * static_cast<float>(v);
       float diff   = data[i] - decode;
       dis += diff * diff;
     }
@@ -141,7 +140,8 @@ public:
       auto    lb = lower_bound_[i];
       auto    s  = step_size_[i];
 
-      float decode = lb + s * (v >> 4 & 0xF);
+      // 修正：直接使用完整的8位值
+      float decode = lb + s * static_cast<float>(v);
       float diff   = data[i] - decode;
       dis += diff * diff;
     }
