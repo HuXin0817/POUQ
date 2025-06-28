@@ -5,15 +5,6 @@
 
 namespace py = pybind11;
 
-float compute_mse(const py::array_t<float> &data, const pouq::Quantizer &quantizer) {
-  float mse = 0;
-  for (uint64_t i = 0; i < static_cast<uint64_t>(data.size()); ++i) {
-    const float dif = data.data()[i] - quantizer[i];
-    mse += dif * dif;
-  }
-  return mse / static_cast<float>(data.size());
-}
-
 class Quantizer : public pouq::Quantizer {
 public:
   explicit Quantizer(const py::array_t<float> &array,
@@ -23,6 +14,15 @@ public:
       const bool                               opt_bound = true)
       : pouq::Quantizer(array.data(), array.size(), c_bit, q_bit, groups, opt_bound) {}
 };
+
+float compute_mse(const py::array_t<float> &data, const Quantizer &quantizer) {
+  float mse = 0;
+  for (uint64_t i = 0; i < static_cast<uint64_t>(data.size()); ++i) {
+    const float dif = data.data()[i] - quantizer[i];
+    mse += dif * dif;
+  }
+  return mse / static_cast<float>(data.size());
+}
 
 PYBIND11_MODULE(pouq, m) {
   m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
