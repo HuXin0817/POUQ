@@ -37,20 +37,47 @@ def calculate_recall(gt_indices, search_indices, k):
     return intersection / k
 
 
+def calculate_distance_ratio(gt_distances, search_distances, k):
+    """计算L2距离比的精度指标 - 使用 1-abs(1-Dist_Ratio) 公式"""
+    if len(search_distances) == 0:
+        return 0.0
+
+    # 确保我们只比较前k个结果
+    gt_k = gt_distances[:k]
+    search_k = search_distances[:k]
+
+    # 计算原始距离比：搜索结果的平均距离 / 真实最近邻的平均距离
+    if np.mean(gt_k) == 0:
+        raw_ratio = 1.0 if np.mean(search_k) == 0 else float("inf")
+    else:
+        raw_ratio = np.mean(search_k) / np.mean(gt_k)
+
+    # 转换为精度指标：1 - abs(1 - ratio)
+    # 当ratio=1时，精度=1（完美）
+    # 当ratio偏离1时，精度降低
+    if raw_ratio == float("inf"):
+        return 0.0
+
+    precision_score = 1 - abs(1 - raw_ratio)
+    return max(0.0, precision_score)  # 确保不为负数
+
+
 def get_ground_truth(data, queries, k):
-    """使用brute force搜索获取ground truth"""
+    """使用brute force搜索获取ground truth，返回索引和距离"""
     print("Computing ground truth using brute force search...")
 
     # 使用faiss的IndexFlatL2进行精确搜索
     index_flat = faiss.IndexFlatL2(data.shape[1])
     index_flat.add(data.astype("float32"))
 
-    _, gt_indices = index_flat.search(queries.astype("float32"), k)
-    return gt_indices
+    gt_distances, gt_indices = index_flat.search(queries.astype("float32"), k)
+    return gt_indices, gt_distances
 
 
-def benchmark_index(index, queries, gt_indices, k, index_name, search_param=None):
-    """对索引进行基准测试"""
+def benchmark_index(
+    index, queries, data, gt_indices, gt_distances, k, index_name, search_param=None
+):
+    """对索引进行基准测试，包括召回率和距离比评估"""
     param_str = f" (param={search_param})" if search_param is not None else ""
     print(f"\nBenchmarking {index_name}{param_str}...")
 
@@ -66,16 +93,30 @@ def benchmark_index(index, queries, gt_indices, k, index_name, search_param=None
 
     # 为保证公平性，所有索引都使用单个查询向量的方式
     all_results = []
+    all_distances = []
     for i in range(len(queries)):
         if index_name == "IVFPOSQ":
-            _, result_indices = index.search(queries[i].astype("float32"), k, search_param)
+            distances, result_indices = index.search(
+                queries[i].astype("float32"), k, search_param
+            )
             all_results.append(result_indices)
+            all_distances.append(distances)
         else:
-            _, result_indices = index.search(queries[i : i + 1].astype("float32"), k)
+            distances, result_indices = index.search(
+                queries[i : i + 1].astype("float32"), k
+            )
             all_results.append(result_indices[0])  # 取出第一个结果
+            all_distances.append(distances[0])  # 取出第一个距离结果
 
     search_results = np.array(
         [r[:k] if len(r) >= k else r + [0] * (k - len(r)) for r in all_results]
+    )
+
+    search_distances = np.array(
+        [
+            d[:k] if len(d) >= k else np.concatenate([d, [float("inf")] * (k - len(d))])
+            for d in all_distances
+        ]
     )
 
     end_time = time.time()
@@ -84,20 +125,30 @@ def benchmark_index(index, queries, gt_indices, k, index_name, search_param=None
     total_time = end_time - start_time
     qps = len(queries) / total_time
 
+    # 在 benchmark_index 函数中
     # 计算recall
     recalls = []
+    precision_scores = []  # 改名
     for i in range(len(queries)):
         recall = calculate_recall(gt_indices[i], search_results[i], k)
         recalls.append(recall)
 
+        # 计算精度分数
+        precision_score = calculate_distance_ratio(
+            gt_distances[i], search_distances[i], k
+        )
+        precision_scores.append(precision_score)
+
     avg_recall = np.mean(recalls)
+    avg_precision_score = np.mean(precision_scores)  # 改名
 
     print(f"{index_name}{param_str} Results:")
     print(f"  QPS: {qps:.2f}")
     print(f"  Recall@{k}: {avg_recall:.4f}")
+    print(f"  Precision Score: {avg_precision_score:.4f}")  # 改名
     print(f"  Total time: {total_time:.4f}s")
 
-    return qps, avg_recall, total_time
+    return qps, avg_recall, avg_precision_score, total_time  # 改名
 
 
 if __name__ == "__main__":
@@ -121,8 +172,8 @@ if __name__ == "__main__":
 
     k = 10  # 搜索top-k
 
-    # 获取ground truth
-    gt_indices = get_ground_truth(data, query_data, k)
+    # 获取ground truth（包括距离）
+    gt_indices, gt_distances = get_ground_truth(data, query_data, k)
 
     # 准备结果存储
     results = []
@@ -144,10 +195,17 @@ if __name__ == "__main__":
         # 测试不同的nprobe值
         nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
-            qps, recall, total_time = benchmark_index(
-                index_ivfsq, query_data, gt_indices, k, "IVFSQ", nprobe
+            qps, recall, distance_ratio, total_time = benchmark_index(
+                index_ivfsq,
+                query_data,
+                data,
+                gt_indices,
+                gt_distances,
+                k,
+                "IVFSQ",
+                nprobe,
             )
-            results.append([f"IVFSQ", qps, recall, total_time, nprobe])
+            results.append([f"IVFSQ", qps, recall, distance_ratio, total_time, nprobe])
     except Exception as e:
         print(f"Faiss IVFSQ test failed: {e}")
 
@@ -160,10 +218,19 @@ if __name__ == "__main__":
         # 测试不同的nprobe值（对应POSQ的搜索参数）
         nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
-            qps, recall, total_time = benchmark_index(
-                posq_index, query_data, gt_indices, k, "IVFPOSQ", nprobe
+            qps, recall, distance_ratio, total_time = benchmark_index(
+                posq_index,
+                query_data,
+                data,
+                gt_indices,
+                gt_distances,
+                k,
+                "IVFPOSQ",
+                nprobe,
             )
-            results.append([f"IVFPOSQ", qps, recall, total_time, nprobe])
+            results.append(
+                [f"IVFPOSQ", qps, recall, distance_ratio, total_time, nprobe]
+            )
     except Exception as e:
         print(f"POSQ IVF test failed: {e}")
 
@@ -177,10 +244,19 @@ if __name__ == "__main__":
         # 测试不同的ef_search值
         ef_search_values = [32, 64, 128, 256, 512]
         for ef_search in ef_search_values:
-            qps, recall, total_time = benchmark_index(
-                index_hnsw, query_data, gt_indices, k, "HNSW", ef_search
+            qps, recall, distance_ratio, total_time = benchmark_index(
+                index_hnsw,
+                query_data,
+                data,
+                gt_indices,
+                gt_distances,
+                k,
+                "HNSW",
+                ef_search,
             )
-            results.append([f"HNSW", qps, recall, total_time, ef_search])
+            results.append(
+                [f"HNSW", qps, recall, distance_ratio, total_time, ef_search]
+            )
     except Exception as e:
         print(f"Faiss HNSW test failed: {e}")
 
@@ -201,10 +277,19 @@ if __name__ == "__main__":
         # 测试不同的nprobe值
         nprobe_values = [1, 5, 10, 20, 50]
         for nprobe in nprobe_values:
-            qps, recall, total_time = benchmark_index(
-                index_ivfpqfs, query_data, gt_indices, k, "IVFPQFastScan", nprobe
+            qps, recall, distance_ratio, total_time = benchmark_index(
+                index_ivfpqfs,
+                query_data,
+                data,
+                gt_indices,
+                gt_distances,
+                k,
+                "IVFPQFastScan",
+                nprobe,
             )
-            results.append([f"IVFPQFastScan", qps, recall, total_time, nprobe])
+            results.append(
+                [f"IVFPQFastScan", qps, recall, distance_ratio, total_time, nprobe]
+            )
     except Exception as e:
         print(f"Faiss IVFPQFastScan test failed: {e}")
 
@@ -220,10 +305,19 @@ if __name__ == "__main__":
         # 测试不同的nprobe值
         nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
-            qps, recall, total_time = benchmark_index(
-                index_ivf, query_data, gt_indices, k, "IndexIVFRaBitQ", nprobe
+            qps, recall, distance_ratio, total_time = benchmark_index(
+                index_ivf,
+                query_data,
+                data,
+                gt_indices,
+                gt_distances,
+                k,
+                "IndexIVFRaBitQ",
+                nprobe,
             )
-            results.append([f"IndexIVFRaBitQ", qps, recall, total_time, nprobe])
+            results.append(
+                [f"IndexIVFRaBitQ", qps, recall, distance_ratio, total_time, nprobe]
+            )
     except Exception as e:
         print(f"Faiss IndexIVFRaBitQ test failed: {e}")
 
@@ -236,7 +330,14 @@ if __name__ == "__main__":
     with open(output_file, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(
-            ["Index", "QPS", f"Recall@{k}", "Total_Time(s)", "Search_Param"]
+            [
+                "Index",
+                "QPS",
+                f"Recall@{k}",
+                "Distance_Ratio",
+                "Total_Time(s)",
+                "Search_Param",
+            ]
         )
         writer.writerows(results)
 
@@ -244,12 +345,12 @@ if __name__ == "__main__":
     print(f"Results saved to: {output_file}")
     print("\nPerformance Comparison:")
     print(
-        f"{'Index':<25} {'QPS':<10} {'Recall@'+str(k):<12} {'Time(s)':<10} {'Param':<8}"
+        f"{'Index':<25} {'QPS':<10} {'Recall@'+str(k):<12} {'Dist_Ratio':<12} {'Time(s)':<10} {'Param':<8}"
     )
-    print("-" * 70)
+    print("-" * 80)
     for result in results:
         print(
-            f"{result[0]:<25} {result[1]:<10.2f} {result[2]:<12.4f} {result[3]:<10.4f} {result[4]:<8}"
+            f"{result[0]:<25} {result[1]:<10.2f} {result[2]:<12.4f} {result[3]:<12.4f} {result[4]:<10.4f} {result[5]:<8}"
         )
 
     # 生成参数扫描分析
@@ -267,10 +368,12 @@ if __name__ == "__main__":
 
     for index_type, type_results in index_types.items():
         print(f"\n{index_type} Parameter Analysis:")
-        print(f"{'Param':<8} {'QPS':<10} {'Recall':<10} {'QPS/Recall Trade-off':<20}")
-        print("-" * 50)
-        for result in sorted(type_results, key=lambda x: x[4]):
+        print(
+            f"{'Param':<8} {'QPS':<10} {'Recall':<10} {'Dist_Ratio':<12} {'QPS/Recall':<12}"
+        )
+        print("-" * 60)
+        for result in sorted(type_results, key=lambda x: x[5]):
             trade_off = result[1] / result[2] if result[2] > 0 else 0
             print(
-                f"{result[4]:<8} {result[1]:<10.2f} {result[2]:<10.4f} {trade_off:<20.2f}"
+                f"{result[5]:<8} {result[1]:<10.2f} {result[2]:<10.4f} {result[3]:<12.4f} {trade_off:<12.2f}"
             )
