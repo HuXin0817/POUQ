@@ -14,7 +14,7 @@ public:
 
   void train(const float *data, size_t size) {
     // size_        = size;
-    codebook_ = new float[dim_ * (1 << 4) * 2];
+    codebook_ = new std::pair<float, float>[dim_ * (1 << 4)];
     codes_    = new uint8_t[size];
 
 #pragma omp parallel for
@@ -39,12 +39,10 @@ public:
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
-        auto off_       = (offset + i) << 1;
-        codebook_[off_] = lower;
         if (lower == upper) {
-          codebook_[off_ + 1] = 1.0;
+          codebook_[offset + i] = {lower, 1.0};
         } else {
-          codebook_[off_ + 1] = (upper - lower) / div;
+          codebook_[offset + i] = {lower, (upper - lower) / div};
         }
       }
 
@@ -57,8 +55,8 @@ public:
             });
         const size_t c = it - bounds.begin() - 1;
         set(codes_, 2 * i, c);
-        auto        off_ = (offset + c) << 1;
-        const float x    = std::clamp((d - codebook_[off_]) / codebook_[off_ + 1] + 0.5f, 0.0f, div);
+        auto [lb, s]  = codebook_[offset + c];
+        const float x = std::clamp((d - lb) / s + 0.5f, 0.0f, div);
         set(codes_, 2 * i + 1, x);
       }
     }
@@ -67,10 +65,10 @@ public:
   float l2distance(const float *data, size_t n) const {
     float dis = 0.0f;
     for (size_t i = 0; i < dim_; i++) {
-      uint8_t v      = codes_[n + i];
-      size_t  off    = 2 * ((v & 0xF) + i * (1 << 4));
-      float   decode = codebook_[off] + codebook_[off + 1] * (v >> 4 & 0xF);
-      float   diff   = data[i] - decode;
+      uint8_t v    = codes_[n + i];
+      auto [lb, s] = codebook_[((v & 0xF) + i * (1 << 4))];
+      float decode = lb + s * (v >> 4 & 0xF);
+      float diff   = data[i] - decode;
       dis += diff * diff;
     }
     return dis;
@@ -88,7 +86,7 @@ private:
   size_t dim_ = 0;
   // float *codebook_ = nullptr;
   // float *codebook_   = nullptr;
-  float *codebook_ = nullptr;
+  std::pair<float, float> *codebook_ = nullptr;
   // uint8_t *cid_         = nullptr;
   // uint8_t *code_        = nullptr;
   uint8_t *codes_ = nullptr;
