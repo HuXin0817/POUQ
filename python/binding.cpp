@@ -1,4 +1,6 @@
 #include "../libposq/index/ivf.hpp"
+#include "index/ivf-sq8.hpp"
+
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -56,6 +58,21 @@ PYBIND11_MODULE(posq, m) {
   BIND_Quantizer("POSQQuantizer", posq::POSQQuantizer);
 
   py::class_<IvfIndex>(m, "IvfIndex")
+      .def(py::init<size_t, size_t>(), py::arg("nlist"), py::arg("dim"))
+      .def(
+          "train",
+          [](IvfIndex &self, const py::array_t<float> &data) { self.train(data.data(), data.size()); },
+          py::arg("data"))
+      .def(
+          "search",
+          [](IvfIndex &self, const py::array_t<float> &query, size_t k, size_t nprobe) {
+            return self.search(query.data(), k, nprobe);
+          },
+          py::arg("query"),
+          py::arg("k"),
+          py::arg("nprobe"));
+
+  py::class_<IvfSQ8Index>(m, "IvfIndex")
       .def(py::init<size_t, size_t>(), py::arg("nlist"), py::arg("dim"))
       .def(
           "train",
