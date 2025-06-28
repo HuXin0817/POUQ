@@ -20,6 +20,7 @@ print(f"faiss OpenMP threads: {faiss.omp_get_max_threads()}")
 
 import numpy as np
 import posq
+
 from util.io import fvecs_read
 
 
@@ -139,9 +140,9 @@ if __name__ == "__main__":
         nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
             qps, recall, total_time = benchmark_index(
-                posq_index, query_data, gt_indices, k, "POSQ-IVF", nprobe
+                posq_index, query_data, gt_indices, k, "IVFPOSQ", nprobe
             )
-            results.append([f"POSQ-IVF", qps, recall, total_time, nprobe])
+            results.append([f"IVFPOSQ", qps, recall, total_time, nprobe])
     except Exception as e:
         print(f"POSQ IVF test failed: {e}")
 
