@@ -20,7 +20,6 @@ print(f"faiss OpenMP threads: {faiss.omp_get_max_threads()}")
 
 import numpy as np
 import posq
-
 from util.io import fvecs_read
 
 # List to store results

@@ -20,7 +20,6 @@ print(f"faiss OpenMP threads: {faiss.omp_get_max_threads()}")
 
 import numpy as np
 import posq
-
 from util.io import fvecs_read
 
 
@@ -68,10 +67,8 @@ def benchmark_index(index, queries, gt_indices, k, index_name, search_param=None
     # 为保证公平性，所有索引都使用单个查询向量的方式
     all_results = []
     for i in range(len(queries)):
-        if index_name.startswith("POSQ"):
+        if index_name == "IVFPOSQ":
             result_indices = index.search(queries[i].astype("float32"), k, search_param)
-            # print(result_indices)
-            # print(gt_indices[i])
             all_results.append(result_indices)
         else:
             _, result_indices = index.search(queries[i : i + 1].astype("float32"), k)
