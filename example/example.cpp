@@ -1,4 +1,3 @@
-#include "../libpouq/index/ivf.hpp"
 #include "../libpouq/quantizer.hpp"
 #include "../libpouq/utils.hpp"
 
