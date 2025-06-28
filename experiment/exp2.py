@@ -83,8 +83,8 @@ def calculate_memory_usage(index, data, index_name):
         # POSQ索引的压缩比估算（基于8位量化）
         compression_ratio = 0.25  # 8位量化约为原始32位的1/4
         memory_mb = original_size_mb * compression_ratio
-    elif index_name == "IVFSQ":
-        # IVFSQ 8位标量量化
+    elif index_name == "IvfSQ8Index":
+        # IvfSQ8Index 8位标量量化
         compression_ratio = 0.25
         memory_mb = original_size_mb * compression_ratio
     elif index_name == "IVFPQ":
