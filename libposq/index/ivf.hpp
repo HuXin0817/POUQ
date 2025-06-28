@@ -86,7 +86,7 @@ public:
     // 使用并行排序替代堆操作，只排序前k个最小距离的结果
     k = std::min(k, sum_result.size());
     if (k > 0) {
-      std::partial_sort(sum_result.begin(), sum_result.begin() + k, sum_result.end(), leq);
+      std::nth_element(sum_result.begin(), sum_result.begin() + k - 1, sum_result.end(), leq);
     }
 
     return sum_result;
