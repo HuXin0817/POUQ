@@ -71,7 +71,7 @@ public:
               upper,
               [](const float rhs, const std::pair<float, size_t> &lhs) -> bool { return rhs < lhs.first; });
 
-          const auto [opt_lower, opt_upper] = optimizer(div, lower, upper, data_start, data_end);
+          const auto [opt_lower, opt_upper] = optimizer(div, data_start, data_end);
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
@@ -155,15 +155,14 @@ private:
   }
 };
 
-class SQQuantizer final : public QuantizerImpl<Clusterer, MinMaxOptimizer> {
+template <typename Optimizer = MinMaxOptimizer>
+class SQQuantizer final : public QuantizerImpl<Clusterer, Optimizer> {
 public:
-  explicit SQQuantizer(size_t q_bit, size_t sub = 1) : QuantizerImpl(0, q_bit, sub) {}
+  explicit SQQuantizer(size_t q_bit, size_t sub = 1) : QuantizerImpl<Clusterer, Optimizer>(0, q_bit, sub) {}
 };
 
-class LSQQuantizer final : public QuantizerImpl<Clusterer, PSOptimizer> {
-public:
-  explicit LSQQuantizer(size_t q_bit, size_t sub = 1) : QuantizerImpl(0, q_bit, sub) {}
-};
+using SGD_LSQQuantizer = SQQuantizer<SGDOptimizer>;
+using PSO_LSQQuantizer = SQQuantizer<PSOptimizer>;
 
 class LloydMaxQuantizer final : public QuantizerImpl<CKmeansClusterer, CenterCalculator> {
 public:

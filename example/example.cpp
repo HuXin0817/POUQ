@@ -22,26 +22,26 @@ void print_vector(const char *prefix, const DataType &data) {
   std::cout << std::defaultfloat;
 }
 
-int main() {
-  std::random_device             rd;
-  std::mt19937                   gen(rd());
-  std::uniform_real_distribution dis(0.0f, 256.0f);
-
-  std::vector<float> data(N);
-  for (auto &d : data) {
-    d = dis(gen);
-  }
-
-  pouq::PLSQQuantizer quantizer(4, 4, 256);
-
+template <typename Quantizer>
+void run(const std::vector<float> &data, Quantizer *quantizer) {
   const auto start_time = std::chrono::high_resolution_clock::now();
-  quantizer.train(data.data(), N);
+  quantizer->train(data.data(), N);
   const auto end_time = std::chrono::high_resolution_clock::now();
   const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
 
   std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
-  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(data, quantizer, N) << std::endl;
+  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(data, *quantizer, N) << std::endl;
 
   print_vector("Origin Vector:", data);
-  print_vector("Quantized Vector:", quantizer);
+  print_vector("Quantized Vector:", *quantizer);
+
+  delete quantizer;
+}
+
+int main(int argc, char **argv) {
+  const std::string dataset_name = argv[1];
+  const auto        data         = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
+
+  run(data, new pouq::SQQuantizer(8, 256));
+  run(data, new pouq::PLSQQuantizer(4, 4, 256));
 }
