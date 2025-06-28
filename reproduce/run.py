@@ -1,7 +1,7 @@
 import sys
 
 import numpy as np
-from pouq import Quantizer, compute_mse
+from pouq import POUQuantizer, ScaledQuantizer, compute_mse
 
 
 # read_fvecs sourced from https://github.com/gaoj0017/RaBitQ/blob/main/data/utils/io.py
@@ -31,9 +31,10 @@ N, Dim = data.shape
 print(f"N={N}, Dim={Dim}")
 
 
-def print_err(method: str, quantizer: Quantizer):
+def print_err(method: str, quantizer):
+    quantizer.train(data)
     print(f"Method: {method}, Error: {compute_mse(data, quantizer)}")
 
 
-print_err("SQ", Quantizer(data, c_bit=0, q_bit=8, groups=Dim, opt_bound=False))
-print_err("POUQ", Quantizer(data, c_bit=4, q_bit=4, groups=Dim, opt_bound=True))
+print_err("SQ", ScaledQuantizer(q_bit=8, groups=Dim))
+print_err("POUQ", POUQuantizer(c_bit=4, q_bit=4, groups=Dim))

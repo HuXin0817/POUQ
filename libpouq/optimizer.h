@@ -16,7 +16,9 @@ public:
       float                                                        initial_min_bound,
       float                                                        initial_max_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) = 0;
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
+    return {initial_min_bound, initial_max_bound};
+  }
 
 protected:
   static float loss(const float                                    div,

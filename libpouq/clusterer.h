@@ -12,7 +12,9 @@ public:
   virtual ~Clusterer() = default;
 
   virtual std::vector<std::pair<float, float>> operator()(size_t k,
-      const std::vector<std::pair<float, size_t>>               &data_freq_map) = 0;
+      const std::vector<std::pair<float, size_t>>               &data_freq_map) {
+    return {{data_freq_map.front().first, data_freq_map.back().first}};
+  }
 };
 
 class KrangeClusterer final : public Clusterer {
