@@ -26,18 +26,18 @@ def run(name, bitwidth, quantizer, data_f32):
     quantizer.train(data_f32)
     codes = quantizer.compute_codes(data_f32)
     train_time = time.time() - start_time
-    print(f"{name} training time: {train_time:.4f} seconds")
+    print(f"{name} training time: {train_time} seconds")
 
     # 计算MSE
     start_time = time.time()
     reconstructed = quantizer.decode(codes)
     decode_time = time.time() - start_time
-    print(f"{name} decode time: {decode_time:.4f} seconds")
+    print(f"{name} average decode time: {decode_time/data_f32.shape[0]} seconds/vector")
     if isinstance(reconstructed, list):
         mse = np.mean((data_f32.reshape(-1) - reconstructed) ** 2)
     else:
         mse = np.mean((data_f32 - reconstructed) ** 2)
-    print(f"{name} MSE: {mse:.6f}")
+    print(f"{name} MSE: {mse}")
 
     print()
 
