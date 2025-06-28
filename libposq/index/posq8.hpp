@@ -122,8 +122,7 @@ private:
   }
 
   float at(size_t i) const {
-    const size_t b1     = get(codes_, 2 * i);
-    const size_t b2     = get(codes_, 2 * i + 1);
+    const auto [b1, b2] = get_pair(codes_, 2 * i);
     const size_t group  = i % dim_;
     const size_t offset = 2 * (b1 + group * (1 << 4));
     return codebook_[offset] + codebook_[offset + 1] * static_cast<float>(b2);
@@ -143,18 +142,15 @@ private:
     }
   }
 
-  size_t get(const uint8_t *data, size_t index) const {
-    const size_t pos    = index * 4;
-    size_t       result = 0;
-    for (size_t bit = 0; bit < 4; ++bit) {
-      const size_t i      = (pos + bit) / 8;
-      const size_t offset = (pos + bit) % 8;
-      if (data[i] & 1 << offset) {
-        result |= 1 << bit;
-      }
-    }
-
-    return result;
+  std::pair<size_t, size_t> get_pair(const uint8_t *data, size_t index) const {
+    const size_t pos = index * 4;
+    const size_t byte_idx = pos / 8;
+    const size_t bit_offset = pos % 8;
+    const uint8_t byte_val = data[byte_idx];
+    
+    const size_t b1 = (byte_val >> bit_offset) & 0xF;
+    const size_t b2 = (byte_val >> (bit_offset + 4)) & 0xF;
+    return {b1, b2};
   }
 };
 
