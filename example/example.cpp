@@ -21,18 +21,18 @@ int main() {
   // const std::string dataset_name = argv[1];
   size_t dim        = 100;
   auto   data       = generate_vector(dim * 500);
-  auto   query_data = generate_vector(dim * 10);
+  auto   query_data = generate_vector(dim);
 
   // const auto [data, dim]         = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
   // const auto [query_data, _]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
   auto Nq = query_data.size() / dim;
 
-  IvfIndex index(32, dim);
+  IvfIndex index(16, dim);
   index.train(data.data(), data.size());
 
   float sum_recall = 0.0f;
 
-  auto cmp = [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) { return a.second < b.second; };
+  auto cmp = [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) { return a.second > b.second; };
   for (size_t i = 0; i < Nq; i++) {
 
     std::unordered_set<size_t> real_idx;
@@ -48,7 +48,7 @@ int main() {
       }
     }
 
-    auto ret = index.search(q, 10, 16);
+    auto ret = index.search(q, 10, 10);
 
     size_t finded = 0;
     for (auto idx : ret) {
