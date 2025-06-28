@@ -40,8 +40,8 @@ public:
       sum_count[i] = sum_count[i - 1] + static_cast<double>(data_freq_map[i - 1].second);
     }
 
-    std::vector prev_dp(size + 1, std::numeric_limits<double>::infinity());
-    std::vector curr_dp(size + 1, std::numeric_limits<double>::infinity());
+    std::vector prev_dp(size + 1, std::numeric_limits<double>::max());
+    std::vector curr_dp(size + 1, std::numeric_limits<double>::max());
     std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
     prev_dp[0] = 0.0;
 
@@ -59,7 +59,7 @@ public:
         const size_t mid       = (l + r) / 2;
         const size_t start     = std::max(j - 1, opt_l);
         const size_t end       = std::min(mid - 1, opt_r);
-        double       min_cost  = std::numeric_limits<double>::infinity();
+        double       min_cost  = std::numeric_limits<double>::max();
         size_t       split_pos = 0;
         for (size_t m = start; m <= end; ++m) {
           const double width =
@@ -81,7 +81,7 @@ public:
       }
 
       std::swap(prev_dp, curr_dp);
-      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<double>::infinity());
+      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<double>::max());
     }
 
     std::vector<size_t> split_pos(k);
@@ -135,8 +135,8 @@ public:
       sum_squared_weighted[i] = sum_squared_weighted[i - 1] + value * value * count;
     }
 
-    std::vector prev_dp(size + 1, std::numeric_limits<double>::infinity());
-    std::vector curr_dp(size + 1, std::numeric_limits<double>::infinity());
+    std::vector prev_dp(size + 1, std::numeric_limits<double>::max());
+    std::vector curr_dp(size + 1, std::numeric_limits<double>::max());
     std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
     prev_dp[0] = 0.0;
 
@@ -154,7 +154,7 @@ public:
         const size_t mid       = (l + r) / 2;
         const size_t start     = std::max(j - 1, opt_l);
         const size_t end       = std::min(mid - 1, opt_r);
-        double       min_cost  = std::numeric_limits<double>::infinity();
+        double       min_cost  = std::numeric_limits<double>::max();
         size_t       split_pos = 0;
 
         for (size_t m = start; m <= end; ++m) {
@@ -182,7 +182,7 @@ public:
       }
 
       std::swap(prev_dp, curr_dp);
-      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<double>::infinity());
+      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<double>::max());
     }
 
     std::vector<size_t> split_pos(k);
