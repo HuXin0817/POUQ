@@ -15,9 +15,9 @@
 
 template <typename Index>
 void run(size_t                             dim,
-    std::vector<float>                      data,
+    const std::vector<float>               &data,
     size_t                                  Nq,
-    std::vector<float>                      query_data,
+    const std::vector<float>               &query_data,
     const std::string                      &method_name,
     std::ofstream                          &csv_file,
     const std::vector<std::vector<size_t>> &ground_truth,
