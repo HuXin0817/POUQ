@@ -246,22 +246,6 @@ private:
   }
 };
 
-template <size_t bit>
-class SQ : public SQQuantizer {
-public:
-  explicit SQ(size_t dim) : SQQuantizer(bit, dim) {}
-};
-
-using IVFSQ4 = IVFIndex<SQ<4>>;
-using IVFSQ8 = IVFIndex<SQ<8>>;
-
-template <size_t cbit, size_t qbit>
-class POUQ : public pouq::POUQQuantizerFast {
-public:
-  explicit POUQ(size_t dim) : pouq::POUQQuantizerFast(cbit, qbit, dim) {}
-};
-
-using IVFPOUQ4 = IVFIndex<POUQ<2, 2>>;
-using IVFPOUQ8 = IVFIndex<POUQ<4, 4>>;
-
-using IVF = IVFIndex<Float32Quantizer>;
+using IVFSQ4   = IVFIndex<SQQuantizer>;
+using IVFPOUQ4 = IVFIndex<POUQ4>;
+using IVF      = IVFIndex<Float32Quantizer>;

@@ -21,8 +21,7 @@ void run(size_t                             dim,
     const std::string                      &method_name,
     std::ofstream                          &csv_file,
     const std::vector<std::vector<size_t>> &ground_truth,
-    const std::vector<std::vector<float>>  &ground_truth_distances,
-    bool                                    is4bit = false) {
+    const std::vector<std::vector<float>>  &ground_truth_distances) {
   Index index(256, dim);
   index.train(data.data(), data.size());
 
@@ -64,7 +63,7 @@ void run(size_t                             dim,
       }
       sum_recall += static_cast<float>(found) / static_cast<float>(topk);
     }
-    float avg_recall = sum_recall / Nq;
+    float avg_recall = sum_recall / Nq * 100.0f;
 
     // 计算Average Distance Ratio
     float  sum_distance_ratio = 0.0f;
@@ -81,18 +80,15 @@ void run(size_t                             dim,
 
         if (true_distance > 0) {                          // 避免除零
           float ratio = true_distance / search_distance;  // 真实距离 / 搜索距离
+          if (ratio > 1) {
+            ratio = 2 - ratio;
+          }
           sum_distance_ratio += ratio;
           valid_ratio_count++;
         }
       }
     }
     float avg_distance_ratio = (valid_ratio_count > 0) ? (sum_distance_ratio / valid_ratio_count) : 0.0f;
-
-    if (is4bit) {
-      qps *= 2;
-    } else {
-      qps *= 1.5;
-    }
 
     // 写入CSV文件并同时打印
     std::string csv_line =
@@ -112,6 +108,9 @@ int main(int argc, char *argv[]) {
   auto &data       = d1.first;
   auto  dim        = d1.second;
   auto  query_data = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs").first;
+
+  std::shuffle(data.begin(), data.end(), std::mt19937(42));
+  std::shuffle(query_data.begin(), query_data.end(), std::mt19937(42));
 
   // auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
   // auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
@@ -158,11 +157,9 @@ int main(int argc, char *argv[]) {
   std::cout << "Writing CSV header: " << header << std::endl;
 
   // 运行不同的方法并保存结果
-  run<IVF>(dim, data, Nq, query_data, "IVF", csv_file, ground_truth, ground_truth_distances);
-  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file, ground_truth, ground_truth_distances, true);
-  // run<IVFSQ8>(dim, data, Nq, query_data, "IVF-SQ8", csv_file, ground_truth, ground_truth_distances);
-  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth, ground_truth_distances, true);
-  // run<IVFPOUQ8>(dim, data, Nq, query_data, "IVF-POUQ8", csv_file, ground_truth, ground_truth_distances);
+  // run<IVF>(dim, data, Nq, query_data, "IVF", csv_file, ground_truth, ground_truth_distances);
+  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file, ground_truth, ground_truth_distances);
+  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth, ground_truth_distances);
 
   csv_file.close();
   std::cout << "Results saved to " << csv_filename << std::endl;

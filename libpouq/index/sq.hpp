@@ -6,12 +6,12 @@
 
 class SQQuantizer {
 public:
-  explicit SQQuantizer(size_t dim) : nbit(4), dim(dim) {}
+  explicit SQQuantizer(size_t dim) : dim(dim) {}
 
   void train(const float *data, size_t data_size) {
-    encode    = new uint8_t[(data_size * nbit + 7) / 8];
+    encode    = new uint8_t[(data_size + 1) / 2];  // 每个byte存储2个4bit值
     codebook  = new std::pair<float, float>[dim];
-    float div = (1 << nbit) - 1;
+    float div = (1 << 4) - 1;
 
 #pragma omp parallel for
     for (size_t i = 0; i < dim; i++) {
@@ -27,60 +27,77 @@ public:
         codebook[i].second = (codebook[i].second - codebook[i].first) / div;
       }
       for (size_t j = i; j < data_size; j += dim) {
-        set(encode, j, std::round((data[j] - codebook[i].first) / codebook[i].second), nbit);
+        set(encode, j, std::round((data[j] - codebook[i].first) / codebook[i].second));
       }
     }
   }
 
   float l2distance(const float *data, size_t data_index) const {
     float dis = 0.0f;
-    for (size_t i = 0; i < dim; i++) {
-      float diff =
-          static_cast<float>(get(encode, data_index + i, nbit)) * codebook[i].second + codebook[i].first - data[i];
+    size_t i = 0;
+    
+    // 两个两个地处理，优化get操作
+    for (; i + 1 < dim; i += 2) {
+      const size_t byte_idx = (data_index + i) / 2;
+      const uint8_t byte_val = encode[byte_idx];
+      
+      // 提取两个4位值
+      uint8_t val1, val2;
+      if ((data_index + i) & 1) {
+        // 起始索引为奇数
+        val1 = (byte_val >> 4) & 0x0F;  // 高4位
+        val2 = encode[byte_idx + 1] & 0x0F;  // 下一个字节的低4位
+      } else {
+        // 起始索引为偶数
+        val1 = byte_val & 0x0F;          // 低4位
+        val2 = (byte_val >> 4) & 0x0F;   // 高4位
+      }
+      
+      // 计算第一个维度的距离
+      float diff1 = static_cast<float>(val1) * codebook[i].second + codebook[i].first - data[i];
+      dis += diff1 * diff1;
+      
+      // 计算第二个维度的距离
+      float diff2 = static_cast<float>(val2) * codebook[i + 1].second + codebook[i + 1].first - data[i + 1];
+      dis += diff2 * diff2;
+    }
+    
+    // 处理剩余的维度（如果dim是奇数）
+    if (i < dim) {
+      float diff = static_cast<float>(get(encode, data_index + i)) * codebook[i].second + codebook[i].first - data[i];
       dis += diff * diff;
     }
+    
     return dis;
   }
 
 private:
-  size_t                   nbit;
   size_t                   dim;
   std::pair<float, float> *codebook = nullptr;
   uint8_t                 *encode   = nullptr;
 
-  void set(uint8_t *data, size_t index, size_t n, size_t bit_size) {
-    if (bit_size == 0) {
-      return;
-    }
-
-    n &= (1 << bit_size) - 1;
-    const size_t pos = index * bit_size;
-    for (size_t bit = 0; bit < bit_size; ++bit) {
-      const size_t i      = (pos + bit) / 8;
-      const size_t offset = (pos + bit) % 8;
-      if (n & 1 << bit) {
-        data[i] |= 1 << offset;
-      } else {
-        data[i] &= ~(1 << offset);
-      }
+  // 优化的set方法：直接操作半字节
+  void set(uint8_t *data, size_t index, uint8_t value) {
+    value &= 0x0F;  // 确保只有4bit
+    const size_t byte_idx = index / 2;
+    if (index & 1) {
+      // 奇数索引：存储在高4位
+      data[byte_idx] = (data[byte_idx] & 0x0F) | (value << 4);
+    } else {
+      // 偶数索引：存储在低4位
+      data[byte_idx] = (data[byte_idx] & 0xF0) | value;
     }
   }
 
-  size_t get(const uint8_t *data, size_t index, size_t bit_size) const {
-    if (bit_size == 0) {
-      return 0;
+  // 优化的get方法：直接读取半字节
+  uint8_t get(const uint8_t *data, size_t index) const {
+    const size_t byte_idx = index / 2;
+    if (index & 1) {
+      // 奇数索引：从高4位读取
+      return (data[byte_idx] >> 4) & 0x0F;
+    } else {
+      // 偶数索引：从低4位读取
+      return data[byte_idx] & 0x0F;
     }
-
-    const size_t pos    = index * bit_size;
-    size_t       result = 0;
-    for (size_t bit = 0; bit < bit_size; ++bit) {
-      const size_t i      = (pos + bit) / 8;
-      const size_t offset = (pos + bit) % 8;
-      if (data[i] & 1 << offset) {
-        result |= 1 << bit;
-      }
-    }
-
-    return result;
   }
 };
