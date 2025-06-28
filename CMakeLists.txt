@@ -5,7 +5,7 @@ SET(CMAKE_CXX_STANDARD 17)
 
 FIND_PACKAGE(OpenMP REQUIRED)
 
-ADD_EXECUTABLE(example example/example.cpp)
+ADD_EXECUTABLE(example main.cpp)
 
 TARGET_LINK_LIBRARIES(example PRIVATE
         OpenMP::OpenMP_CXX
