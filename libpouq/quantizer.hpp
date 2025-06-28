@@ -89,8 +89,7 @@ public:
     }
 
     for (size_t i = 0; i < size / 4; i += 2) {
-      // 将两个 code 字节合并为一个 uint16_t
-      uint16_t combined_code = (static_cast<uint16_t>(temp_code[i + 1]) << 8) | temp_code[i];
+      uint16_t combined_code = static_cast<uint16_t>(temp_code[i + 1]) << 8 | temp_code[i];
       combined_data_[i / 2]  = std::make_tuple(temp_cid[i], temp_cid[i + 1], combined_code);
     }
 
@@ -132,7 +131,6 @@ public:
       __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
 
-      // 优化版本 - 直接使用合并的 uint16_t
       __m256i bytes    = _mm256_set1_epi32(combined_code);
       __m256i shifts   = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
       __m256i shifted  = _mm256_srlv_epi32(bytes, shifts);
