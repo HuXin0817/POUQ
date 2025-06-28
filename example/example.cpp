@@ -25,10 +25,11 @@ int main(int argc, char *argv[]) {
   // auto   data       = generate_vector(dim * 50000);
   // auto   query_data = generate_vector(dim * 10);
 
-  const auto [data, dim] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
-  auto [query_data, _]   = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
-  query_data             = std::vector(query_data.begin(), query_data.begin() + dim * 100);
-  auto Nq                = query_data.size() / dim;
+  auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
+  auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
+  data                 = std::vector(data.begin(), data.begin() + dim * 100000);
+  query_data           = std::vector(query_data.begin(), query_data.begin() + dim * 100);
+  auto Nq              = query_data.size() / dim;
 
   std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
   std::cout << "Query shape: (" << Nq << ", " << dim << ")" << std::endl;
