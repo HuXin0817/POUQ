@@ -20,7 +20,6 @@ print(f"faiss OpenMP threads: {faiss.omp_get_max_threads()}")
 
 import numpy as np
 import posq
-
 from util.io import fvecs_read
 
 
@@ -142,9 +141,7 @@ if __name__ == "__main__":
             qps, recall, total_time = benchmark_index(
                 posq_index, query_data, gt_indices, k, "POSQ-IVF", nprobe
             )
-            results.append(
-                [f"POSQ-IVF", qps, recall, total_time, nprobe]
-            )
+            results.append([f"POSQ-IVF", qps, recall, total_time, nprobe])
     except Exception as e:
         print(f"POSQ IVF test failed: {e}")
 
@@ -172,7 +169,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Faiss IVFSQ test failed: {e}")
 
-
     # 3. 测试Faiss IndexHNSW - 不同ef_search参数
     print("\n=== Testing Faiss IndexHNSW with different ef_search values ===")
     try:
@@ -181,7 +177,7 @@ if __name__ == "__main__":
         index_hnsw.add(data.astype("float32"))
 
         # 测试不同的ef_search值
-        ef_search_values = [ 32, 64, 128, 256, 512]
+        ef_search_values = [32, 64, 128, 256, 512]
         for ef_search in ef_search_values:
             qps, recall, total_time = benchmark_index(
                 index_hnsw, query_data, gt_indices, k, "HNSW", ef_search
@@ -210,9 +206,7 @@ if __name__ == "__main__":
             qps, recall, total_time = benchmark_index(
                 index_ivfpqfs, query_data, gt_indices, k, "IVFPQFastScan", nprobe
             )
-            results.append(
-                [f"IVFPQFastScan", qps, recall, total_time, nprobe]
-            )
+            results.append([f"IVFPQFastScan", qps, recall, total_time, nprobe])
     except Exception as e:
         print(f"Faiss IVFPQFastScan test failed: {e}")
 
@@ -231,9 +225,7 @@ if __name__ == "__main__":
             qps, recall, total_time = benchmark_index(
                 index_ivf, query_data, gt_indices, k, "IndexIVFRaBitQ", nprobe
             )
-            results.append(
-                [f"IndexIVFRaBitQ", qps, recall, total_time, nprobe]
-            )
+            results.append([f"IndexIVFRaBitQ", qps, recall, total_time, nprobe])
     except Exception as e:
         print(f"Faiss IndexIVFRaBitQ test failed: {e}")
 
@@ -264,17 +256,17 @@ if __name__ == "__main__":
 
     # 生成参数扫描分析
     print("\n=== Parameter Sweep Analysis ===")
-    
+
     # 按索引类型分组分析
     index_types = {}
     for result in results:
         # 直接使用索引名称作为分组依据，不进行分割
         index_base = result[0]  # 直接使用完整的索引名称
-        
+
         if index_base not in index_types:
             index_types[index_base] = []
         index_types[index_base].append(result)
-    
+
     for index_type, type_results in index_types.items():
         print(f"\n{index_type} Parameter Analysis:")
         print(f"{'Param':<8} {'QPS':<10} {'Recall':<10} {'QPS/Recall Trade-off':<20}")
