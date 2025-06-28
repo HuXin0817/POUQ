@@ -41,7 +41,7 @@ public:
 
   std::pair<std::vector<float>, std::vector<size_t>> search(const float *query, size_t k, size_t nprobe) const {
     auto cmp = [](const std::pair<size_t, float> &p1, const std::pair<size_t, float> &p2) {
-      return p1.second > p2.second;
+      return p1.second < p2.second;  // 改为小于号，用于升序排序
     };
 
     nprobe = std::min(nprobe, nlist_);
@@ -53,11 +53,12 @@ public:
         candidate_centroids[i] = {i, l2distance(centroids_[i].centroid, query, dim_)};
       }
 
-      std::make_heap(candidate_centroids.begin(), candidate_centroids.end(), cmp);
+      // 使用并行排序替代堆操作，只排序前nprobe个最小距离的聚类中心
+      std::partial_sort(
+          candidate_centroids.begin(), candidate_centroids.begin() + nprobe, candidate_centroids.end(), cmp);
+
       for (size_t i = 0; i < nprobe; i++) {
-        search_centroid_idx[i] = candidate_centroids.front().first;
-        std::pop_heap(candidate_centroids.begin(), candidate_centroids.end(), cmp);
-        candidate_centroids.pop_back();
+        search_centroid_idx[i] = candidate_centroids[i].first;
       }
     }
 
@@ -79,17 +80,20 @@ public:
       { sum_result.insert(sum_result.end(), results.begin(), results.end()); }
     }
 
-    std::make_heap(sum_result.begin(), sum_result.end(), cmp);
+    // 使用并行排序替代堆操作，只排序前k个最小距离的结果
+    k = std::min(k, sum_result.size());
+    if (k > 0) {
+      std::partial_sort(sum_result.begin(), sum_result.begin() + k, sum_result.end(), cmp);
+    }
 
     std::vector<size_t> indices;
     std::vector<float>  distances;
     indices.reserve(k);
     distances.reserve(k);
-    while (indices.size() < k && !sum_result.empty()) {
-      indices.emplace_back(sum_result.front().first);
-      distances.emplace_back(sum_result.front().second);
-      std::pop_heap(sum_result.begin(), sum_result.end(), cmp);
-      sum_result.pop_back();
+
+    for (size_t i = 0; i < k; ++i) {
+      indices.emplace_back(sum_result[i].first);
+      distances.emplace_back(sum_result[i].second);
     }
 
     return {distances, indices};
