@@ -127,22 +127,6 @@ if __name__ == "__main__":
     # 准备结果存储
     results = []
 
-    # 1. 测试POSQ IVF索引 - 不同nprobe参数
-    print("\n=== Testing POSQ IVF Index with different nprobe values ===")
-    try:
-        posq_index = posq.IvfIndex(nlist=100, dim=data.shape[1])
-        posq_index.train(data.astype("float32"))
-
-        # 测试不同的nprobe值（对应POSQ的搜索参数）
-        nprobe_values = [5, 10, 20, 50]
-        for nprobe in nprobe_values:
-            qps, recall, total_time = benchmark_index(
-                posq_index, query_data, gt_indices, k, "IVFPOSQ", nprobe
-            )
-            results.append([f"IVFPOSQ", qps, recall, total_time, nprobe])
-    except Exception as e:
-        print(f"POSQ IVF test failed: {e}")
-
     # 2. 测试Faiss IndexIVFSQ - 不同nprobe参数
     print("\n=== Testing Faiss IndexIVFSQ with different nprobe values ===")
     try:
@@ -166,6 +150,22 @@ if __name__ == "__main__":
             results.append([f"IVFSQ", qps, recall, total_time, nprobe])
     except Exception as e:
         print(f"Faiss IVFSQ test failed: {e}")
+
+    # 1. 测试POSQ IVF索引 - 不同nprobe参数
+    print("\n=== Testing POSQ IVF Index with different nprobe values ===")
+    try:
+        posq_index = posq.IvfIndex(nlist=100, dim=data.shape[1])
+        posq_index.train(data.astype("float32"))
+
+        # 测试不同的nprobe值（对应POSQ的搜索参数）
+        nprobe_values = [5, 10, 20, 50]
+        for nprobe in nprobe_values:
+            qps, recall, total_time = benchmark_index(
+                posq_index, query_data, gt_indices, k, "IVFPOSQ", nprobe
+            )
+            results.append([f"IVFPOSQ", qps, recall, total_time, nprobe])
+    except Exception as e:
+        print(f"POSQ IVF test failed: {e}")
 
     # 3. 测试Faiss IndexHNSW - 不同ef_search参数
     print("\n=== Testing Faiss IndexHNSW with different ef_search values ===")
