@@ -2,46 +2,85 @@
 #include "../libpouq/utils.hpp"
 
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 
-constexpr size_t N = 1e6;
+using SQ           = pouq::QuantizerImpl<pouq::Clusterer, pouq::MinMaxOptimizer>;
+using OSQ_Baseline = pouq::QuantizerImpl<pouq::Clusterer, pouq::SGDOptimizer>;
+using OSQ          = pouq::QuantizerImpl<pouq::Clusterer, pouq::PSOptimizer>;
+using PUQ_KMeans   = pouq::QuantizerImpl<pouq::KmeansClusterer, pouq::MinMaxOptimizer>;
+using PUQ_KRange   = pouq::QuantizerImpl<pouq::KrangeClusterer, pouq::MinMaxOptimizer>;
+using POUQ         = pouq::QuantizerImpl<pouq::KrangeClusterer, pouq::PSOptimizer>;
+using LloydMax     = pouq::QuantizerImpl<pouq::KmeansClusterer, pouq::CenterCalculator>;
 
-template <typename DataType>
-void print_vector(const char *prefix, const DataType &data) {
-  std::cout << std::left << std::setw(18) << prefix << "[";
-  std::cout << std::fixed << std::setprecision(3);
-  for (size_t i = 0; i < 5; ++i) {
-    std::cout << data[i];
-    if (i < 4) {
-      std::cout << ", ";
-    } else {
-      std::cout << "...]\n";
-    }
-  }
-  std::cout << std::defaultfloat;
+std::ofstream csv_file;
+
+template <typename Quantizer>
+void run(const std::string &method_name, size_t dim, std::vector<float> data, size_t cbit, size_t qbit) {
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  auto q = Quantizer(cbit, qbit, dim);
+  q.train(data.data(), data.size());
+
+  auto end_time   = std::chrono::high_resolution_clock::now();
+  auto train_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+  auto mse = compute_mse(q, data, data.size());
+
+  // 写入CSV: method,bitwidth,train_time,mse
+  size_t total_bitwidth = cbit + qbit;
+  csv_file << method_name << "," << total_bitwidth << "," << train_time << "," << mse << std::endl;
 }
 
-int main() {
-  std::random_device             rd;
-  std::mt19937                   gen(rd());
-  std::uniform_real_distribution dis(0.0f, 256.0f);
-
-  std::vector<float> data(N);
-  for (auto &d : data) {
-    d = dis(gen);
+int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <dataset_file>" << std::endl;
+    return 1;
   }
+
+  auto [data, Dim] = read_fvecs(argv[1]);
+
+  // 从文件路径中提取数据集名称
+  std::string dataset_path = argv[1];
+  std::string dataset_name = std::filesystem::path(dataset_path).stem().string();
+
+  // 创建结果目录
+  std::filesystem::create_directories("../result");
+
+  // 打开CSV文件
+  std::string csv_filename = "../result/exp1_" + dataset_name + ".csv";
+  csv_file.open(csv_filename);
+
+  if (!csv_file.is_open()) {
+    std::cerr << "Error: Cannot open file " << csv_filename << std::endl;
+    return 1;
+  }
+
+  // 写入CSV表头
+  csv_file << "method,bitwidth,train_time,mse" << std::endl;
 
   pouq::POUQQuantizer quantizer(4, 4, 256);
 
-  const auto start_time = std::chrono::high_resolution_clock::now();
-  quantizer.train(data.data(), N);
-  const auto end_time = std::chrono::high_resolution_clock::now();
-  const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
+  for (size_t i = 4; i <= 8; i++) {
+#define run_sq(M) run<M>(#M, Dim, data, 0, i)
 
-  std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
-  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(data, quantizer, N) << std::endl;
+#define run_pouq(M) run<M>(#M, Dim, data, i - (i / 2), i / 2)
 
-  print_vector("Origin Vector:", data);
-  print_vector("Quantized Vector:", quantizer);
+    run_sq(SQ);
+    run_sq(OSQ_Baseline);
+    run_sq(OSQ);
+
+    run_pouq(PUQ_KMeans);
+    run_pouq(PUQ_KRange);
+    run_pouq(POUQ);
+
+    run<LloydMax>("LloydMax", Dim, data, i, 0);
+  }
+
+  csv_file.close();
+  std::cout << "Results saved to: " << csv_filename << std::endl;
+
+  return 0;
 }

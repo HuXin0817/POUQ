@@ -71,7 +71,7 @@ public:
               upper,
               [](const float rhs, const std::pair<float, size_t> &lhs) -> bool { return rhs < lhs.first; });
 
-          const auto [opt_lower, opt_upper] = optimizer(div, lower, upper, data_start, data_end);
+          const auto [opt_lower, opt_upper] = optimizer(div, data_start, data_end);
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
