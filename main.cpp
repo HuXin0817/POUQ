@@ -1,4 +1,4 @@
-#include "quantizer.hpp"
+#include "libpouq/quantizer.hpp"
 
 #include <chrono>
 #include <fstream>
@@ -57,6 +57,11 @@ std::pair<size_t, std::vector<float>> read_fvecs(const std::string &path) {
 }
 
 int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <dataset_name>" << std::endl;
+    exit(0);
+  }
+
   const std::string dataset = argv[1];
   const auto [Dim, data]    = read_fvecs("../data/" + dataset + "/" + dataset + "_base.fvecs");
 
