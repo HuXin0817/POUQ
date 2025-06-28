@@ -15,8 +15,7 @@ public:
   void train(const float *data, size_t size) {
     step_size_     = new float[dim_ * (1 << c_bit_)];
     lower_bound_   = new float[dim_ * (1 << c_bit_)];
-    cid_           = new uint8_t[(c_bit_ * size + 7) / 8];
-    code_          = new uint8_t[(c_bit_ * size + 7) / 8];
+    codes_         = new uint8_t[(c_bit_ * size * 2 + 7) / 8];
     const auto div = static_cast<float>((1 << c_bit_) - 1);
 
 #pragma omp parallel for
@@ -57,25 +56,25 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        bitmap::set(cid_, i, c, c_bit_);
-        const float x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
-        bitmap::set(code_, i, static_cast<size_t>(x), c_bit_);
+        const float  x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
+
+        bitmap::set(codes_, 2 * i, c, c_bit_);
+        bitmap::set(codes_, 2 * i + 1, x, c_bit_);
       }
     }
   }
 
   float operator[](size_t i) const {
     const size_t group  = i % dim_;
-    const size_t offset = bitmap::get(cid_, i, c_bit_) + group * (1 << c_bit_);
-    const size_t x      = bitmap::get(code_, i, c_bit_);
+    const size_t offset = bitmap::get(codes_, 2 * i, c_bit_) + group * (1 << c_bit_);
+    const size_t x      = bitmap::get(codes_, 2 * i + 1, c_bit_);
     return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
   }
 
   ~Quantizer() {
     delete[] lower_bound_;
     delete[] step_size_;
-    delete[] cid_;
-    delete[] code_;
+    delete[] codes_;
   }
 
 private:
@@ -83,8 +82,7 @@ private:
   size_t   dim_         = 0;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
-  uint8_t *cid_         = nullptr;
-  uint8_t *code_        = nullptr;
+  uint8_t *codes_       = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, const size_t group) const {
     std::vector<float> sorted_data;
