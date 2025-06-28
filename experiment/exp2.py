@@ -1,5 +1,6 @@
 import os
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 import csv
 import multiprocessing
@@ -329,34 +330,38 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Faiss HNSW test failed: {e}")
 
-    # 4. 测试Faiss IndexIVFPQ - 8个不同nprobe参数
-    print("\n=== Testing Faiss IndexIVFPQ with different nprobe values ===")
+    # 4. 测试Faiss IndexIVFPQR - 8个不同nprobe参数 (带重排序的IVFPQ)
+    print("\n=== Testing Faiss IndexIVFPQR with different nprobe values ===")
     try:
         nlist = 1024  # 修改为1024
         m = 4  # 子量化器数量
         nbits = 8  # 每个子量化器的位数
+        m_refine = 4  # 重排序的子量化器数量
+        nbits_refine = 8  # 重排序每个子量化器的位数
 
         quantizer = faiss.IndexFlatL2(data.shape[1])
-        index_ivfpqfs = faiss.IndexIVFPQ(quantizer, data.shape[1], nlist, m, nbits)
-        index_ivfpqfs.train(data.astype("float32"))
-        index_ivfpqfs.add(data.astype("float32"))
+        index_ivfpqr = faiss.IndexIVFPQR(
+            quantizer, data.shape[1], nlist, m, nbits, m_refine, nbits_refine
+        )
+        index_ivfpqr.train(data.astype("float32"))
+        index_ivfpqr.add(data.astype("float32"))
 
         # 测试8个不同的nprobe值
         nprobe_values = [5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
-                index_ivfpqfs,
+                index_ivfpqr,
                 query_data,
                 data,
                 gt_indices,
                 gt_distances,
                 k,
-                "IVFPQ",
+                "IVFPQR",
                 nprobe,
             )
             results.append(
                 [
-                    f"IVFPQ",
+                    f"IVFPQR",
                     qps,
                     recall,
                     distance_ratio,
@@ -366,7 +371,7 @@ if __name__ == "__main__":
                 ]
             )
     except Exception as e:
-        print(f"Faiss IVFPQ test failed: {e}")
+        print(f"Faiss IVFPQR test failed: {e}")
 
     # 5. 测试Faiss IndexIVFRaBitQ - 8个不同nprobe参数 (作为基准)
     print("\n=== Testing Faiss IndexIVFRaBitQ with different nprobe values ===")
