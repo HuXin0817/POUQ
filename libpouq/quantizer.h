@@ -23,14 +23,21 @@ class Float32Quantizer final : public Quantizer {
 public:
   Float32Quantizer() = default;
 
-  void train(const float *data, size_t size) override { data_ = std::vector(data, data + size); }
+  void train(const float *data, size_t size) override {
+    this->size_ = size;
+    this->data_ = new float[this->size_];
+    std::memcpy(this->data_, data, this->size_ * sizeof(float));
+  }
 
-  float operator[](size_t i) const override { return data_[i]; }
+  float operator[](size_t i) const override { return this->data_[i]; }
 
-  size_t size() const override { return data_.size(); }
+  size_t size() const override { return this->size_; }
+
+  ~Float32Quantizer() override { delete[] data_; }
 
 private:
-  std::vector<float> data_;
+  size_t size_;
+  float *data_;
 };
 
 template <typename Clusterer, typename Optimizer>
