@@ -4,7 +4,6 @@
 #include <cmath>
 #include <vector>
 
-// SIMD headers
 #if defined(__ARM_NEON) || defined(__aarch64__)
 #include <arm_neon.h>
 #define SIMD_ARM_NEON
@@ -16,7 +15,6 @@
 namespace pouq::simd {
 
 #ifdef SIMD_ARM_NEON
-// ARM NEON optimized version
 inline float quantization_loss_simd_neon(const float             d,
     float                                                        l,
     float                                                        s,
@@ -34,9 +32,7 @@ inline float quantization_loss_simd_neon(const float             d,
 
   auto it = begin;
 
-  // Process 4 elements at a time when possible
   while (std::distance(it, end) >= 4) {
-    // Load values and counts
     float v_array[4], c_array[4];
     for (int i = 0; i < 4; ++i) {
       v_array[i] = it->first;
@@ -47,41 +43,30 @@ inline float quantization_loss_simd_neon(const float             d,
     float32x4_t v_vec = vld1q_f32(v_array);
     float32x4_t c_vec = vld1q_f32(c_array);
 
-    // Calculate rc = (v - l) / s
     float32x4_t rc_vec = vdivq_f32(vsubq_f32(v_vec, l_vec), s_vec);
 
-    // Calculate qc with vectorized rounding and clamping
     float32x4_t qc_vec = zero_vec;
 
-    // Check if v > l
     uint32x4_t v_gt_l_mask = vcgtq_f32(v_vec, l_vec);
 
-    // Round rc where v > l
     float32x4_t rc_rounded = vaddq_f32(rc_vec, half_vec);
     rc_rounded             = vcvtq_f32_s32(vcvtq_s32_f32(rc_rounded));
 
-    // Clamp to [0, d]
     rc_rounded = vmaxq_f32(rc_rounded, zero_vec);
     rc_rounded = vminq_f32(rc_rounded, d_vec);
 
-    // Apply mask to get final qc
     qc_vec = vbslq_f32(v_gt_l_mask, rc_rounded, zero_vec);
 
-    // Calculate error: err = rc - qc
     float32x4_t err_vec = vsubq_f32(rc_vec, qc_vec);
 
-    // Calculate err * err * c
     float32x4_t err_squared  = vmulq_f32(err_vec, err_vec);
     float32x4_t weighted_err = vmulq_f32(err_squared, c_vec);
 
-    // Accumulate loss
     loss_vec = vaddq_f32(loss_vec, weighted_err);
   }
 
-  // Sum the vector elements
   float loss = vaddvq_f32(loss_vec);
 
-  // Process remaining elements
   for (; it != end; ++it) {
     const auto &[v, c] = *it;
     const float rc     = (v - l) / s;
@@ -101,7 +86,6 @@ inline float quantization_loss_simd_neon(const float             d,
 #endif
 
 #ifdef SIMD_AVX2
-// AVX2 optimized version
 inline float quantization_loss_simd_avx2(const float             d,
     float                                                        l,
     float                                                        s,
@@ -119,9 +103,7 @@ inline float quantization_loss_simd_avx2(const float             d,
 
   auto it = begin;
 
-  // Process 8 elements at a time when possible
   while (std::distance(it, end) >= 8) {
-    // Load values and counts
     float v_array[8], c_array[8];
     for (int i = 0; i < 8; ++i) {
       v_array[i] = it->first;
@@ -132,44 +114,33 @@ inline float quantization_loss_simd_avx2(const float             d,
     __m256 v_vec = _mm256_loadu_ps(v_array);
     __m256 c_vec = _mm256_loadu_ps(c_array);
 
-    // Calculate rc = (v - l) / s
     __m256 rc_vec = _mm256_div_ps(_mm256_sub_ps(v_vec, l_vec), s_vec);
 
-    // Calculate qc with vectorized rounding and clamping
     __m256 qc_vec = zero_vec;
 
-    // Check if v > l
     __m256 v_gt_l_mask = _mm256_cmp_ps(v_vec, l_vec, _CMP_GT_OQ);
 
-    // Round rc where v > l
     __m256 rc_rounded = _mm256_add_ps(rc_vec, half_vec);
     rc_rounded        = _mm256_cvtepi32_ps(_mm256_cvtps_epi32(rc_rounded));
 
-    // Clamp to [0, d]
     rc_rounded = _mm256_max_ps(rc_rounded, zero_vec);
     rc_rounded = _mm256_min_ps(rc_rounded, d_vec);
 
-    // Apply mask to get final qc
     qc_vec = _mm256_blendv_ps(zero_vec, rc_rounded, v_gt_l_mask);
 
-    // Calculate error: err = rc - qc
     __m256 err_vec = _mm256_sub_ps(rc_vec, qc_vec);
 
-    // Calculate err * err * c
     __m256 err_squared  = _mm256_mul_ps(err_vec, err_vec);
     __m256 weighted_err = _mm256_mul_ps(err_squared, c_vec);
 
-    // Accumulate loss
     loss_vec = _mm256_add_ps(loss_vec, weighted_err);
   }
 
-  // Sum the vector elements
   float sum_array[8];
   _mm256_storeu_ps(sum_array, loss_vec);
   float loss = sum_array[0] + sum_array[1] + sum_array[2] + sum_array[3] + sum_array[4] + sum_array[5] + sum_array[6] +
                sum_array[7];
 
-  // Process remaining elements
   for (; it != end; ++it) {
     const auto &[v, c] = *it;
     const float rc     = (v - l) / s;
@@ -188,7 +159,6 @@ inline float quantization_loss_simd_avx2(const float             d,
 }
 #endif
 
-// Generic fallback version
 inline float quantization_loss_simd_generic(const float          d,
     float                                                        l,
     float                                                        s,
@@ -214,7 +184,6 @@ inline float quantization_loss_simd_generic(const float          d,
   return loss * s * s;
 }
 
-// Main function that dispatches to the appropriate SIMD version
 inline float quantization_loss_simd(const float                  d,
     float                                                        l,
     float                                                        s,
