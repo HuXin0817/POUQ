@@ -34,20 +34,21 @@ std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size,
   return data_freq_map;
 }
 
+template <size_t nbit>
 class Quantizer {
 public:
-  explicit Quantizer(size_t nbit, size_t dim) : nbit_(nbit), dim_(dim) {}
+  explicit Quantizer(size_t dim) : dim_(dim) {}
 
   void train(const float *data, size_t size) {
-    codebook       = new std::pair<float, float>[dim_ * (1 << nbit_)];
-    codes_         = new uint8_t[(nbit_ * size * 2 + 7) / 8];
-    const auto div = static_cast<float>((1 << nbit_) - 1);
+    codebook       = new std::pair<float, float>[dim_ * (1 << nbit)];
+    codes_         = new uint8_t[(nbit * size * 2 + 7) / 8];
+    const auto div = static_cast<float>((1 << nbit) - 1);
 
 #pragma omp parallel for
     for (size_t d = 0; d < dim_; d++) {
       const auto data_freq_map = count_freq(data, size, d, dim_);
-      const auto bounds        = cluster(1 << nbit_, data_freq_map);
-      const auto offset        = d * (1 << nbit_);
+      const auto bounds        = cluster(1 << nbit, data_freq_map);
+      const auto offset        = d * (1 << nbit);
 
       for (size_t i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
@@ -83,18 +84,26 @@ public:
         const auto [lower_bound, step_size] = codebook[offset + c];
         const float x                       = std::clamp((d - lower_bound) / step_size + 0.5f, 0.0f, div);
 
-        bitmap::set(codes_, 2 * i, c, nbit_);
-        bitmap::set(codes_, 2 * i + 1, x, nbit_);
+        if constexpr (nbit == 2) {
+          bitmap::set2bit(codes_, i, c, x);
+        } else {
+          bitmap::set4bit(codes_, i, c, x);
+        }
       }
     }
   }
 
   float operator[](size_t i) const {
-    const size_t d                      = i % dim_;
-    const size_t offset                 = bitmap::get(codes_, 2 * i, nbit_);
-    const size_t x                      = bitmap::get(codes_, 2 * i + 1, nbit_);
-    const auto [lower_bound, step_size] = codebook[offset + d * (1 << nbit_)];
-    return lower_bound + step_size * static_cast<float>(x);
+    const size_t d = i % dim_;
+    if constexpr (nbit == 2) {
+      const auto [offset, x]              = bitmap::get2bit(codes_, i);
+      const auto [lower_bound, step_size] = codebook[offset + d * (1 << nbit)];
+      return lower_bound + step_size * static_cast<float>(x);
+    } else {
+      const auto [offset, x]              = bitmap::get4bit(codes_, i);
+      const auto [lower_bound, step_size] = codebook[offset + d * (1 << nbit)];
+      return lower_bound + step_size * static_cast<float>(x);
+    }
   }
 
   ~Quantizer() {
@@ -103,7 +112,6 @@ public:
   }
 
 private:
-  size_t                   nbit_   = 0;
   size_t                   dim_     = 0;
   std::pair<float, float> *codebook = nullptr;
   uint8_t                 *codes_   = nullptr;
