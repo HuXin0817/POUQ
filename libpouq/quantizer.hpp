@@ -7,8 +7,6 @@
 
 #include <assert.h>
 
-#include <immintrin.h>
-
 namespace pouq {
 
 inline void set(uint8_t *data, size_t index, size_t n) {
@@ -90,62 +88,48 @@ public:
 
 #pragma omp parallel for
     for (size_t i = 0; i < dim_; i += 4) {
+      const size_t base_idx = (i / 4) * 1024;  // 预计算 (i / 4) * 256 * 4
       for (size_t j = 0; j < 256; j++) {
-        const size_t base_idx = (i / 4) * 256 * 8 + j * 8;  // 每组连续存储8个float
         auto [x0, x1, x2, x3] = get(j);
+        const size_t offset   = base_idx + j * 4;  // 预计算偏移量
 
-        lower_bound_128[base_idx + 0] = lower_bound_[(i + 0) * 4 + x0];
-        lower_bound_128[base_idx + 1] = step_size_[(i + 0) * 4 + x0];
-        lower_bound_128[base_idx + 2] = lower_bound_[(i + 1) * 4 + x1];
-        lower_bound_128[base_idx + 3] = step_size_[(i + 1) * 4 + x1];
-        lower_bound_128[base_idx + 4] = lower_bound_[(i + 2) * 4 + x2];
-        lower_bound_128[base_idx + 5] = step_size_[(i + 2) * 4 + x2];
-        lower_bound_128[base_idx + 6] = lower_bound_[(i + 3) * 4 + x3];
-        lower_bound_128[base_idx + 7] = step_size_[(i + 3) * 4 + x3];
+        lower_bound_128[offset + 0] = lower_bound_[(i + 0) * 4 + x0];
+        lower_bound_128[offset + 1] = lower_bound_[(i + 1) * 4 + x1];
+        lower_bound_128[offset + 2] = lower_bound_[(i + 2) * 4 + x2];
+        lower_bound_128[offset + 3] = lower_bound_[(i + 3) * 4 + x3];
+
+        step_size_128[offset + 0] = step_size_[(i + 0) * 4 + x0];
+        step_size_128[offset + 1] = step_size_[(i + 1) * 4 + x1];
+        step_size_128[offset + 2] = step_size_[(i + 2) * 4 + x2];
+        step_size_128[offset + 3] = step_size_[(i + 3) * 4 + x3];
       }
     }
   }
 
   float l2distance(const float *data, size_t offset) const {
-    const size_t base_offset = offset / 4;
-    __m256       acc         = _mm256_setzero_ps();
+    float        result      = 0;
+    const size_t base_offset = offset / 4;  // 预计算基础偏移
 
-    for (size_t i = 0; i < dim_; i += 8) {
-      // 加载cid和code
-      const uint8_t *cid_ptr   = &cid_[base_offset + i / 4];
-      const uint8_t *code_ptr  = &code_[base_offset + i / 4];
-      const uint16_t cid_pair  = *reinterpret_cast<const uint16_t *>(cid_ptr);
-      const uint16_t code_pair = *reinterpret_cast<const uint16_t *>(code_ptr);
+    for (size_t i = 0; i < dim_; i += 4) {
+      const size_t idx_base = base_offset + (i / 4);
+      auto         cid_byte = cid_[idx_base];
+      auto [x0, x1, x2, x3] = get(code_[idx_base]);
 
-      // 计算查表地址
-      const size_t lookup_idx0 = (i / 4) * 256 * 8 + (cid_pair & 0xFF) * 8;
-      const size_t lookup_idx1 = (i / 4) * 256 * 8 + (cid_pair >> 8) * 8;
+      const size_t lookup_base = i / 4 * 1024 + cid_byte * 4;  // 预计算查找基址
 
-      // 加载下界和步长 (8个连续float)
-      __m256 lb_step0 = _mm256_loadu_ps(lower_bound_128 + lookup_idx0);
-      __m256 lb_step1 = _mm256_loadu_ps(lower_bound_128 + lookup_idx1);
+      auto d0 =
+          static_cast<float>(x0) * step_size_128[lookup_base + 0] + lower_bound_128[lookup_base + 0] - data[i + 0];
+      auto d1 =
+          static_cast<float>(x1) * step_size_128[lookup_base + 1] + lower_bound_128[lookup_base + 1] - data[i + 1];
+      auto d2 =
+          static_cast<float>(x2) * step_size_128[lookup_base + 2] + lower_bound_128[lookup_base + 2] - data[i + 2];
+      auto d3 =
+          static_cast<float>(x3) * step_size_128[lookup_base + 3] + lower_bound_128[lookup_base + 3] - data[i + 3];
 
-      // 重组数据：低128位=前4维，高128位=后4维
-      __m256 lb   = _mm256_set_m128(_mm256_extractf128_ps(lb_step1, 0), _mm256_extractf128_ps(lb_step0, 0));
-      __m256 step = _mm256_set_m128(_mm256_extractf128_ps(lb_step1, 1), _mm256_extractf128_ps(lb_step0, 1));
-
-      // 提取量化值 (使用SSE优化)
-      __m128i code_vec = _mm_set1_epi16(code_pair);
-      __m128i quant    = _mm_srlv_epi16(code_vec, _mm_set_epi32(0, 2, 4, 6, 8, 10, 12, 14));
-      quant            = _mm_and_si128(quant, _mm_set1_epi8(0x03));
-      __m256 quant_f   = _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(quant));
-
-      // 重建并计算平方差
-      __m256 recon    = _mm256_fmadd_ps(quant_f, step, lb);
-      __m256 data_vec = _mm256_loadu_ps(data + offset + i);
-      __m256 diff     = _mm256_sub_ps(recon, data_vec);
-      acc             = _mm256_fmadd_ps(diff, diff, acc);
+      result += d0 * d0 + d1 * d1 + d2 * d2 + d3 * d3;
     }
 
-    // 水平求和
-    __m128 sum4 = _mm_add_ps(_mm256_extractf128_ps(acc, 1), _mm256_castps256_ps128(acc));
-    sum4        = _mm_hadd_ps(sum4, sum4);
-    return _mm_cvtss_f32(_mm_hadd_ps(sum4, sum4));
+    return result;
   }
 
 private:
