@@ -85,6 +85,7 @@ int main(int argc, char *argv[]) {
   std::vector<std::vector<size_t>> ground_truth(Nq);
   auto cmp = [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) { return a.second > b.second; };
 
+#pragma omp parallel for
   for (size_t i = 0; i < Nq; i++) {
     const auto q = query_data.data() + i * dim;
     std::priority_queue<std::pair<size_t, float>, std::vector<std::pair<size_t, float>>, decltype(cmp)> pq(cmp);
