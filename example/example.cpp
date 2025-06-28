@@ -1,20 +1,26 @@
 #include "../libpouq/index/ivf.hpp"
 
 #include <chrono>
+#include <fstream>
 #include <iomanip>
 #include <queue>
 #include <string>
 #include <unordered_set>
 
 template <typename Index>
-void run(size_t dim, std::vector<float> data, size_t Nq, std::vector<float> query_data) {
-  Index index(128, dim);
+void run(size_t        dim,
+    std::vector<float> data,
+    size_t             Nq,
+    std::vector<float> query_data,
+    const std::string &method_name,
+    std::ofstream     &csv_file) {
+  Index index(1024, dim);
   index.train(data.data(), data.size());
 
   constexpr auto topk = 10;
 
   // 计算ground truth
-  std::cout << "Computing ground truth using brute force search..." << std::endl;
+  std::cout << "Computing ground truth using brute force search for " << method_name << "..." << std::endl;
   std::vector<std::vector<size_t>> ground_truth(Nq);
   auto cmp = [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) { return a.second > b.second; };
 
@@ -34,11 +40,9 @@ void run(size_t dim, std::vector<float> data, size_t Nq, std::vector<float> quer
   }
 
   // 测试不同的nprobe值
-  std::vector<size_t> nprobe_values = {1, 2, 4, 8, 16, 32, 64, 128};
+  std::vector<size_t> nprobe_values = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024};
 
-  std::cout << std::left << std::setw(15) << "nprobe" << std::setw(15) << "QPS" << std::setw(15) << "Recall@10"
-            << std::setw(15) << "Time(s)" << std::endl;
-  std::cout << std::string(60, '-') << std::endl;
+  std::cout << "Testing " << method_name << " with different nprobe values..." << std::endl;
 
   for (auto nprobe : nprobe_values) {
     // 开始计时
@@ -73,10 +77,12 @@ void run(size_t dim, std::vector<float> data, size_t Nq, std::vector<float> quer
     }
     float avg_recall = sum_recall / Nq;
 
-    // 输出结果
-    std::cout << std::left << std::setw(15) << nprobe << std::setw(15) << std::fixed << std::setprecision(2) << qps
-              << std::setw(15) << std::fixed << std::setprecision(4) << avg_recall << std::setw(15) << std::fixed
-              << std::setprecision(4) << total_time << std::endl;
+    // 写入CSV文件并同时打印
+    std::string csv_line = method_name + "," + std::to_string(qps).substr(0, std::to_string(qps).find('.') + 3) + "," +
+                           std::to_string(avg_recall).substr(0, std::to_string(avg_recall).find('.') + 5) + "," +
+                           std::to_string(nprobe);
+    csv_file << csv_line << std::endl;
+    std::cout << csv_line << std::endl;
   }
 }
 
@@ -92,10 +98,29 @@ int main(int argc, char *argv[]) {
   std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
   std::cout << "Query shape: (" << Nq << ", " << dim << ")" << std::endl;
 
-  run<IVF>(dim, data, Nq, query_data);
-  run<IVFSQ4>(dim, data, Nq, query_data);
-  run<IVFSQ8>(dim, data, Nq, query_data);
-  run<IVFPOUQ4>(dim, data, Nq, query_data);
-  run<IVFPOUQ8>(dim, data, Nq, query_data);
+  // 创建CSV文件
+  std::string   csv_filename = "../result/exp2_" + dataset_name + ".csv";
+  std::ofstream csv_file(csv_filename);
+
+  if (!csv_file.is_open()) {
+    std::cerr << "Error: Cannot create CSV file " << csv_filename << std::endl;
+    return 1;
+  }
+
+  // 写入CSV表头并同时打印
+  std::string header = "method,qps,recall,nprob";
+  csv_file << header << std::endl;
+  std::cout << "Writing CSV header: " << header << std::endl;
+
+  // 运行不同的方法并保存结果
+  run<IVF>(dim, data, Nq, query_data, "IVF", csv_file);
+  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file);
+  run<IVFSQ8>(dim, data, Nq, query_data, "IVF-SQ8", csv_file);
+  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file);
+  run<IVFPOUQ8>(dim, data, Nq, query_data, "IVF-POUQ8", csv_file);
+
+  csv_file.close();
+  std::cout << "Results saved to " << csv_filename << std::endl;
+
   return 0;
 }
