@@ -13,8 +13,7 @@ public:
   explicit Quantizer(size_t c_bit, size_t groups) : c_bit_(c_bit), dim_(groups) {}
 
   void train(const float *data, size_t size) {
-    step_size_     = new float[dim_ * (1 << c_bit_)];
-    lower_bound_   = new float[dim_ * (1 << c_bit_)];
+    codebook       = new std::pair<float, float>[dim_ * (1 << c_bit_)];
     codes_         = new uint8_t[(c_bit_ * size * 2 + 7) / 8];
     const auto div = static_cast<float>((1 << c_bit_) - 1);
 
@@ -40,11 +39,10 @@ public:
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
-        lower_bound_[offset + i] = lower;
         if (lower == upper || div == 0.0f) {
-          step_size_[offset + i] = 1.0;
+          codebook[offset + i] = {lower, 1.0f};
         } else {
-          step_size_[offset + i] = (upper - lower) / div;
+          codebook[offset + i] = {lower, (upper - lower) / div};
         }
       }
 
@@ -55,8 +53,9 @@ public:
             bounds.begin(), bounds.end(), d, [](const float rhs, const std::pair<float, float> &lhs) -> bool {
               return rhs < lhs.first;
             });
-        const size_t c = it - bounds.begin() - 1;
-        const float  x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
+        const size_t c                      = it - bounds.begin() - 1;
+        const auto [lower_bound, step_size] = codebook[offset + c];
+        const float x                       = std::clamp((d - lower_bound) / step_size + 0.5f, 0.0f, div);
 
         bitmap::set(codes_, 2 * i, c, c_bit_);
         bitmap::set(codes_, 2 * i + 1, x, c_bit_);
@@ -65,24 +64,23 @@ public:
   }
 
   float operator[](size_t i) const {
-    const size_t group  = i % dim_;
-    const size_t offset = bitmap::get(codes_, 2 * i, c_bit_) + group * (1 << c_bit_);
-    const size_t x      = bitmap::get(codes_, 2 * i + 1, c_bit_);
-    return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
+    const size_t group                  = i % dim_;
+    const size_t offset                 = bitmap::get(codes_, 2 * i, c_bit_);
+    const size_t x                      = bitmap::get(codes_, 2 * i + 1, c_bit_);
+    const auto [lower_bound, step_size] = codebook[offset + group * (1 << c_bit_)];
+    return lower_bound + step_size * static_cast<float>(x);
   }
 
   ~Quantizer() {
-    delete[] lower_bound_;
-    delete[] step_size_;
+    delete[] codebook;
     delete[] codes_;
   }
 
 private:
-  size_t   c_bit_       = 0;
-  size_t   dim_         = 0;
-  float   *lower_bound_ = nullptr;
-  float   *step_size_   = nullptr;
-  uint8_t *codes_       = nullptr;
+  size_t                   c_bit_   = 0;
+  size_t                   dim_     = 0;
+  std::pair<float, float> *codebook = nullptr;
+  uint8_t                 *codes_   = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, const size_t group) const {
     std::vector<float> sorted_data;
