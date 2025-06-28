@@ -1,4 +1,6 @@
-#include "../libposq/ivf.hpp"
+#include "../libposq/index/ivf.hpp"
+#include <chrono>
+#include <iomanip>
 #include <string>
 #include <unordered_set>
 
@@ -28,14 +30,20 @@ int main(int argc, char *argv[]) {
   query_data             = std::vector(query_data.begin(), query_data.begin() + dim * 100);
   auto Nq                = query_data.size() / dim;
 
-  IvfIndex index(16, dim);
+  std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
+  std::cout << "Query shape: (" << Nq << ", " << dim << ")" << std::endl;
+
+  IvfIndex index(100, dim);
   index.train(data.data(), data.size());
 
-  float sum_recall = 0.0f;
+  constexpr auto topk = 10;
 
+  // 计算ground truth
+  std::cout << "Computing ground truth using brute force search..." << std::endl;
+  std::vector<std::vector<size_t>> ground_truth(Nq);
   auto cmp = [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) { return a.second > b.second; };
-  for (size_t i = 0; i < Nq; i++) {
 
+  for (size_t i = 0; i < Nq; i++) {
     std::unordered_set<size_t> real_idx;
     const auto                 q = query_data.data() + i * dim;
     {
@@ -43,26 +51,61 @@ int main(int argc, char *argv[]) {
       for (size_t p = 0; p < data.size() / dim; p++) {
         pq.emplace(p, l2distance(q, data.data() + p * dim, dim));
       }
-      for (size_t k = 0; k < 10; k++) {
-        real_idx.insert(pq.top().first);
+      for (size_t k = 0; k < topk; k++) {
+        ground_truth[i].push_back(pq.top().first);
         pq.pop();
       }
     }
-
-    constexpr auto topk = 5;
-    auto           ret  = index.search(q, topk, 4);
-
-    size_t finded = 0;
-    for (auto idx : ret) {
-      if (real_idx.find(idx) != real_idx.end()) {
-        finded += 1;
-      }
-    }
-
-    sum_recall += static_cast<float>(finded) / static_cast<float>(topk);
   }
 
-  sum_recall /= Nq;
-  std::cout << sum_recall << std::endl;
+  // QPS测试
+  std::cout << "\n=== Testing POSQ IVF Index ===" << std::endl;
+
+  // 测试不同的nprobe值
+  std::vector<size_t> nprobe_values = {1, 5, 10, 20, 50};
+
+  std::cout << std::left << std::setw(15) << "nprobe" << std::setw(15) << "QPS" << std::setw(15) << "Recall@10"
+            << std::setw(15) << "Time(s)" << std::endl;
+  std::cout << std::string(60, '-') << std::endl;
+
+  for (auto nprobe : nprobe_values) {
+    // 开始计时
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    // 执行搜索
+    std::vector<std::vector<size_t>> search_results(Nq);
+    for (size_t i = 0; i < Nq; i++) {
+      const auto q      = query_data.data() + i * dim;
+      search_results[i] = index.search(q, topk, nprobe);
+    }
+
+    // 结束计时
+    auto   end_time   = std::chrono::high_resolution_clock::now();
+    auto   duration   = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+    double total_time = duration.count() / 1000000.0;  // 转换为秒
+
+    // 计算QPS
+    double qps = Nq / total_time;
+
+    // 计算Recall@10
+    float sum_recall = 0.0f;
+    for (size_t i = 0; i < Nq; i++) {
+      std::unordered_set<size_t> gt_set(ground_truth[i].begin(), ground_truth[i].end());
+      size_t                     found = 0;
+      for (size_t j = 0; j < std::min(search_results[i].size(), static_cast<size_t>(topk)); j++) {
+        if (gt_set.find(search_results[i][j]) != gt_set.end()) {
+          found++;
+        }
+      }
+      sum_recall += static_cast<float>(found) / static_cast<float>(topk);
+    }
+    float avg_recall = sum_recall / Nq;
+
+    // 输出结果
+    std::cout << std::left << std::setw(15) << nprobe << std::setw(15) << std::fixed << std::setprecision(2) << qps
+              << std::setw(15) << std::fixed << std::setprecision(4) << avg_recall << std::setw(15) << std::fixed
+              << std::setprecision(4) << total_time << std::endl;
+  }
+
   return 0;
 }

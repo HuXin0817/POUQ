@@ -1,7 +1,8 @@
 #pragma once
 
-#include "quantizer.hpp"
-#include "utils.hpp"
+#include "../quantizer.hpp"
+#include "../utils.hpp"
+#include "posq8.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -17,7 +18,7 @@ class IvfIndex {
   };
 
 public:
-  IvfIndex(size_t nlist, size_t dim) : nlist_(nlist), dim_(dim), quantizer_(4, 4, dim_) {
+  IvfIndex(size_t nlist, size_t dim) : nlist_(nlist), dim_(dim), quantizer_(dim_) {
     centroids_.resize(nlist_);
     for (auto &centroid : centroids_) {
       centroid.centroid.resize(dim_);
@@ -71,12 +72,7 @@ public:
       results.reserve(vector_indices.size());
 
       for (const auto vec_idx : vector_indices) {
-        float dis = 0.0f;
-        for (size_t j = 0; j < dim_; ++j) {
-          const float diff = query[j] - quantizer_[vec_idx * dim_ + j];
-          dis += diff * diff;
-        }
-        results.emplace_back(vec_idx, dis);
+        results.emplace_back(vec_idx, quantizer_.l2distance(query, dim_ * vec_idx));
       }
 
 #pragma omp critical
@@ -100,7 +96,7 @@ private:
   size_t                   nlist_;
   size_t                   dim_;
   std::vector<ClusterNode> centroids_;
-  posq::POSQQuantizer      quantizer_;
+  posq::POSQ8              quantizer_;
 
   // K-means++聚类算法实现（并行版本）
   void kmeans_clustering(const float *data, size_t num_samples) {
