@@ -39,7 +39,7 @@ public:
     std::cout << "finish training" << std::endl;
   }
 
-  std::pair<std::vector<float>, std::vector<size_t>> search(const float *query, size_t k, size_t nprobe) const {
+  std::vector<std::pair<size_t, float>> search(const float *query, size_t k, size_t nprobe) const {
     auto cmp = [](const std::pair<size_t, float> &p1, const std::pair<size_t, float> &p2) {
       return p1.second < p2.second;  // 改为小于号，用于升序排序
     };
@@ -86,17 +86,7 @@ public:
       std::partial_sort(sum_result.begin(), sum_result.begin() + k, sum_result.end(), cmp);
     }
 
-    std::vector<size_t> indices;
-    std::vector<float>  distances;
-    indices.reserve(k);
-    distances.reserve(k);
-
-    for (size_t i = 0; i < k; ++i) {
-      indices.emplace_back(sum_result[i].first);
-      distances.emplace_back(sum_result[i].second);
-    }
-
-    return {distances, indices};
+    return sum_result;
   }
 
 private:

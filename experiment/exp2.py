@@ -20,6 +20,7 @@ print(f"faiss OpenMP threads: {faiss.omp_get_max_threads()}")
 
 import numpy as np
 import posq
+
 from util.io import fvecs_read
 
 
@@ -108,7 +109,7 @@ def calculate_memory_usage(index, data, index_name):
 
 
 def benchmark_index(
-    index, queries, data, gt_indices, gt_distances, k, index_name, search_param=None
+        index, queries, data, gt_indices, gt_distances, k, index_name, search_param=None
 ):
     """对索引进行基准测试，包括召回率、距离比和内存占用评估"""
     param_str = f" (param={search_param})" if search_param is not None else ""
@@ -124,25 +125,40 @@ def benchmark_index(
     # 计算内存占用
     memory_usage = calculate_memory_usage(index, data, index_name)
 
-    # QPS测试
-    start_time = time.time()
-
     # 为保证公平性，所有索引都使用单个查询向量的方式
     all_results = []
     all_distances = []
     for i in range(len(queries)):
         if index_name == "IVFPOSQ":
-            distances, result_indices = index.search(
-                queries[i].astype("float32"), k, search_param
-            )
-            all_results.append(result_indices)
-            all_distances.append(distances)
+            ret = index.search(queries[i].astype("float32"), k, search_param)
+            all_results.append(ret)
+
+    # QPS测试
+    start_time = time.time()
+    # 为保证公平性，所有索引都使用单个查询向量的方式
+    for i in range(len(queries)):
+        if index_name == "IVFPOSQ":
+            ret = index.search(queries[i : i + 1].astype("float32"), k, search_param)
         else:
             distances, result_indices = index.search(
                 queries[i : i + 1].astype("float32"), k
             )
             all_results.append(result_indices[0])  # 取出第一个结果
             all_distances.append(distances[0])  # 取出第一个距离结果
+    end_time = time.time()
+
+    if index_name == "IVFPOSQ":
+        all_result_copy = all_results.copy()
+        all_results = []
+        all_distances = []
+        for ret in all_result_copy:
+            result = []
+            distances = []
+            for r, d in ret:
+                result.append(r)
+                distances.append(d)
+            all_results.append(result)
+            all_distances.append(distances)
 
     search_results = np.array(
         [r[:k] if len(r) >= k else r + [0] * (k - len(r)) for r in all_results]
@@ -154,8 +170,6 @@ def benchmark_index(
             for d in all_distances
         ]
     )
-
-    end_time = time.time()
 
     # 计算QPS
     total_time = end_time - start_time
