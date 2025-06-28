@@ -172,9 +172,9 @@ public:
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
     size_t count = 0;
-    float  sum   = 0.0;
+    double sum   = 0.0;
     for (auto it = data_start; it != data_end; ++it) {
-      sum += it->second * it->first;
+      sum += static_cast<double>(it->first) * static_cast<double>(it->second);
       count += it->second;
     }
     auto center = sum / count;
