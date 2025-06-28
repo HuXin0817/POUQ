@@ -2,6 +2,7 @@
 
 #include <immintrin.h>
 #include <omp.h>
+#include <tuple>
 
 #include "clusterer.hpp"
 #include "optimizer.hpp"
@@ -35,8 +36,13 @@ public:
   void train(const float *data, size_t size) {
     std::vector<float> step_size(dim_ * 4);
     std::vector<float> lower_bound(dim_ * 4);
-    cid_  = new uint8_t[size / 4];
-    code_ = new uint8_t[size / 4];
+
+    // 分配合并存储的内存
+    combined_data_ = new std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>[size / 4];
+
+    // 临时数组用于构建数据
+    uint8_t *temp_cid  = new uint8_t[size / 4];
+    uint8_t *temp_code = new uint8_t[size / 4];
 
     const size_t dim_div_4 = dim_ / 4;
 
@@ -79,10 +85,19 @@ public:
         const float  x =
             std::clamp((data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
         const size_t base_index = (i / dim_) * dim_div_4;
-        set(&cid_[base_index], i % dim_, c);
-        set(&code_[base_index], i % dim_, x);
+        set(&temp_cid[base_index], i % dim_, c);
+        set(&temp_code[base_index], i % dim_, x);
       }
     }
+
+    // 将数据合并到tuple数组中
+    for (size_t i = 0; i < size / 4; i += 2) {
+      combined_data_[i / 2] = std::make_tuple(temp_cid[i], temp_cid[i + 1], temp_code[i], temp_code[i + 1]);
+    }
+
+    // 清理临时数组
+    delete[] temp_cid;
+    delete[] temp_code;
 
     lower_bound_ = new __m128[dim_ / 4 * 256];
     step_size_   = new __m128[dim_ / 4 * 256];
@@ -113,18 +128,16 @@ public:
     __m256       sum8        = _mm256_setzero_ps();
 
     for (size_t i = 0; i < dim_; i += 8) {
-      const size_t group_idx1 = i / 4;
-      const size_t group_idx2 = (i + 4) / 4;
+      const size_t group_idx1   = i / 4;
+      const size_t combined_idx = (base_offset + group_idx1) / 2;
 
-      const uint8_t cid_byte1  = cid_[base_offset + group_idx1];
-      const uint8_t cid_byte2  = cid_[base_offset + group_idx2];
-      const uint8_t code_byte1 = code_[base_offset + group_idx1];
-      const uint8_t code_byte2 = code_[base_offset + group_idx2];
+      // 一次性读取合并的数据
+      auto [cid_byte1, cid_byte2, code_byte1, code_byte2] = combined_data_[combined_idx];
 
       __m128 lb1 = lower_bound_[group_idx1 * 256 + cid_byte1];
-      __m128 lb2 = lower_bound_[group_idx2 * 256 + cid_byte2];
+      __m128 lb2 = lower_bound_[(group_idx1 + 1) * 256 + cid_byte2];
       __m128 st1 = step_size_[group_idx1 * 256 + cid_byte1];
-      __m128 st2 = step_size_[group_idx2 * 256 + cid_byte2];
+      __m128 st2 = step_size_[(group_idx1 + 1) * 256 + cid_byte2];
 
       __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
@@ -152,11 +165,10 @@ public:
   }
 
 private:
-  size_t   dim_         = 0;
-  __m128  *lower_bound_ = nullptr;
-  __m128  *step_size_   = nullptr;
-  uint8_t *cid_         = nullptr;
-  uint8_t *code_        = nullptr;
+  size_t                                          dim_           = 0;
+  __m128                                         *lower_bound_   = nullptr;
+  __m128                                         *step_size_     = nullptr;
+  std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> *combined_data_ = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, size_t group) const {
     std::vector<float> sorted_data;
