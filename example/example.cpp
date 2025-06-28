@@ -34,12 +34,12 @@ int main() {
   const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
 
   std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
-  
+
   const auto mse_start_time = std::chrono::high_resolution_clock::now();
-  float error = compute_mse(data, quantizer, N);
-  const auto mse_end_time = std::chrono::high_resolution_clock::now();
-  const auto mse_duration = std::chrono::duration_cast<std::chrono::duration<double>>(mse_end_time - mse_start_time);
-  
+  float      error          = compute_mse(data, quantizer, N);
+  const auto mse_end_time   = std::chrono::high_resolution_clock::now();
+  const auto mse_duration   = std::chrono::duration_cast<std::chrono::duration<double>>(mse_end_time - mse_start_time);
+
   std::cout << std::left << std::setw(18) << "MSE compute time:" << mse_duration.count() << "s" << std::endl;
   std::cout << std::left << std::setw(18) << "Error:" << error << std::endl;
 

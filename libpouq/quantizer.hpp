@@ -1,5 +1,6 @@
 #pragma once
 
+#include <immintrin.h>
 #include <omp.h>
 
 #include "clusterer.hpp"
@@ -11,8 +12,8 @@ namespace pouq {
 
 inline void set(uint8_t *data, size_t index, size_t n) {
   n &= 3;
-  const size_t byte_index = index >> 2;        // 等价于 index * 2 / 8，但更高效
-  const size_t bit_offset = (index & 3) << 1;  // 等价于 (index * 2) % 8，但更高效
+  const size_t byte_index = index >> 2;
+  const size_t bit_offset = (index & 3) << 1;
   data[byte_index] &= ~(3 << bit_offset);
   data[byte_index] |= n << bit_offset;
 }
@@ -37,13 +38,13 @@ public:
     cid_  = new uint8_t[size / 4];
     code_ = new uint8_t[size / 4];
 
-    const size_t dim_div_4 = dim_ / 4;  // 预计算常用值
+    const size_t dim_div_4 = dim_ / 4;
 
 #pragma omp parallel for
     for (size_t d = 0; d < dim_; d++) {
       const auto   data_freq_map = count_freq(data, size, d);
       const auto   bounds        = cluster(4, data_freq_map);
-      const size_t d_times_4     = d * 4;  // 预计算 d * 4
+      const size_t d_times_4     = d * 4;
 
       for (size_t i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
@@ -77,7 +78,7 @@ public:
         const size_t c = it - bounds.begin() - 1;
         const float  x =
             std::clamp((data[i] - lower_bound_[d_times_4 + c]) / step_size_[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
-        const size_t base_index = (i / dim_) * dim_div_4;  // 预计算基础索引
+        const size_t base_index = (i / dim_) * dim_div_4;
         set(&cid_[base_index], i % dim_, c);
         set(&code_[base_index], i % dim_, x);
       }
@@ -88,10 +89,10 @@ public:
 
 #pragma omp parallel for
     for (size_t i = 0; i < dim_; i += 4) {
-      const size_t base_idx = (i / 4) * 1024;  // 预计算 (i / 4) * 256 * 4
+      const size_t base_idx = (i / 4) * 1024;
       for (size_t j = 0; j < 256; j++) {
         auto [x0, x1, x2, x3] = get(j);
-        const size_t offset   = base_idx + j * 4;  // 预计算偏移量
+        const size_t offset   = base_idx + j * 4;
 
         lower_bound_128[offset + 0] = lower_bound_[(i + 0) * 4 + x0];
         lower_bound_128[offset + 1] = lower_bound_[(i + 1) * 4 + x1];
@@ -107,29 +108,53 @@ public:
   }
 
   float l2distance(const float *data, size_t offset) const {
-    float        result      = 0;
-    const size_t base_offset = offset / 4;  // 预计算基础偏移
+    const size_t base_offset = offset / 4;
+    __m256       sum8        = _mm256_setzero_ps();
 
-    for (size_t i = 0; i < dim_; i += 4) {
-      const size_t idx_base = base_offset + (i / 4);
-      auto         cid_byte = cid_[idx_base];
-      auto [x0, x1, x2, x3] = get(code_[idx_base]);
+    for (size_t i = 0; i < dim_; i += 8) {
 
-      const size_t lookup_base = i / 4 * 1024 + cid_byte * 4;  // 预计算查找基址
+      const size_t group_idx1 = i / 4;
+      const size_t group_idx2 = (i + 4) / 4;
 
-      auto d0 =
-          static_cast<float>(x0) * step_size_128[lookup_base + 0] + lower_bound_128[lookup_base + 0] - data[i + 0];
-      auto d1 =
-          static_cast<float>(x1) * step_size_128[lookup_base + 1] + lower_bound_128[lookup_base + 1] - data[i + 1];
-      auto d2 =
-          static_cast<float>(x2) * step_size_128[lookup_base + 2] + lower_bound_128[lookup_base + 2] - data[i + 2];
-      auto d3 =
-          static_cast<float>(x3) * step_size_128[lookup_base + 3] + lower_bound_128[lookup_base + 3] - data[i + 3];
+      const uint8_t cid_byte1  = cid_[base_offset + group_idx1];
+      const uint8_t cid_byte2  = cid_[base_offset + group_idx2];
+      const uint8_t code_byte1 = code_[base_offset + group_idx1];
+      const uint8_t code_byte2 = code_[base_offset + group_idx2];
 
-      result += d0 * d0 + d1 * d1 + d2 * d2 + d3 * d3;
+      const size_t lookup_base1 = group_idx1 * 1024 + cid_byte1 * 4;
+      const size_t lookup_base2 = group_idx2 * 1024 + cid_byte2 * 4;
+
+      __m128 step1  = _mm_loadu_ps(step_size_128 + lookup_base1);
+      __m128 step2  = _mm_loadu_ps(step_size_128 + lookup_base2);
+      __m128 lower1 = _mm_loadu_ps(lower_bound_128 + lookup_base1);
+      __m128 lower2 = _mm_loadu_ps(lower_bound_128 + lookup_base2);
+
+      __m256 step_vec  = _mm256_set_m128(step2, step1);
+      __m256 lower_vec = _mm256_set_m128(lower2, lower1);
+
+      __m256 code_vec = _mm256_setr_ps(static_cast<float>((code_byte1 >> 0) & 3),
+          static_cast<float>((code_byte1 >> 2) & 3),
+          static_cast<float>((code_byte1 >> 4) & 3),
+          static_cast<float>((code_byte1 >> 6) & 3),
+          static_cast<float>((code_byte2 >> 0) & 3),
+          static_cast<float>((code_byte2 >> 2) & 3),
+          static_cast<float>((code_byte2 >> 4) & 3),
+          static_cast<float>((code_byte2 >> 6) & 3));
+
+      __m256 reconstructed = _mm256_fmadd_ps(code_vec, step_vec, lower_vec);
+
+      __m256 data_vec = _mm256_loadu_ps(data + i);
+
+      __m256 diff = _mm256_sub_ps(reconstructed, data_vec);
+
+      sum8 = _mm256_add_ps(sum8, _mm256_mul_ps(diff, diff));
     }
 
-    return result;
+    __m128 sum4 = _mm_add_ps(_mm256_extractf128_ps(sum8, 1), _mm256_castps256_ps128(sum8));
+    sum4        = _mm_hadd_ps(sum4, sum4);
+    sum4        = _mm_hadd_ps(sum4, sum4);
+
+    return _mm_cvtss_f32(sum4);
   }
 
 private:
