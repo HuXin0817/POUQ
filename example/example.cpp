@@ -18,14 +18,16 @@ using LloydMax     = pouq::QuantizerImpl<pouq::KmeansClusterer, pouq::CenterCalc
 std::ofstream csv_file;
 
 template <typename Quantizer>
-void run(const std::string &method_name, size_t dim, std::vector<float> data, size_t cbit, size_t qbit) {
+void run(const std::string &method_name, size_t dim, const std::vector<float> &data, size_t cbit, size_t qbit) {
   auto start_time = std::chrono::high_resolution_clock::now();
 
   auto q = Quantizer(cbit, qbit, dim);
   q.train(data.data(), data.size());
 
-  auto end_time   = std::chrono::high_resolution_clock::now();
-  auto train_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+  auto end_time = std::chrono::high_resolution_clock::now();
+  // auto train_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+  auto   duration   = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+  double train_time = duration.count() / 1000000.0;
 
   auto mse = compute_mse(q, data, data.size());
 
@@ -40,11 +42,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  auto [data, Dim] = read_fvecs(argv[1]);
-
   // 从文件路径中提取数据集名称
   std::string dataset_path = argv[1];
   std::string dataset_name = std::filesystem::path(dataset_path).stem().string();
+
+  auto [data, Dim] = read_fvecs("../data/" + dataset_path + "/" + dataset_path + "_base.fvecs");
 
   // 创建结果目录
   std::filesystem::create_directories("../result");
