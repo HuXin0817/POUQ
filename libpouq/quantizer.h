@@ -130,21 +130,21 @@ private:
     }
     std::sort(sorted_data.begin(), sorted_data.end());
 
-    float                                 current_value = sorted_data[0];
-    size_t                                count         = 1;
+    float                                 curr_value = sorted_data[0];
+    size_t                                count      = 1;
     std::vector<std::pair<float, size_t>> data_freq_map;
     data_freq_map.reserve(sorted_data.size());
     for (size_t i = 1; i < sorted_data.size(); i++) {
-      if (sorted_data[i] == current_value) {
+      if (sorted_data[i] == curr_value) {
         count++;
       } else {
-        data_freq_map.emplace_back(current_value, count);
-        current_value = sorted_data[i];
-        count         = 1;
+        data_freq_map.emplace_back(curr_value, count);
+        curr_value = sorted_data[i];
+        count      = 1;
       }
     }
 
-    data_freq_map.emplace_back(current_value, count);
+    data_freq_map.emplace_back(curr_value, count);
     return data_freq_map;
   }
 };
