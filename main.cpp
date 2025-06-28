@@ -1,4 +1,4 @@
-#include "pouq8.hpp"
+#include "quantizer.hpp"
 
 #include <chrono>
 #include <iomanip>
@@ -8,7 +8,7 @@
 constexpr size_t N   = 5e4;
 constexpr size_t Dim = 256;
 
-float compute_mse(const pouq::POUQ8bit &quant, const std::vector<float> &data) {
+float compute_mse(const pouq::Quantizer &quant, const std::vector<float> &data) {
   float err = 0;
   for (size_t i = 0; i < data.size(); i += Dim) {
     err += quant.l2distance(data.data() + i, i);
@@ -26,7 +26,7 @@ int main() {
     d = dis(gen);
   }
 
-  pouq::POUQ8bit quantizer(Dim);
+  pouq::Quantizer quantizer(Dim);
 
   {
     const auto start_time = std::chrono::high_resolution_clock::now();

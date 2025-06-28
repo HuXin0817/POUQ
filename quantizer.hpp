@@ -20,7 +20,13 @@ struct QuantParam {
 
 class Quantizer {
 public:
+  Quantizer() = default;
+
   explicit Quantizer(size_t dimension) : dimension_(dimension) {}
+
+  void set_dimension(size_t dimension) { dimension_ = dimension; }
+
+  size_t get_dimension() const { return dimension_; }
 
   void train(const float *data, size_t data_size) {
     codebook_      = new QuantParam[dimension_ * (1 << 4)];
