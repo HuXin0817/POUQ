@@ -27,8 +27,12 @@ inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
   };
 }
 
+struct ReconstructParameter {
+  __m128 lower_bound;
+  __m128 step_size;
+};
+
 class Quantizer {
-  static inline __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
 
 public:
   explicit Quantizer(size_t groups) : dim_(groups) { assert(dim_ % 32 == 0); }
@@ -93,7 +97,7 @@ public:
       combined_data_[i / 2]  = std::make_tuple(temp_cid[i], temp_cid[i + 1], combined_code);
     }
 
-    bounds_data_ = new std::pair<__m128, __m128>[dim_ / 4 * 256];
+    bounds_data_ = new ReconstructParameter[dim_ / 4 * 256];
 
 #pragma omp parallel for
     for (size_t g = 0; g < dim_ / 4; g++) {
@@ -110,7 +114,7 @@ public:
             step_size[base_idx + 2 * 4 + x2],
             step_size[base_idx + 3 * 4 + x3]);
 
-        bounds_data_[g * 256 + j] = std::make_pair(lb, st);
+        bounds_data_[g * 256 + j] = {lb, st};
       }
     }
   }
@@ -118,6 +122,9 @@ public:
   float l2distance(const float *data, size_t offset) const {
     const size_t base_offset = offset / 4;
     __m256       sum8        = _mm256_setzero_ps();
+
+    static const __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
+    static const __m256i mask   = _mm256_set1_epi32(3);
 
     for (size_t i = 0; i < dim_; i += 8) {
       const size_t idx          = i / 4;
@@ -130,7 +137,7 @@ public:
       const __m256  st_vec        = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
       const __m256i bytes         = _mm256_set1_epi32(code);
       const __m256i shifted       = _mm256_srlv_epi32(bytes, shifts);
-      const __m256i masked        = _mm256_and_si256(shifted, _mm256_set1_epi32(3));
+      const __m256i masked        = _mm256_and_si256(shifted, mask);
       const __m256  code_vec      = _mm256_cvtepi32_ps(masked);
       const __m256  reconstructed = _mm256_fmadd_ps(code_vec, st_vec, lb_vec);
       const __m256  data_vec      = _mm256_loadu_ps(data + i);
@@ -147,7 +154,7 @@ public:
 
 private:
   size_t                                  dim_           = 0;
-  std::pair<__m128, __m128>              *bounds_data_   = nullptr;
+  ReconstructParameter                   *bounds_data_   = nullptr;
   std::tuple<uint8_t, uint8_t, uint16_t> *combined_data_ = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, size_t group) const {
