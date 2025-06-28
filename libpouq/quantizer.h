@@ -36,8 +36,8 @@ public:
   ~Float32Quantizer() override { delete[] data_; }
 
 private:
-  size_t size_;
-  float *data_;
+  size_t size_ = 0;
+  float *data_ = nullptr;
 };
 
 template <typename Clusterer, typename Optimizer>
