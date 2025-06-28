@@ -17,27 +17,26 @@ public:
   virtual size_t size() const = 0;
 };
 
-template <typename Clusterer = KrangeClusterer, typename Optimizer = PSOptimizer>
+template <size_t c_bit, size_t q_bit, typename Clusterer = KrangeClusterer, typename Optimizer = PSOptimizer>
 class POUQuantizer : public Quantizer {
-public:
-  explicit POUQuantizer(const float *data,
-      const size_t                   size,
-      const size_t                   c_bit,
-      const size_t                   q_bit,
-      const size_t                   groups    = 1,
-      const bool                     opt_bound = true)
-      : c_bit_(c_bit), q_bit_(q_bit), size_(size), groups_(groups) {
-    this->step_size_   = new float[this->groups_ * (1 << this->c_bit_)];
-    this->lower_bound_ = new float[this->groups_ * (1 << this->c_bit_)];
-    this->cid_         = new uint8_t[(this->c_bit_ * this->size_ + 7) / 8];
-    this->code_        = new uint8_t[(this->q_bit_ * this->size_ + 7) / 8];
+  static_assert(c_bit <= sizeof(size_t) * 8);
+  static_assert(q_bit <= sizeof(size_t) * 8);
 
-    const auto div = static_cast<float>((1 << this->q_bit_) - 1);
+  static constexpr auto div = static_cast<float>((static_cast<size_t>(1) << q_bit) - 1);
+
+public:
+  explicit POUQuantizer(const float *data, const size_t size, const size_t groups = 1, const bool opt_bound = true)
+      : size_(size), groups_(groups) {
+    this->step_size_   = new float[this->groups_ * (1 << c_bit)];
+    this->lower_bound_ = new float[this->groups_ * (1 << c_bit)];
+    this->cid_         = new uint8_t[(c_bit * this->size_ + 7) / 8];
+    this->code_        = new uint8_t[(q_bit * this->size_ + 7) / 8];
+
 #pragma omp parallel for
     for (size_t group = 0; group < this->groups_; group++) {
       const auto data_freq_map = this->count_freq(data, group);
-      const auto bounds        = Clusterer()(1 << this->c_bit_, data_freq_map);
-      const auto offset        = group * (1 << this->c_bit_);
+      const auto bounds        = Clusterer()(1 << c_bit, data_freq_map);
+      const auto offset        = group * (1 << c_bit);
 
       for (size_t i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
@@ -71,18 +70,18 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        bitmap::set(this->cid_, i, c, this->c_bit_);
+        bitmap::set<c_bit>(this->cid_, i, c);
         const float x =
             std::clamp((d - this->lower_bound_[offset + c]) / this->step_size_[offset + c] + 0.5f, 0.0f, div);
-        bitmap::set(this->code_, i, static_cast<size_t>(x), this->q_bit_);
+        bitmap::set<q_bit>(this->code_, i, static_cast<size_t>(x));
       }
     }
   }
 
   float operator[](size_t i) const override {
     const size_t group  = i % this->groups_;
-    const size_t offset = bitmap::get(this->cid_, i, this->c_bit_) + group * (1 << this->c_bit_);
-    const size_t x      = bitmap::get(this->code_, i, this->q_bit_);
+    const size_t offset = bitmap::get<c_bit>(this->cid_, i) + group * (1 << c_bit);
+    const size_t x      = bitmap::get<q_bit>(this->code_, i);
     return this->lower_bound_[offset] + this->step_size_[offset] * static_cast<float>(x);
   }
 
@@ -96,8 +95,6 @@ public:
   }
 
 private:
-  size_t   c_bit_;
-  size_t   q_bit_;
   size_t   size_;
   size_t   groups_;
   float   *lower_bound_ = nullptr;
