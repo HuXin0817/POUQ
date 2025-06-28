@@ -93,7 +93,7 @@ def calculate_memory_usage(index, data, index_name):
         memory_mb = original_size_mb * compression_ratio
     elif index_name == "HNSW":
         # HNSW存储完整向量加图结构
-        compression_ratio = 1.2  # 比原始数据稍大（包含图结构）
+        compression_ratio = 1.05  # 比原始数据稍大（包含图结构）
         memory_mb = original_size_mb * compression_ratio
     elif index_name == "IndexIVFRaBitQ":
         # RaBitQ使用1位量化
