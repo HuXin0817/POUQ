@@ -260,17 +260,15 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Faiss HNSW test failed: {e}")
 
-    # 4. 测试Faiss IndexIVFPQFastScan - 不同nprobe参数
-    print("\n=== Testing Faiss IndexIVFPQFastScan with different nprobe values ===")
+    # 4. 测试Faiss IndexIVFPQ - 不同nprobe参数
+    print("\n=== Testing Faiss IndexIVFPQ with different nprobe values ===")
     try:
         nlist = 100
         m = 4  # 子量化器数量
-        nbits = 4  # 每个子量化器的位数
+        nbits = 8  # 每个子量化器的位数
 
         quantizer = faiss.IndexFlatL2(data.shape[1])
-        index_ivfpqfs = faiss.IndexIVFPQFastScan(
-            quantizer, data.shape[1], nlist, m, nbits
-        )
+        index_ivfpqfs = faiss.IndexIVFPQ(quantizer, data.shape[1], nlist, m, nbits)
         index_ivfpqfs.train(data.astype("float32"))
         index_ivfpqfs.add(data.astype("float32"))
 
@@ -284,14 +282,12 @@ if __name__ == "__main__":
                 gt_indices,
                 gt_distances,
                 k,
-                "IVFPQFastScan",
+                "IVFPQ",
                 nprobe,
             )
-            results.append(
-                [f"IVFPQFastScan", qps, recall, distance_ratio, total_time, nprobe]
-            )
+            results.append([f"IVFPQ", qps, recall, distance_ratio, total_time, nprobe])
     except Exception as e:
-        print(f"Faiss IVFPQFastScan test failed: {e}")
+        print(f"Faiss IVFPQ test failed: {e}")
 
     # 5. 测试Faiss IndexIVFRaBitQ - 不同nprobe参数 (作为基准)
     print("\n=== Testing Faiss IndexIVFRaBitQ with different nprobe values ===")
