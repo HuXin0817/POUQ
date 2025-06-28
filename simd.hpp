@@ -4,6 +4,29 @@
 
 namespace pouq::simd {
 
+inline std::pair<float, size_t> dp_cost_simd(size_t j,
+    size_t                                          mid,
+    size_t                                          opt_l,
+    size_t                                          opt_r,
+    const std::pair<float, size_t>                 *data_freq_map,
+    const float                                    *sum_count,
+    const float                                    *prev_dp) {
+  const size_t start     = std::max(j - 1, opt_l);
+  const size_t end       = std::min(mid - 1, opt_r);
+  float        min_cost  = std::numeric_limits<float>::max();
+  size_t       split_pos = 0;
+  for (size_t m = start; m <= end; ++m) {
+    const float width = static_cast<float>(data_freq_map[mid - 1].first) - static_cast<float>(data_freq_map[m].first);
+    const float count = sum_count[mid] - sum_count[m];
+    const float cost  = prev_dp[m] + width * width * count;
+    if (cost < min_cost) {
+      min_cost  = cost;
+      split_pos = m;
+    }
+  }
+  return {min_cost, split_pos};
+}
+
 inline float quantization_loss_simd(const float                  division_count,
     float                                                        cluster_lower_bound,
     float                                                        step_size,
@@ -38,10 +61,10 @@ inline float l2distance_simd(const float *data,
     const uint8_t                        *encoded_codes) {
   float distance = 0.0f;
   for (size_t i = 0; i < dimension; i++) {
-    uint8_t encoded_value         = encoded_codes[data_index + i];
-    auto [lower_bound, step_size] = codebook[((encoded_value & 0xF) + i * 16)];
-    float decoded_value           = lower_bound + step_size * (encoded_value >> 4 & 0xF);
-    float diff                    = data[i] - decoded_value;
+    const uint8_t encoded_value         = encoded_codes[data_index + i];
+    const auto [lower_bound, step_size] = codebook[((encoded_value & 0xF) + i * 16)];
+    const float decoded_value           = lower_bound + step_size * (encoded_value >> 4 & 0xF);
+    const float diff                    = data[i] - decoded_value;
     distance += diff * diff;
   }
   return distance;

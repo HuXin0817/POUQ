@@ -4,6 +4,8 @@
 #include <limits>
 #include <vector>
 
+#include "simd.hpp"
+
 namespace pouq {
 
 struct Task {
@@ -43,21 +45,9 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
         continue;
       }
 
-      const size_t mid       = (l + r) / 2;
-      const size_t start     = std::max(j - 1, opt_l);
-      const size_t end       = std::min(mid - 1, opt_r);
-      float        min_cost  = std::numeric_limits<float>::max();
-      size_t       split_pos = 0;
-      for (size_t m = start; m <= end; ++m) {
-        const float width =
-            static_cast<float>(data_freq_map[mid - 1].first) - static_cast<float>(data_freq_map[m].first);
-        const float count = sum_count[mid] - sum_count[m];
-        const float cost  = prev_dp[m] + width * width * count;
-        if (cost < min_cost) {
-          min_cost  = cost;
-          split_pos = m;
-        }
-      }
+      const size_t mid = (l + r) / 2;
+      auto [min_cost, split_pos] =
+          simd::dp_cost_simd(j, mid, opt_l, opt_r, data_freq_map.data(), sum_count.data(), prev_dp.data());
 
       curr_dp[mid]     = min_cost;
       prev_idx[mid][j] = split_pos;
