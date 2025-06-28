@@ -18,9 +18,9 @@ struct QuantParam {
   float step_size;
 };
 
-class POUQ8bit {
+class Quantizer {
 public:
-  explicit POUQ8bit(size_t dimension) : dimension_(dimension) {}
+  explicit Quantizer(size_t dimension) : dimension_(dimension) {}
 
   void train(const float *data, size_t data_size) {
     codebook_      = new QuantParam[dimension_ * (1 << 4)];
@@ -206,7 +206,7 @@ public:
 
 #endif
 
-  ~POUQ8bit() {
+  ~Quantizer() {
     delete[] codebook_;
     delete[] encoded_codes_;
   }
