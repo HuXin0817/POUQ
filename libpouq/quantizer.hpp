@@ -37,10 +37,8 @@ public:
     std::vector<float> step_size(dim_ * 4);
     std::vector<float> lower_bound(dim_ * 4);
 
-    // 分配合并存储的内存
     combined_data_ = new std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>[size / 4];
 
-    // 临时数组用于构建数据
     uint8_t *temp_cid  = new uint8_t[size / 4];
     uint8_t *temp_code = new uint8_t[size / 4];
 
@@ -90,17 +88,14 @@ public:
       }
     }
 
-    // 将数据合并到tuple数组中
     for (size_t i = 0; i < size / 4; i += 2) {
       combined_data_[i / 2] = std::make_tuple(temp_cid[i], temp_cid[i + 1], temp_code[i], temp_code[i + 1]);
     }
 
-    // 清理临时数组
     delete[] temp_cid;
     delete[] temp_code;
 
-    lower_bound_ = new __m128[dim_ / 4 * 256];
-    step_size_   = new __m128[dim_ / 4 * 256];
+    bounds_data_ = new std::pair<__m128, __m128>[dim_ / 4 * 256];
 
 #pragma omp parallel for
     for (size_t g = 0; g < dim_ / 4; g++) {
@@ -117,8 +112,7 @@ public:
             step_size[base_idx + 2 * 4 + x2],
             step_size[base_idx + 3 * 4 + x3]);
 
-        lower_bound_[g * 256 + j] = lb;
-        step_size_[g * 256 + j]   = st;
+        bounds_data_[g * 256 + j] = std::make_pair(lb, st);
       }
     }
   }
@@ -128,16 +122,13 @@ public:
     __m256       sum8        = _mm256_setzero_ps();
 
     for (size_t i = 0; i < dim_; i += 8) {
-      const size_t group_idx1   = i / 4;
-      const size_t combined_idx = (base_offset + group_idx1) / 2;
+      const size_t group_idx1                                   = i / 4;
+      const size_t combined_idx                                 = (base_offset + group_idx1) / 2;
 
-      // 一次性读取合并的数据
-      auto [cid_byte1, cid_byte2, code_byte1, code_byte2] = combined_data_[combined_idx];
+      const auto [cid_byte1, cid_byte2, code_byte1, code_byte2] = combined_data_[combined_idx];
 
-      __m128 lb1 = lower_bound_[group_idx1 * 256 + cid_byte1];
-      __m128 lb2 = lower_bound_[(group_idx1 + 1) * 256 + cid_byte2];
-      __m128 st1 = step_size_[group_idx1 * 256 + cid_byte1];
-      __m128 st2 = step_size_[(group_idx1 + 1) * 256 + cid_byte2];
+      auto [lb1, st1] = bounds_data_[group_idx1 * 256 + cid_byte1];
+      auto [lb2, st2] = bounds_data_[(group_idx1 + 1) * 256 + cid_byte2];
 
       __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
@@ -166,8 +157,7 @@ public:
 
 private:
   size_t                                          dim_           = 0;
-  __m128                                         *lower_bound_   = nullptr;
-  __m128                                         *step_size_     = nullptr;
+  std::pair<__m128, __m128>                      *bounds_data_   = nullptr;
   std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> *combined_data_ = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, size_t group) const {
