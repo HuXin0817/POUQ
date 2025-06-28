@@ -37,7 +37,7 @@ public:
     std::vector<float> step_size(dim_ * 4);
     std::vector<float> lower_bound(dim_ * 4);
 
-    combined_data_ = new std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>[size / 4];
+    combined_data_ = new std::tuple<uint8_t, uint8_t, uint16_t>[size / 4];
 
     std::vector<uint8_t> temp_cid(size / 4);
     std::vector<uint8_t> temp_code(size / 4);
@@ -89,7 +89,9 @@ public:
     }
 
     for (size_t i = 0; i < size / 4; i += 2) {
-      combined_data_[i / 2] = std::make_tuple(temp_cid[i], temp_cid[i + 1], temp_code[i], temp_code[i + 1]);
+      // 将两个 code 字节合并为一个 uint16_t
+      uint16_t combined_code = (static_cast<uint16_t>(temp_code[i + 1]) << 8) | temp_code[i];
+      combined_data_[i / 2]  = std::make_tuple(temp_cid[i], temp_cid[i + 1], combined_code);
     }
 
     bounds_data_ = new std::pair<__m128, __m128>[dim_ / 4 * 256];
@@ -122,7 +124,7 @@ public:
       const size_t group_idx1   = i / 4;
       const size_t combined_idx = (base_offset + group_idx1) / 2;
 
-      const auto [cid_byte1, cid_byte2, code_byte1, code_byte2] = combined_data_[combined_idx];
+      const auto [cid_byte1, cid_byte2, combined_code] = combined_data_[combined_idx];
 
       auto [lb1, st1] = bounds_data_[group_idx1 * 256 + cid_byte1];
       auto [lb2, st2] = bounds_data_[(group_idx1 + 1) * 256 + cid_byte2];
@@ -130,8 +132,8 @@ public:
       __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
 
-      // 优化版本
-      __m256i bytes    = _mm256_set1_epi32((code_byte2 << 8) | code_byte1);
+      // 优化版本 - 直接使用合并的 uint16_t
+      __m256i bytes    = _mm256_set1_epi32(combined_code);
       __m256i shifts   = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
       __m256i shifted  = _mm256_srlv_epi32(bytes, shifts);
       __m256i masked   = _mm256_and_si256(shifted, _mm256_set1_epi32(3));
@@ -151,9 +153,9 @@ public:
   }
 
 private:
-  size_t                                          dim_           = 0;
-  std::pair<__m128, __m128>                      *bounds_data_   = nullptr;
-  std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> *combined_data_ = nullptr;
+  size_t                                  dim_           = 0;
+  std::pair<__m128, __m128>              *bounds_data_   = nullptr;
+  std::tuple<uint8_t, uint8_t, uint16_t> *combined_data_ = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, size_t group) const {
     std::vector<float> sorted_data;
