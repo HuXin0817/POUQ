@@ -155,6 +155,11 @@ public:
     }
   }
 
+  ~Quantizer() {
+    delete[] bounds_data_;
+    delete[] combined_data_;
+  }
+
 private:
   size_t                                  dim_           = 0;
   ReconstructParameter                   *bounds_data_   = nullptr;

@@ -1,4 +1,5 @@
-#include "../libpouq/quantizer.hpp"
+// #include "../libpouq/quantizer.hpp"
+#include "sq4.hpp"
 
 #include <assert.h>
 #include <chrono>
@@ -8,7 +9,8 @@
 constexpr size_t Dim = 256;
 constexpr size_t N   = 1e4 * Dim;
 
-float compute_mse(const std::vector<float> &d1, const pouq::Quantizer &d2, size_t size) {
+template<typename Quantizer>
+float compute_mse(const std::vector<float> &d1, const Quantizer &d2, size_t size) {
   float mse = 0;
   for (size_t i = 0; i < size; i += Dim) {
     mse += d2.l2distance(d1.data() + i, i);
@@ -25,7 +27,7 @@ int main() {
     d = dis(gen);
   }
 
-  pouq::Quantizer quantizer(Dim);
+  SQ4Quantizer quantizer(Dim);
 
   const auto start_time = std::chrono::high_resolution_clock::now();
   quantizer.train(data.data(), N);
