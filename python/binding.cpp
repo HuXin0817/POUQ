@@ -6,16 +6,16 @@
 
 namespace py = pybind11;
 
-#define BIND_QUANTIZER_METHODS(quantizer_type)                                                                         \
+#define BIND_QUANTIZER_METHODS(Q)                                                                                      \
   .def(                                                                                                                \
       "train",                                                                                                         \
-      [](quantizer_type &self, const py::array_t<float> &array) { self.train(array.data(), array.size()); },           \
+      [](Q &self, const py::array_t<float> &array) { self.train(array.data(), array.size()); },                        \
       py::arg("data"))                                                                                                 \
-      .def("__getitem__", &quantizer_type::operator[], py::arg("i"))                                                   \
-      .def("size", &quantizer_type::size)
+      .def("__getitem__", &Q::operator[], py::arg("i"))                                                                \
+      .def("size", &Q::size)
 
-#define BIND_COMPUTE_MSE(quantizer_type)                                                                               \
-  m.def("compute_mse", [](const py::array_t<float> &array, const quantizer_type &quantizer) {                          \
+#define BIND_COMPUTE_MSE(Q)                                                                                            \
+  m.def("compute_mse", [](const py::array_t<float> &array, const Q &quantizer) {                                       \
     return compute_mse(array.data(), quantizer, array.size());                                                         \
   });
 
