@@ -11,19 +11,19 @@
 #include <random>
 #include <vector>
 
+struct ClusterNode {
+  std::vector<float>  centroid;
+  std::vector<size_t> indices;
+};
+
+inline std::vector<ClusterNode> centroids_;
+
 template <typename Quantizer>
 class IVFIndex {
-  struct ClusterNode {
-    std::vector<float>  centroid;
-    std::vector<size_t> indices;
-  };
 
 public:
   IVFIndex(size_t nlist, size_t dim) : candidate_centroids(nlist), nlist_(nlist), dim_(dim), quantizer_(dim_) {
-    centroids_.resize(nlist_);
-    for (auto &centroid : centroids_) {
-      centroid.centroid.resize(dim_);
-    }
+    if (centroids_.empty()) {}
 
     sum_result.reserve(1024 * 1024);
   }
@@ -36,10 +36,17 @@ public:
 
     size_t num_samples = size / dim_;
 
-    std::cout << "start clustering ... " << std::endl;
-    std::cout.flush();
-    kmeans_clustering(data, num_samples);
-    std::cout << "finish training" << std::endl;
+    if (centroids_.empty()) {
+      centroids_.resize(nlist_);
+      for (auto &centroid : centroids_) {
+        centroid.centroid.resize(dim_);
+      }
+
+      std::cout << "start clustering ... " << std::endl;
+      std::cout.flush();
+      kmeans_clustering(data, num_samples);
+      std::cout << "finish training" << std::endl;
+    }
   }
 
   static bool leq(const std::pair<size_t, float> &p1, const std::pair<size_t, float> &p2) {
@@ -86,10 +93,9 @@ public:
   }
 
 private:
-  size_t                   nlist_;
-  size_t                   dim_;
-  std::vector<ClusterNode> centroids_;
-  Quantizer                quantizer_;
+  size_t    nlist_;
+  size_t    dim_;
+  Quantizer quantizer_;
 
   std::vector<std::pair<size_t, float>> sum_result;
   std::vector<std::pair<size_t, float>> candidate_centroids;
