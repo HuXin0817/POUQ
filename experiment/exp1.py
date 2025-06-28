@@ -174,15 +174,21 @@ if __name__ == "__main__":
         q = pouq.POUQQuantizer(c_bit=i // 2, q_bit=i - (i // 2), sub=d)
         run("POUQ", i, q, data_f32)
 
-    for M in range(2, d // 4 + 1):
-        if d % M > 0:
-            continue
+    # Select 5 evenly distributed M values for PQ
+    valid_M_values = [M for M in range(2, d // 4 + 1) if d % M == 0]
+    if len(valid_M_values) >= 5:
+        # Select 5 evenly distributed values
+        selected_M_values = [valid_M_values[i * (len(valid_M_values) - 1) // 4] for i in range(5)]
+    else:
+        # If less than 5 valid values, use all of them
+        selected_M_values = valid_M_values
+    
+    for M in selected_M_values:
         q = faiss.ProductQuantizer(d, M, 8)
         run("PQ", M * 8 / d, q, data_f32)
 
-    for M in range(2, d // 4 + 1):
-        if d % M > 0:
-            continue
+    # Select 5 evenly distributed M values for LSQ (same logic)
+    for M in selected_M_values:
         q = faiss.LocalSearchQuantizer(d, M, 8)
         run("LSQ", M * 8 / d, q, data_f32)
 
