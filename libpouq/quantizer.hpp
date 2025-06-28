@@ -8,44 +8,12 @@
 
 namespace pouq {
 
-class Quantizer {
-public:
-  virtual ~Quantizer() = default;
-
-  virtual void train(const float *data, size_t size) = 0;
-
-  virtual float operator[](size_t i) const = 0;
-
-  virtual size_t size() const = 0;
-};
-
-class Float32Quantizer final : public Quantizer {
-public:
-  Float32Quantizer() = default;
-
-  void train(const float *data, size_t size) override {
-    this->size_ = size;
-    this->data_ = new float[this->size_];
-    std::memcpy(this->data_, data, this->size_ * sizeof(float));
-  }
-
-  float operator[](size_t i) const override { return this->data_[i]; }
-
-  size_t size() const override { return this->size_; }
-
-  ~Float32Quantizer() override { delete[] data_; }
-
-private:
-  size_t size_ = 0;
-  float *data_ = nullptr;
-};
-
 template <typename Clusterer, typename Optimizer>
-class QuantizerImpl : public Quantizer {
+class QuantizerImpl {
 public:
   explicit QuantizerImpl(size_t c_bit, size_t q_bit, size_t sub) : c_bit_(c_bit), q_bit_(q_bit), sub_(sub) {}
 
-  void train(const float *data, size_t size) override {
+  void train(const float *data, size_t size) {
     this->size_        = size;
     this->step_size_   = new float[this->sub_ * (1 << this->c_bit_)];
     this->lower_bound_ = new float[this->sub_ * (1 << this->c_bit_)];
@@ -99,16 +67,16 @@ public:
     }
   }
 
-  float operator[](size_t i) const override {
+  float operator[](size_t i) const {
     const size_t group  = i % this->sub_;
     const size_t offset = bitmap::get(this->cid_, i, this->c_bit_) + group * (1 << this->c_bit_);
     const size_t x      = bitmap::get(this->code_, i, this->q_bit_);
     return this->lower_bound_[offset] + this->step_size_[offset] * static_cast<float>(x);
   }
 
-  size_t size() const override { return this->size_; }
+  size_t size() const { return this->size_; }
 
-  ~QuantizerImpl() override {
+  ~QuantizerImpl() {
     delete[] this->lower_bound_;
     delete[] this->step_size_;
     delete[] this->cid_;
@@ -155,23 +123,6 @@ private:
   }
 };
 
-template <typename Optimizer = MinMaxOptimizer>
-class SQQuantizer final : public QuantizerImpl<Clusterer, Optimizer> {
-public:
-  explicit SQQuantizer(size_t q_bit, size_t sub = 1) : QuantizerImpl<Clusterer, Optimizer>(0, q_bit, sub) {}
-};
-
-using SGD_LSQQuantizer = SQQuantizer<SGDOptimizer>;
-using PSO_LSQQuantizer = SQQuantizer<PSOptimizer>;
-
-class LloydMaxQuantizer final : public QuantizerImpl<CKmeansClusterer, CenterCalculator> {
-public:
-  explicit LloydMaxQuantizer(size_t c_bit, size_t sub = 1) : QuantizerImpl(c_bit, 0, sub) {}
-};
-
-class PLSQQuantizer final : public QuantizerImpl<KrangeClusterer, PSOptimizer> {
-public:
-  explicit PLSQQuantizer(size_t c_bit, size_t q_bit, size_t sub = 1) : QuantizerImpl(c_bit, q_bit, sub) {}
-};
+using PLSQQuantizer = QuantizerImpl<KrangeClusterer, PSOptimizer>;
 
 }  // namespace pouq

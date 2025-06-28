@@ -42,6 +42,5 @@ int main(int argc, char **argv) {
   const std::string dataset_name = argv[1];
   const auto        data         = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
 
-  run(data, new pouq::SQQuantizer(8, 256));
   run(data, new pouq::PLSQQuantizer(4, 4, 256));
 }
