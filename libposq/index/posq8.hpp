@@ -6,6 +6,10 @@
 #include "../clusterer.hpp"
 #include "../optimizer.hpp"
 
+#if defined(__i386__) || defined(__x86_64__)
+#include <immintrin.h>  // AVX2指令集头文件
+#endif
+
 namespace posq {
 
 class POSQ8 {
@@ -62,6 +66,62 @@ public:
     }
   }
 
+#if defined(__i386__) || defined(__x86_64__)
+  float l2distance(const float *data, size_t n) const {
+    float dis = 0.0f;
+
+    // AVX2优化版本 - 一次处理8个float
+    const size_t simd_end = (dim_ / 8) * 8;
+    __m256       sum_vec  = _mm256_setzero_ps();
+
+    for (size_t i = 0; i < simd_end; i += 8) {
+      // 加载8个输入数据
+      __m256 data_vec = _mm256_loadu_ps(&data[i]);
+
+      // 解码8个量化值
+      float decoded[8];
+      for (size_t j = 0; j < 8; j++) {
+        uint8_t v    = codes_[n + i + j];
+        auto [lb, s] = codebook_[((v & 0xF) + (i + j) * (1 << 4))];
+        decoded[j]   = lb + s * (v >> 4 & 0xF);
+      }
+
+      // 加载解码后的数据
+      __m256 decoded_vec = _mm256_loadu_ps(decoded);
+
+      // 计算差值
+      __m256 diff_vec = _mm256_sub_ps(data_vec, decoded_vec);
+
+      // 计算平方并累加
+      __m256 sq_diff = _mm256_mul_ps(diff_vec, diff_vec);
+      sum_vec        = _mm256_add_ps(sum_vec, sq_diff);
+    }
+
+    // 水平求和AVX2寄存器中的8个值
+    __m128 sum_high = _mm256_extractf128_ps(sum_vec, 1);
+    __m128 sum_low  = _mm256_castps256_ps128(sum_vec);
+    __m128 sum_128  = _mm_add_ps(sum_high, sum_low);
+
+    // 继续水平求和
+    __m128 sum_64 = _mm_add_ps(sum_128, _mm_movehl_ps(sum_128, sum_128));
+    __m128 sum_32 = _mm_add_ss(sum_64, _mm_shuffle_ps(sum_64, sum_64, 0x55));
+
+    dis = _mm_cvtss_f32(sum_32);
+
+    // 处理剩余的元素（标量处理）
+    for (size_t i = simd_end; i < dim_; i++) {
+      uint8_t v    = codes_[n + i];
+      auto [lb, s] = codebook_[((v & 0xF) + i * (1 << 4))];
+      float decode = lb + s * (v >> 4 & 0xF);
+      float diff   = data[i] - decode;
+      dis += diff * diff;
+    }
+
+    return dis;
+  }
+
+#else
+
   float l2distance(const float *data, size_t n) const {
     float dis = 0.0f;
     for (size_t i = 0; i < dim_; i++) {
@@ -73,6 +133,8 @@ public:
     }
     return dis;
   }
+
+#endif
 
   // size_t size() const { return size_; }
 
