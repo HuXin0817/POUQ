@@ -7,7 +7,7 @@
 #include <iostream>
 
 constexpr size_t Dim = 256;
-constexpr size_t N   = 1e3 * Dim;
+constexpr size_t N   = 1e4 * Dim;
 
 float compute_mse(const std::vector<float> &d1, const pouq::Quantizer &d2, size_t size) {
   float mse = 0;

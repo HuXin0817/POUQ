@@ -5,14 +5,16 @@
 #include "clusterer.hpp"
 #include "optimizer.hpp"
 
+#include <assert.h>
+
 namespace pouq {
 
 inline void set(uint8_t *data, size_t index, size_t n) {
   n &= 3;
-  const size_t i      = index * 2 / 8;
-  const size_t offset = index * 2 % 8;
-  data[i] &= ~(3 << offset);
-  data[i] |= n << offset;
+  const size_t byte_index = index >> 2;        // 等价于 index * 2 / 8，但更高效
+  const size_t bit_offset = (index & 3) << 1;  // 等价于 (index * 2) % 8，但更高效
+  data[byte_index] &= ~(3 << bit_offset);
+  data[byte_index] |= n << bit_offset;
 }
 
 inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
@@ -27,18 +29,21 @@ inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
 class Quantizer {
 
 public:
-  explicit Quantizer(size_t groups) : dim_(groups) {}
+  explicit Quantizer(size_t groups) : dim_(groups) { assert(dim_ % 32 == 0); }
 
   void train(const float *data, size_t size) {
-    std::vector step_size_(dim_, std::vector<float>(4));
-    std::vector lower_bound_(dim_, std::vector<float>(4));
-    cid_.resize(size / dim_, std::vector<uint8_t>(dim_ / 4));
-    code_.resize(size / dim_, std::vector<uint8_t>(dim_ / 4));
+    std::vector<float> step_size_(dim_ * 4);
+    std::vector<float> lower_bound_(dim_ * 4);
+    cid_  = new uint8_t[size / 4];
+    code_ = new uint8_t[size / 4];
+
+    const size_t dim_div_4 = dim_ / 4;  // 预计算常用值
 
 #pragma omp parallel for
     for (size_t d = 0; d < dim_; d++) {
-      const auto data_freq_map = count_freq(data, size, d);
-      const auto bounds        = cluster(4, data_freq_map);
+      const auto   data_freq_map = count_freq(data, size, d);
+      const auto   bounds        = cluster(4, data_freq_map);
+      const size_t d_times_4     = d * 4;  // 预计算 d * 4
 
       for (size_t i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
@@ -56,11 +61,11 @@ public:
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
-        lower_bound_[d][i] = lower;
+        lower_bound_[d_times_4 + i] = lower;
         if (lower == upper) {
-          step_size_[d][i] = 1.0;
+          step_size_[d_times_4 + i] = 1.0;
         } else {
-          step_size_[d][i] = (upper - lower) / 3.0f;
+          step_size_[d_times_4 + i] = (upper - lower) / 3.0f;
         }
       }
 
@@ -70,47 +75,56 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        const float  x = std::clamp((data[i] - lower_bound_[d][c]) / step_size_[d][c] + 0.5f, 0.0f, 3.0f);
-        set(cid_[i / dim_].data(), i % dim_, c);
-        set(code_[i / dim_].data(), i % dim_, x);
+        const float  x =
+            std::clamp((data[i] - lower_bound_[d_times_4 + c]) / step_size_[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
+        const size_t base_index = (i / dim_) * dim_div_4;  // 预计算基础索引
+        set(&cid_[base_index], i % dim_, c);
+        set(&code_[base_index], i % dim_, x);
       }
     }
 
-    lower_bound_128.resize(dim_ / 4, std::vector(256, std::vector<float>(4)));
-    step_size_128.resize(dim_ / 4, std::vector(256, std::vector<float>(4)));
+    lower_bound_128 = new float[dim_ * 256];
+    step_size_128   = new float[dim_ * 256];
 
 #pragma omp parallel for
     for (size_t i = 0; i < dim_; i += 4) {
+      const size_t base_idx = (i / 4) * 1024;  // 预计算 (i / 4) * 256 * 4
       for (size_t j = 0; j < 256; j++) {
         auto [x0, x1, x2, x3] = get(j);
+        const size_t offset   = base_idx + j * 4;  // 预计算偏移量
 
-        lower_bound_128[i / 4][j][0] = lower_bound_[i + 0][x0];
-        lower_bound_128[i / 4][j][1] = lower_bound_[i + 1][x1];
-        lower_bound_128[i / 4][j][2] = lower_bound_[i + 2][x2];
-        lower_bound_128[i / 4][j][3] = lower_bound_[i + 3][x3];
+        lower_bound_128[offset + 0] = lower_bound_[(i + 0) * 4 + x0];
+        lower_bound_128[offset + 1] = lower_bound_[(i + 1) * 4 + x1];
+        lower_bound_128[offset + 2] = lower_bound_[(i + 2) * 4 + x2];
+        lower_bound_128[offset + 3] = lower_bound_[(i + 3) * 4 + x3];
 
-        step_size_128[i / 4][j][0] = step_size_[i + 0][x0];
-        step_size_128[i / 4][j][1] = step_size_[i + 1][x1];
-        step_size_128[i / 4][j][2] = step_size_[i + 2][x2];
-        step_size_128[i / 4][j][3] = step_size_[i + 3][x3];
+        step_size_128[offset + 0] = step_size_[(i + 0) * 4 + x0];
+        step_size_128[offset + 1] = step_size_[(i + 1) * 4 + x1];
+        step_size_128[offset + 2] = step_size_[(i + 2) * 4 + x2];
+        step_size_128[offset + 3] = step_size_[(i + 3) * 4 + x3];
       }
     }
   }
 
   float l2distance(const float *data, size_t offset) const {
-    float result = 0;
-    for (size_t i = 0; i < dim_; i += 4) {
-      auto cid_byte         = cid_[offset / dim_][i / 4];
-      auto [x0, x1, x2, x3] = get(code_[offset / dim_][i / 4]);
+    float        result      = 0;
+    const size_t base_offset = offset / 4;  // 预计算基础偏移
 
-      auto d0 = static_cast<float>(x0) * step_size_128[i / 4][cid_byte][0] + lower_bound_128[i / 4][cid_byte][0] -
-                data[i + 0];
-      auto d1 = static_cast<float>(x1) * step_size_128[i / 4][cid_byte][1] + lower_bound_128[i / 4][cid_byte][1] -
-                data[i + 1];
-      auto d2 = static_cast<float>(x2) * step_size_128[i / 4][cid_byte][2] + lower_bound_128[i / 4][cid_byte][2] -
-                data[i + 2];
-      auto d3 = static_cast<float>(x3) * step_size_128[i / 4][cid_byte][3] + lower_bound_128[i / 4][cid_byte][3] -
-                data[i + 3];
+    for (size_t i = 0; i < dim_; i += 4) {
+      const size_t idx_base = base_offset + (i / 4);
+      auto         cid_byte = cid_[idx_base];
+      auto [x0, x1, x2, x3] = get(code_[idx_base]);
+
+      const size_t lookup_base = i / 4 * 1024 + cid_byte * 4;  // 预计算查找基址
+
+      auto d0 =
+          static_cast<float>(x0) * step_size_128[lookup_base + 0] + lower_bound_128[lookup_base + 0] - data[i + 0];
+      auto d1 =
+          static_cast<float>(x1) * step_size_128[lookup_base + 1] + lower_bound_128[lookup_base + 1] - data[i + 1];
+      auto d2 =
+          static_cast<float>(x2) * step_size_128[lookup_base + 2] + lower_bound_128[lookup_base + 2] - data[i + 2];
+      auto d3 =
+          static_cast<float>(x3) * step_size_128[lookup_base + 3] + lower_bound_128[lookup_base + 3] - data[i + 3];
 
       result += d0 * d0 + d1 * d1 + d2 * d2 + d3 * d3;
     }
@@ -119,11 +133,11 @@ public:
   }
 
 private:
-  size_t                                       dim_ = 0;
-  std::vector<std::vector<std::vector<float>>> lower_bound_128;
-  std::vector<std::vector<std::vector<float>>> step_size_128;
-  std::vector<std::vector<uint8_t>>            cid_;
-  std::vector<std::vector<uint8_t>>            code_;
+  size_t   dim_ = 0;
+  float   *lower_bound_128;
+  float   *step_size_128;
+  uint8_t *cid_;
+  uint8_t *code_;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, const size_t group) const {
     std::vector<float> sorted_data;
