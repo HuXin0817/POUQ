@@ -11,71 +11,70 @@ class Clusterer {
 public:
   virtual ~Clusterer() = default;
 
-  virtual std::vector<std::pair<float, float>> operator()(size_t cluster_num,
+  virtual std::vector<std::pair<float, float>> operator()(size_t k,
       const std::vector<std::pair<float, size_t>>               &data_freq_map) = 0;
 };
 
 class KrangeClusterer final : public Clusterer {
-public:
-  std::vector<std::pair<float, float>> operator()(size_t cluster_num,
-      const std::vector<std::pair<float, size_t>>       &data_freq_map) override {
-    const size_t data_size = data_freq_map.size();
-    cluster_num            = std::min(data_size, cluster_num);
 
-    std::vector cum_sum_counts(data_size + 1, 0.0f);
-    for (size_t i = 1; i <= data_size; ++i) {
-      cum_sum_counts[i] = cum_sum_counts[i - 1] + static_cast<float>(data_freq_map[i - 1].second);
+  struct Task {
+    size_t j;
+    size_t left;
+    size_t right;
+    size_t opt_left;
+    size_t opt_right;
+
+    Task(const size_t j, const size_t left, const size_t right, const size_t opt_left, const size_t opt_right)
+        : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {}
+  };
+
+public:
+  std::vector<std::pair<float, float>> operator()(size_t k,
+      const std::vector<std::pair<float, size_t>>       &data_freq_map) override {
+    const size_t size = data_freq_map.size();
+    k                 = std::min(size, k);
+
+    std::vector sum_count(size + 1, 0.0f);
+    for (size_t i = 1; i <= size; ++i) {
+      sum_count[i] = sum_count[i - 1] + static_cast<float>(data_freq_map[i - 1].second);
     }
 
-    std::vector prev_dp(data_size + 1, std::numeric_limits<float>::infinity());
-    std::vector curr_dp(data_size + 1, std::numeric_limits<float>::infinity());
-    std::vector prev_indices(data_size + 1, std::vector<size_t>(cluster_num + 1, 0));
+    std::vector prev_dp(size + 1, std::numeric_limits<float>::infinity());
+    std::vector curr_dp(size + 1, std::numeric_limits<float>::infinity());
+    std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
     prev_dp[0] = 0.0f;
 
-    struct Task {
-      size_t current_cluster;
-      size_t left_index;
-      size_t right_index;
-      size_t opt_left;
-      size_t opt_right;
-    };
+    for (size_t j = 1; j <= k; ++j) {
+      std::vector<Task> tasks{{j, j, size, 0, size - 1}};
+      tasks.reserve(size);
 
-    for (size_t j = 1; j <= cluster_num; ++j) {
-      std::vector<Task> task_stack;
-      task_stack.reserve(data_size);
-      task_stack.push_back({j, j, data_size, 0, data_size - 1});
-
-      while (!task_stack.empty()) {
-        auto [curr_j, l, r, opt_l, opt_r] = task_stack.back();
-        task_stack.pop_back();
+      while (!tasks.empty()) {
+        auto [j, l, r, opt_l, opt_r] = tasks.back();
+        tasks.pop_back();
         if (l > r) {
           continue;
         }
 
-        const size_t mid_pos         = (l + r) / 2;
-        float        best_total_cost = std::numeric_limits<float>::infinity();
-        size_t       best_split_pos  = 0;
-
-        const size_t search_start = std::max(curr_j - 1, opt_l);
-        const size_t search_end   = std::min(mid_pos - 1, opt_r);
-
-        for (size_t m = search_start; m <= search_end; ++m) {
-          const float range_width  = data_freq_map[mid_pos - 1].first - data_freq_map[m].first;
-          const float point_count  = cum_sum_counts[mid_pos] - cum_sum_counts[m];
-          const float cluster_cost = range_width * range_width * point_count;
-          const float total_cost   = prev_dp[m] + cluster_cost;
-          if (total_cost < best_total_cost) {
-            best_total_cost = total_cost;
-            best_split_pos  = m;
+        const size_t mid       = (l + r) / 2;
+        const size_t start     = std::max(j - 1, opt_l);
+        const size_t end       = std::min(mid - 1, opt_r);
+        float        min_cost  = std::numeric_limits<float>::infinity();
+        size_t       split_pos = 0;
+        for (size_t m = start; m <= end; ++m) {
+          const float width = data_freq_map[mid - 1].first - data_freq_map[m].first;
+          const float count = sum_count[mid] - sum_count[m];
+          const float cost  = prev_dp[m] + width * width * count;
+          if (cost < min_cost) {
+            min_cost  = cost;
+            split_pos = m;
           }
         }
 
-        curr_dp[mid_pos]              = best_total_cost;
-        prev_indices[mid_pos][curr_j] = best_split_pos;
-
+        curr_dp[mid]     = min_cost;
+        prev_idx[mid][j] = split_pos;
         if (l < r) {
-          task_stack.push_back({curr_j, mid_pos + 1, r, best_split_pos, opt_r});
-          task_stack.push_back({curr_j, l, mid_pos - 1, opt_l, best_split_pos});
+          tasks.emplace_back(j, mid + 1, r, split_pos, opt_r);
+          tasks.emplace_back(j, l, mid - 1, opt_l, split_pos);
         }
       }
 
@@ -83,21 +82,19 @@ public:
       std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<float>::infinity());
     }
 
-    std::vector<size_t> split_positions;
-    size_t              current_pos = data_size, current_j = cluster_num;
-    while (current_j > 0) {
-      const size_t m = prev_indices[current_pos][current_j];
-      split_positions.push_back(m);
-      current_pos = m;
-      current_j--;
+    std::vector<size_t> split_pos(k);
+    size_t              curr_pos = size;
+    for (size_t j = k; j > 0; --j) {
+      const size_t m   = prev_idx[curr_pos][j];
+      split_pos[j - 1] = m;
+      curr_pos         = m;
     }
-    std::reverse(split_positions.begin(), split_positions.end());
 
-    std::vector<std::pair<float, float>> bounds(cluster_num);
-    for (size_t t = 0; t < cluster_num; ++t) {
-      const size_t start_index = split_positions[t];
-      const size_t end_index   = t < cluster_num - 1 ? split_positions[t + 1] - 1 : data_size - 1;
-      bounds[t]                = {data_freq_map[start_index].first, data_freq_map[end_index].first};
+    std::vector<std::pair<float, float>> bounds(k);
+    for (size_t t = 0; t < k; ++t) {
+      const size_t start = split_pos[t];
+      const size_t end   = t < k - 1 ? split_pos[t + 1] - 1 : size - 1;
+      bounds[t]          = {data_freq_map[start].first, data_freq_map[end].first};
     }
 
     return bounds;
