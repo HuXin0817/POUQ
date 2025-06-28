@@ -16,8 +16,7 @@ public:
     // size_        = size;
     step_size_   = new float[dim_ * (1 << 4)];
     lower_bound_ = new float[dim_ * (1 << 4)];
-    cid_         = new uint8_t[(4 * size + 7) / 8];
-    code_        = new uint8_t[(4 * size + 7) / 8];
+    codes_       = new uint8_t[size];
 
 #pragma omp parallel for
     for (size_t group = 0; group < dim_; group++) {
@@ -57,9 +56,9 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        set(cid_, i, c);
+        set(codes_, 2 * i, c);
         const float x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
-        set(code_, i, x);
+        set(codes_, 2 * i + 1, x);
       }
     }
   }
@@ -78,17 +77,17 @@ public:
   ~POSQ8() {
     delete[] lower_bound_;
     delete[] step_size_;
-    delete[] cid_;
-    delete[] code_;
+    delete[] codes_;
   }
 
 private:
   // size_t   size_        = 0;
-  size_t   dim_         = 0;
-  float   *lower_bound_ = nullptr;
-  float   *step_size_   = nullptr;
-  uint8_t *cid_         = nullptr;
-  uint8_t *code_        = nullptr;
+  size_t dim_         = 0;
+  float *lower_bound_ = nullptr;
+  float *step_size_   = nullptr;
+  // uint8_t *cid_         = nullptr;
+  // uint8_t *code_        = nullptr;
+  uint8_t *codes_ = nullptr;
 
   static inline KrangeClusterer clusterer;
   static inline PSOptimizer     optimizer;
@@ -123,8 +122,8 @@ private:
 
   float at(size_t i) const {
     const size_t group  = i % dim_;
-    const size_t offset = get(cid_, i) + group * (1 << 4);
-    const size_t x      = get(code_, i);
+    const size_t offset = get(codes_, 2 * i) + group * (1 << 4);
+    const size_t x      = get(codes_, 2 * i + 1);
     return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
   }
 
