@@ -20,7 +20,6 @@ print(f"faiss OpenMP threads: {faiss.omp_get_max_threads()}")
 
 import numpy as np
 import posq
-
 from util.io import fvecs_read
 
 
@@ -109,7 +108,7 @@ def calculate_memory_usage(index, data, index_name):
 
 
 def benchmark_index(
-        index, queries, data, gt_indices, gt_distances, k, index_name, search_param=None
+    index, queries, data, gt_indices, gt_distances, k, index_name, search_param=None
 ):
     """对索引进行基准测试，包括召回率、距离比和内存占用评估"""
     param_str = f" (param={search_param})" if search_param is not None else ""
@@ -131,20 +130,28 @@ def benchmark_index(
     for i in range(len(queries)):
         if index_name == "IVFPOSQ":
             ret = index.search(queries[i].astype("float32"), k, search_param)
-            all_results.append(ret)
-
-    # QPS测试
-    start_time = time.time()
-    # 为保证公平性，所有索引都使用单个查询向量的方式
-    for i in range(len(queries)):
-        if index_name == "IVFPOSQ":
-            ret = index.search(queries[i : i + 1].astype("float32"), k, search_param)
+            result = []
+            distances = []
+            for r, d in ret:
+                result.append(r)
+                distances.append(d)
+            all_results.append(result)
+            all_distances.append(distances)
         else:
             distances, result_indices = index.search(
                 queries[i : i + 1].astype("float32"), k
             )
             all_results.append(result_indices[0])  # 取出第一个结果
             all_distances.append(distances[0])  # 取出第一个距离结果
+
+    # QPS测试
+    start_time = time.time()
+    # 为保证公平性，所有索引都使用单个查询向量的方式
+    for i in range(len(queries)):
+        if index_name == "IVFPOSQ":
+            index.search(queries[i : i + 1].astype("float32"), k, search_param)
+        else:
+            index.search(queries[i : i + 1].astype("float32"), k)
     end_time = time.time()
 
     if index_name == "IVFPOSQ":
