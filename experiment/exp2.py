@@ -68,7 +68,7 @@ def benchmark_index(index, queries, gt_indices, k, index_name, search_param=None
     all_results = []
     for i in range(len(queries)):
         if index_name == "IVFPOSQ":
-            result_indices = index.search(queries[i].astype("float32"), k, search_param)
+            _, result_indices = index.search(queries[i].astype("float32"), k, search_param)
             all_results.append(result_indices)
         else:
             _, result_indices = index.search(queries[i : i + 1].astype("float32"), k)

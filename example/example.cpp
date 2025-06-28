@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<size_t>> search_results(Nq);
     for (size_t i = 0; i < Nq; i++) {
       const auto q      = query_data.data() + i * dim;
-      search_results[i] = index.search(q, topk, nprobe);
+      search_results[i] = index.search(q, topk, nprobe).second;
     }
 
     // 结束计时

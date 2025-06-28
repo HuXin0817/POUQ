@@ -39,7 +39,7 @@ public:
     std::cout << "finish training" << std::endl;
   }
 
-  std::vector<size_t> search(const float *query, size_t k, size_t nprobe) const {
+  std::pair<std::vector<float>, std::vector<size_t>> search(const float *query, size_t k, size_t nprobe) const {
     auto cmp = [](const std::pair<size_t, float> &p1, const std::pair<size_t, float> &p2) {
       return p1.second > p2.second;
     };
@@ -82,14 +82,17 @@ public:
     std::make_heap(sum_result.begin(), sum_result.end(), cmp);
 
     std::vector<size_t> indices;
+    std::vector<float>  distances;
     indices.reserve(k);
+    distances.reserve(k);
     while (indices.size() < k && !sum_result.empty()) {
       indices.emplace_back(sum_result.front().first);
+      distances.emplace_back(sum_result.front().second);
       std::pop_heap(sum_result.begin(), sum_result.end(), cmp);
       sum_result.pop_back();
     }
 
-    return indices;
+    return {distances, indices};
   }
 
 private:

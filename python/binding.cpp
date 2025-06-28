@@ -64,7 +64,8 @@ PYBIND11_MODULE(posq, m) {
       .def(
           "search",
           [](IvfIndex &self, const py::array_t<float> &query, size_t k, size_t nprobe) {
-            return self.search(query.data(), k, nprobe);
+            auto [fst, snd] = self.search(query.data(), k, nprobe);
+            return py::make_tuple(fst, snd);
           },
           py::arg("query"),
           py::arg("k"),
