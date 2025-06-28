@@ -47,7 +47,7 @@ public:
     this->code_        = new uint8_t[(this->q_bit_ * this->size_ + 7) / 8];
     const auto div     = static_cast<float>((1 << this->q_bit_) - 1);
 
-#pragma omp parallel for
+#pragma omp parallel for default(none) shared(data, div)
     for (size_t group = 0; group < this->groups_; group++) {
       const auto data_freq_map = this->count_freq(data, group);
       const auto bounds        = clusterer(1 << this->c_bit_, data_freq_map);
