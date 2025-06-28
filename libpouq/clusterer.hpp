@@ -17,7 +17,8 @@ struct Task {
       : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {}
 };
 
-std::vector<std::pair<float, float>> clustering(size_t k, const std::vector<std::pair<float, size_t>> &data_freq_map) {
+inline std::vector<std::pair<float, float>> clustering(size_t k,
+    const std::vector<std::pair<float, size_t>>              &data_freq_map) {
   const size_t size = data_freq_map.size();
   k                 = std::min(size, k);
 

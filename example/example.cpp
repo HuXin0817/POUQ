@@ -5,7 +5,7 @@
 #include <iostream>
 #include <random>
 
-constexpr size_t N   = 1e5;
+constexpr size_t N   = 5e4;
 constexpr size_t Dim = 256;
 
 float compute_mse(const pouq::POUQ8bit &quant, const std::vector<float> &data) {
@@ -21,6 +21,7 @@ int main() {
   std::uniform_real_distribution dis(0.0f, 1.0f);
 
   std::vector<float> data(N * Dim);
+#pragma omp parallel for
   for (auto &d : data) {
     d = dis(gen);
   }

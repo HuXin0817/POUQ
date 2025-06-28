@@ -34,7 +34,7 @@ struct Particle {
         min_loss(std::numeric_limits<float>::max()) {}
 };
 
-float loss(const float                                           div,
+inline float loss(const float                                    div,
     float                                                        cluster_lower_bound,
     float                                                        step_size_value,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_begin,
@@ -61,7 +61,7 @@ float loss(const float                                           div,
   return total_loss * step_size_value * step_size_value;
 }
 
-std::pair<float, float> optimizing(float                         div,
+inline std::pair<float, float> optimizing(float                  div,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
   auto        init_lower_bound  = data_start->first;
