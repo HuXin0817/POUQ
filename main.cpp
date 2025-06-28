@@ -1,14 +1,11 @@
 #include "quantizer.hpp"
 
 #include <chrono>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <random>
 
-constexpr size_t N   = 5e4;
-constexpr size_t Dim = 256;
-
-float compute_mse(const pouq::Quantizer &quant, const std::vector<float> &data) {
+float compute_mse(size_t Dim, const pouq::Quantizer &quant, const std::vector<float> &data) {
   float err = 0;
   for (size_t i = 0; i < data.size(); i += Dim) {
     err += quant.l2distance(data.data() + i, i);
@@ -16,15 +13,50 @@ float compute_mse(const pouq::Quantizer &quant, const std::vector<float> &data) 
   return err / static_cast<float>(data.size());
 }
 
-int main() {
-  std::mt19937                   gen(42);
-  std::uniform_real_distribution dis(0.0f, 1.0f);
-
-  std::vector<float> data(N * Dim);
-#pragma omp parallel for
-  for (auto &d : data) {
-    d = dis(gen);
+std::pair<size_t, std::vector<float>> read_fvecs(const std::string &path) {
+  std::ifstream file(path, std::ios::binary);
+  if (!file.is_open()) {
+    throw std::runtime_error("Cannot open file: " + path);
   }
+
+  std::vector<float> data;
+  size_t             dim = 0;
+
+  int first_dim;
+  if (file.read(reinterpret_cast<char *>(&first_dim), sizeof(int))) {
+    dim = static_cast<size_t>(first_dim);
+
+    std::vector<float> first_vector(dim);
+    if (!file.read(reinterpret_cast<char *>(first_vector.data()), dim * sizeof(float))) {
+      throw std::runtime_error("Error reading first vector data");
+    }
+
+    data.insert(data.end(), first_vector.begin(), first_vector.end());
+
+    int current_dim;
+    while (file.read(reinterpret_cast<char *>(&current_dim), sizeof(int))) {
+      if (static_cast<size_t>(current_dim) != dim) {
+        throw std::runtime_error("Inconsistent vector dimensions in file");
+      }
+
+      std::vector<float> vector(dim);
+      if (!file.read(reinterpret_cast<char *>(vector.data()), dim * sizeof(float))) {
+        throw std::runtime_error("Error reading vector data");
+      }
+
+      data.insert(data.end(), vector.begin(), vector.end());
+    }
+  } else {
+    throw std::runtime_error("Empty file or error reading dimension");
+  }
+
+  file.close();
+  return {dim, data};
+}
+
+int main(int argc, char *argv[]) {
+  const std::string dataset = argv[1];
+  auto [Dim, data]          = read_fvecs("../data/" + dataset + "/" + dataset + "_base.fvecs");
 
   pouq::Quantizer quantizer(Dim);
 
@@ -37,9 +69,10 @@ int main() {
   }
   {
     const auto start_time = std::chrono::high_resolution_clock::now();
-    std::cout << std::left << std::setw(18) << "Error:" << compute_mse(quantizer, data) << std::endl;
+    std::cout << std::left << std::setw(18) << "Error:" << compute_mse(Dim, quantizer, data) << std::endl;
     const auto end_time = std::chrono::high_resolution_clock::now();
     const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
-    std::cout << std::left << std::setw(18) << "QPS:" << N / duration.count() << " vec/s" << std::endl;
+    std::cout << std::left << std::setw(18) << "QPS:" << static_cast<float>(data.size()) / duration.count() << " vec/s"
+              << std::endl;
   }
 }
