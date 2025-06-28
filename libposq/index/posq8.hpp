@@ -122,10 +122,10 @@ private:
   }
 
   float at(size_t i) const {
-    const auto [b1, b2] = get_pair(codes_, 2 * i);
+    const auto   v      = codes_[i];
     const size_t group  = i % dim_;
-    const size_t offset = 2 * (b1 + group * (1 << 4));
-    return codebook_[offset] + codebook_[offset + 1] * static_cast<float>(b2);
+    const size_t offset = 2 * ((v & 0xF) + group * (1 << 4));
+    return codebook_[offset] + codebook_[offset + 1] * static_cast<float>(v >> 4 & 0xF);
   }
 
   void set(uint8_t *data, size_t index, size_t n) {
@@ -142,16 +142,16 @@ private:
     }
   }
 
-  std::pair<size_t, size_t> get_pair(const uint8_t *data, size_t index) const {
-    const size_t pos = index * 4;
-    const size_t byte_idx = pos / 8;
-    const size_t bit_offset = pos % 8;
-    const uint8_t byte_val = data[byte_idx];
-    
-    const size_t b1 = (byte_val >> bit_offset) & 0xF;
-    const size_t b2 = (byte_val >> (bit_offset + 4)) & 0xF;
-    return {b1, b2};
-  }
+  // std::pair<size_t, size_t> get_pair(const uint8_t *data, size_t index) const {
+  //   const size_t pos = index * 4;
+  //   const size_t byte_idx = pos / 8;
+  //   const size_t bit_offset = pos % 8;
+  //   const uint8_t byte_val = data[byte_idx];
+  //
+  //   const size_t b1 = (byte_val >> bit_offset) & 0xF;
+  //   const size_t b2 = (byte_val >> (bit_offset + 4)) & 0xF;
+  //   return {b1, b2};
+  // }
 };
 
 }  // namespace posq
