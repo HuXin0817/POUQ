@@ -1,4 +1,10 @@
+#include "../libpouq/bitmap.hpp"
+#include "../libpouq/clusterer.hpp"
 #include "../libpouq/index/ivf.hpp"
+#include "../libpouq/optimizer.hpp"
+#include "../libpouq/quantizer.hpp"
+
+#include <omp.h>
 
 #include <chrono>
 #include <fstream>
@@ -8,20 +14,21 @@
 #include <unordered_set>
 
 template <typename Index>
-void run(size_t        dim,
-    std::vector<float> data,
-    size_t             Nq,
-    std::vector<float> query_data,
-    const std::string &method_name,
-    std::ofstream     &csv_file,
-    const std::vector<std::vector<size_t>>& ground_truth) {
-  Index index(1024, dim);
+void run(size_t                             dim,
+    std::vector<float>                      data,
+    size_t                                  Nq,
+    std::vector<float>                      query_data,
+    const std::string                      &method_name,
+    std::ofstream                          &csv_file,
+    const std::vector<std::vector<size_t>> &ground_truth,
+    const std::vector<std::vector<float>>  &ground_truth_distances) {
+  Index index(256, dim);
   index.train(data.data(), data.size());
 
   constexpr auto topk = 10;
 
   // 测试不同的nprobe值
-  std::vector<size_t> nprobe_values = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024};
+  std::vector<size_t> nprobe_values = {1, 2, 4, 8, 16, 32, 64, 128, 256};
 
   std::cout << "Testing " << method_name << " with different nprobe values..." << std::endl;
 
@@ -58,10 +65,34 @@ void run(size_t        dim,
     }
     float avg_recall = sum_recall / Nq;
 
+    // 计算Average Distance Ratio
+    float  sum_distance_ratio = 0.0f;
+    size_t valid_ratio_count  = 0;
+    for (size_t i = 0; i < Nq; i++) {
+      std::sort(search_results[i].begin(),
+          search_results[i].begin() + std::min(search_results[i].size(), static_cast<size_t>(topk)),
+          [](const std::pair<size_t, float> &p1, const std::pair<size_t, float> &p2) { return p1.second < p2.second; });
+
+      for (size_t j = 0; j < std::min(search_results[i].size(), static_cast<size_t>(topk)); j++) {
+        // 直接使用第j个位置的距离进行比较
+        float search_distance = search_results[i][j].second;
+        float true_distance   = ground_truth_distances[i][j];  // 真实的第j个最近距离
+
+        if (true_distance > 0) {                          // 避免除零
+          float ratio = true_distance / search_distance;  // 真实距离 / 搜索距离
+          sum_distance_ratio += ratio;
+          valid_ratio_count++;
+        }
+      }
+    }
+    float avg_distance_ratio = (valid_ratio_count > 0) ? (sum_distance_ratio / valid_ratio_count) : 0.0f;
+
     // 写入CSV文件并同时打印
-    std::string csv_line = method_name + "," + std::to_string(qps).substr(0, std::to_string(qps).find('.') + 3) + "," +
-                           std::to_string(avg_recall).substr(0, std::to_string(avg_recall).find('.') + 5) + "," +
-                           std::to_string(nprobe);
+    std::string csv_line =
+        method_name + "," + std::to_string(qps).substr(0, std::to_string(qps).find('.') + 3) + "," +
+        std::to_string(avg_recall).substr(0, std::to_string(avg_recall).find('.') + 5) + "," +
+        std::to_string(avg_distance_ratio).substr(0, std::to_string(avg_distance_ratio).find('.') + 5) + "," +
+        std::to_string(nprobe);
     csv_file << csv_line << std::endl;
     std::cout << csv_line << std::endl;
   }
@@ -70,11 +101,16 @@ void run(size_t        dim,
 int main(int argc, char *argv[]) {
   const std::string dataset_name = argv[1];
 
-  auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
-  auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
-  // data                 = std::vector(data.begin(), data.begin() + dim * 10000);
-  // query_data           = std::vector(query_data.begin(), query_data.begin() + dim * 100);
-  const auto Nq        = query_data.size() / dim;
+  auto  d1         = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
+  auto &data       = d1.first;
+  auto  dim        = d1.second;
+  auto  query_data = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs").first;
+
+  // auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
+  // auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
+  data          = std::vector(data.begin(), data.begin() + dim * 10000);
+  query_data    = std::vector(query_data.begin(), query_data.begin() + dim * 100);
+  const auto Nq = query_data.size() / dim;
 
   std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
   std::cout << "Query shape: (" << Nq << ", " << dim << ")" << std::endl;
@@ -83,6 +119,7 @@ int main(int argc, char *argv[]) {
   constexpr auto topk = 10;
   std::cout << "Computing ground truth using brute force search..." << std::endl;
   std::vector<std::vector<size_t>> ground_truth(Nq);
+  std::vector<std::vector<float>>  ground_truth_distances(Nq);
   auto cmp = [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) { return a.second > b.second; };
 
 #pragma omp parallel for
@@ -94,6 +131,7 @@ int main(int argc, char *argv[]) {
     }
     for (size_t k = 0; k < topk; k++) {
       ground_truth[i].push_back(pq.top().first);
+      ground_truth_distances[i].push_back(pq.top().second);
       pq.pop();
     }
   }
@@ -108,16 +146,16 @@ int main(int argc, char *argv[]) {
   }
 
   // 写入CSV表头并同时打印
-  std::string header = "method,qps,recall,nprob";
+  std::string header = "method,qps,recall,avg_distance_ratio,nprob";
   csv_file << header << std::endl;
   std::cout << "Writing CSV header: " << header << std::endl;
 
   // 运行不同的方法并保存结果
-  run<IVF>(dim, data, Nq, query_data, "IVF", csv_file, ground_truth);
-  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file, ground_truth);
-  run<IVFSQ8>(dim, data, Nq, query_data, "IVF-SQ8", csv_file, ground_truth);
-  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth);
-  run<IVFPOUQ8>(dim, data, Nq, query_data, "IVF-POUQ8", csv_file, ground_truth);
+  run<IVF>(dim, data, Nq, query_data, "IVF", csv_file, ground_truth, ground_truth_distances);
+  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file, ground_truth, ground_truth_distances);
+  run<IVFSQ8>(dim, data, Nq, query_data, "IVF-SQ8", csv_file, ground_truth, ground_truth_distances);
+  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth, ground_truth_distances);
+  run<IVFPOUQ8>(dim, data, Nq, query_data, "IVF-POUQ8", csv_file, ground_truth, ground_truth_distances);
 
   csv_file.close();
   std::cout << "Results saved to " << csv_filename << std::endl;
