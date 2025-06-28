@@ -35,7 +35,7 @@ For examples on real-world datasets, please refer to `./reproduce`
 import sys
 
 import numpy as np
-from pouq import POUQuantizer4_4, ScaledQuantizer8, compute_mse
+from pouq import POUQuantizer, ScaledQuantizer, compute_mse
 
 
 # read_fvecs sourced from https://github.com/gaoj0017/RaBitQ/blob/main/data/utils/io.py
@@ -70,8 +70,8 @@ def print_err(method: str, quantizer):
     print(f"Method: {method}, Error: {compute_mse(data, quantizer)}")
 
 
-print_err("SQ", ScaledQuantizer8(Dim))
-print_err("POUQ", POUQuantizer4_4(Dim))
+print_err("SQ", ScaledQuantizer(q_bit=8, groups=Dim))
+print_err("POUQ", POUQuantizer(c_bit=4, q_bit=4, groups=Dim))
 ```
 
 ## Reproduce

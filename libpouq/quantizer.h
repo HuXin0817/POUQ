@@ -19,31 +19,25 @@ public:
   virtual size_t size() const = 0;
 };
 
-template <size_t c_bit, size_t q_bit, typename Clusterer = KrangeClusterer, typename Optimizer = PSOptimizer>
+template <typename Clusterer = KrangeClusterer, typename Optimizer = PSOptimizer>
 class POUQuantizer : public Quantizer {
-  static_assert(c_bit <= 16);
-  static_assert(1 <= q_bit && q_bit <= 16);
-
-  static constexpr auto   div           = static_cast<float>((static_cast<size_t>(1) << q_bit) - 1);
-  static constexpr size_t cluster_count = c_bit == 0 ? 1 : static_cast<size_t>(1) << c_bit;
-
 public:
-  explicit POUQuantizer() = default;
+  explicit POUQuantizer(const size_t c_bit, const size_t q_bit, const size_t groups = 1)
+      : c_bit_(c_bit), q_bit_(q_bit), groups_(groups) {}
 
-  explicit POUQuantizer(const size_t groups) : groups_(groups) {}
-
-  void train(const float *data, size_t size) override {
+  void train(const float *data, const size_t size) override {
     this->size_        = size;
-    this->step_size_   = new float[this->groups_ * cluster_count];
-    this->lower_bound_ = new float[this->groups_ * cluster_count];
-    this->cid_         = new uint8_t[(c_bit * this->size_ + 7) / 8];
-    this->code_        = new uint8_t[(q_bit * this->size_ + 7) / 8];
+    this->step_size_   = new float[this->groups_ * (1 << this->c_bit_)];
+    this->lower_bound_ = new float[this->groups_ * (1 << this->c_bit_)];
+    this->cid_         = new uint8_t[(this->c_bit_ * this->size_ + 7) / 8];
+    this->code_        = new uint8_t[(this->q_bit_ * this->size_ + 7) / 8];
+    const auto div     = static_cast<float>((1 << this->q_bit_) - 1);
 
 #pragma omp parallel for
     for (size_t group = 0; group < this->groups_; group++) {
       const auto data_freq_map = this->count_freq(data, group);
-      const auto bounds        = Clusterer()(cluster_count, data_freq_map);
-      const auto offset        = group * cluster_count;
+      const auto bounds        = Clusterer()(1 << this->c_bit_, data_freq_map);
+      const auto offset        = group * (1 << this->c_bit_);
 
       for (size_t i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
@@ -77,18 +71,18 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        bitmap::set<c_bit>(this->cid_, i, c);
+        bitmap::set(this->cid_, i, c, this->c_bit_);
         const float x =
             std::clamp((d - this->lower_bound_[offset + c]) / this->step_size_[offset + c] + 0.5f, 0.0f, div);
-        bitmap::set<q_bit>(this->code_, i, static_cast<size_t>(x));
+        bitmap::set(this->code_, i, static_cast<size_t>(x), this->q_bit_);
       }
     }
   }
 
   float operator[](size_t i) const override {
     const size_t group  = i % this->groups_;
-    const size_t offset = bitmap::get<c_bit>(this->cid_, i) + group * cluster_count;
-    const size_t x      = bitmap::get<q_bit>(this->code_, i);
+    const size_t offset = bitmap::get(this->cid_, i, this->c_bit_) + group * (1 << this->c_bit_);
+    const size_t x      = bitmap::get(this->code_, i, this->q_bit_);
     return this->lower_bound_[offset] + this->step_size_[offset] * static_cast<float>(x);
   }
 
@@ -102,8 +96,10 @@ public:
   }
 
 private:
+  size_t   c_bit_       = 0;
+  size_t   q_bit_       = 0;
   size_t   size_        = 0;
-  size_t   groups_      = 1;
+  size_t   groups_      = 0;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
   uint8_t *cid_         = nullptr;
@@ -117,30 +113,28 @@ private:
     }
     std::sort(sorted_data.begin(), sorted_data.end());
 
-    float  curr_value = sorted_data[0];
-    size_t count      = 1;
-
+    float                                 current_value = sorted_data[0];
+    size_t                                count         = 1;
     std::vector<std::pair<float, size_t>> data_freq_map;
     data_freq_map.reserve(sorted_data.size());
     for (size_t i = 1; i < sorted_data.size(); i++) {
-      if (sorted_data[i] == curr_value) {
+      if (sorted_data[i] == current_value) {
         count++;
       } else {
-        data_freq_map.emplace_back(curr_value, count);
-        curr_value = sorted_data[i];
-        count      = 1;
+        data_freq_map.emplace_back(current_value, count);
+        current_value = sorted_data[i];
+        count         = 1;
       }
     }
 
-    data_freq_map.emplace_back(curr_value, count);
+    data_freq_map.emplace_back(current_value, count);
     return data_freq_map;
   }
 };
 
-template <size_t q_bit>
-class ScaledQuantizer : public POUQuantizer<0, q_bit, Clusterer, Optimizer> {
+class ScaledQuantizer : public POUQuantizer<Clusterer, Optimizer> {
 public:
-  explicit ScaledQuantizer(const size_t groups = 1) : POUQuantizer<0, q_bit, Clusterer, Optimizer>(groups) {}
+  explicit ScaledQuantizer(size_t q_bit, size_t groups = 1) : POUQuantizer(0, q_bit, groups) {}
 };
 
 }  // namespace pouq

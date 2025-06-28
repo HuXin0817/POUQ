@@ -6,8 +6,6 @@
 
 constexpr size_t N = 1e6;
 
-using Quantizer = pouq::POUQuantizer<4, 4>;
-
 template <typename DataType>
 void print_vector(const char *prefix, const DataType &data) {
   std::cout << prefix << "[";
@@ -28,17 +26,15 @@ int main() {
   std::mt19937                   gen(rd());
   std::uniform_real_distribution dis(0.0f, 256.0f);
 
-  auto *data = new float[N];
-  for (size_t i = 0; i < N; ++i) {
-    data[i] = dis(gen);
+  std::vector<float> data(N);
+  for (auto &d : data) {
+    d = dis(gen);
   }
 
-  Quantizer quantizer(256);
-  quantizer.train(data, N);
+  pouq::POUQuantizer quantizer(4, 4, 256);
+  quantizer.train(data.data(), N);
   std::cout << "Error: " << compute_mse(data, quantizer, N) << std::endl;
 
   print_vector("Origin Vector:    ", data);
   print_vector("Quantized Vector: ", quantizer);
-
-  delete[] data;
 }
