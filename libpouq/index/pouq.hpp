@@ -64,42 +64,25 @@ public:
   float l2distance(const float *data, size_t data_index) const {
     float result = 0.0f;
     for (size_t i = 0; i < dim_; i++) {
-      // 手动内连 operator[] 的实现
-      const size_t index = i + data_index;
-      const size_t group = index % dim_;
-
-      // 使用简化后的函数一次性获取两个值
-      const auto [offset, x]       = get_pair(codes_, index * 2);
+      const size_t index          = i + data_index;
+      const size_t group          = index % dim_;
+      const size_t pos            = index * 4;
+      const size_t byte_pos       = pos / 8;
+      const size_t is_high_nibble = i & 1;
+      size_t       combined;
+      if (is_high_nibble) {
+        combined = (codes_[byte_pos] >> 4) & 0xF;
+      } else {
+        combined = codes_[byte_pos] & 0xF;
+      }
+      const size_t offset          = combined & 0x3;
+      const size_t x               = (combined >> 2) & 0x3;
       const size_t final_offset    = offset + group * (1 << 2);
       const float  quantized_value = lower_bound_[final_offset] + step_size_[final_offset] * static_cast<float>(x);
-
-      float dif = data[i] - quantized_value;
+      float        dif             = data[i] - quantized_value;
       result += dif * dif;
     }
     return result;
-  }
-
-  // 优化的函数：直接按4位边界读取
-  // 简化的函数：利用半字节对齐特性
-  inline std::pair<size_t, size_t> get_pair(const uint8_t *data, size_t index) const {
-    const size_t pos            = index * 2;  // index对应i*2的位置
-    const size_t byte_pos       = pos / 8;
-    const size_t is_high_nibble = (pos % 8) / 4;  // 0表示低半字节(0-3位)，1表示高半字节(4-7位)
-
-    size_t combined;
-    if (is_high_nibble) {
-      // 读取高半字节(4-7位)
-      combined = (data[byte_pos] >> 4) & 0xF;
-    } else {
-      // 读取低半字节(0-3位)
-      combined = data[byte_pos] & 0xF;
-    }
-
-    // 分离出两个2位值
-    const size_t first  = combined & 0x3;         // 低2位：i*2对应的值
-    const size_t second = (combined >> 2) & 0x3;  // 高2位：i*2+1对应的值
-
-    return {first, second};
   }
 
   size_t size() const { return size_; }
