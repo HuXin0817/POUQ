@@ -39,8 +39,8 @@ public:
 
     combined_data_ = new std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>[size / 4];
 
-    uint8_t *temp_cid  = new uint8_t[size / 4];
-    uint8_t *temp_code = new uint8_t[size / 4];
+    std::vector<uint8_t> temp_cid(size / 4);
+    std::vector<uint8_t> temp_code(size / 4);
 
     const size_t dim_div_4 = dim_ / 4;
 
@@ -92,9 +92,6 @@ public:
       combined_data_[i / 2] = std::make_tuple(temp_cid[i], temp_cid[i + 1], temp_code[i], temp_code[i + 1]);
     }
 
-    delete[] temp_cid;
-    delete[] temp_code;
-
     bounds_data_ = new std::pair<__m128, __m128>[dim_ / 4 * 256];
 
 #pragma omp parallel for
@@ -122,8 +119,8 @@ public:
     __m256       sum8        = _mm256_setzero_ps();
 
     for (size_t i = 0; i < dim_; i += 8) {
-      const size_t group_idx1                                   = i / 4;
-      const size_t combined_idx                                 = (base_offset + group_idx1) / 2;
+      const size_t group_idx1   = i / 4;
+      const size_t combined_idx = (base_offset + group_idx1) / 2;
 
       const auto [cid_byte1, cid_byte2, code_byte1, code_byte2] = combined_data_[combined_idx];
 
