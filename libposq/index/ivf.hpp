@@ -18,11 +18,13 @@ class IvfIndex {
   };
 
 public:
-  IvfIndex(size_t nlist, size_t dim) : nlist_(nlist), dim_(dim), quantizer_(dim_) {
+  IvfIndex(size_t nlist, size_t dim) : candidate_centroids(nlist), nlist_(nlist), dim_(dim), quantizer_(dim_) {
     centroids_.resize(nlist_);
     for (auto &centroid : centroids_) {
       centroid.centroid.resize(dim_);
     }
+
+    sum_result.reserve(1024 * 1024);
   }
 
   void train(const float *data, size_t size) {
@@ -47,29 +49,19 @@ public:
     return p1.second > p2.second;
   }
 
-  std::vector<std::pair<size_t, float>> search(const float *query, size_t k, size_t nprobe) const {
+  std::vector<std::pair<size_t, float>> search(const float *query, size_t k, size_t nprobe) {
     nprobe = std::min(nprobe, nlist_);
-    std::vector<size_t> search_centroid_idx(nprobe);
-    {
-      std::vector<std::pair<size_t, float>> candidate_centroids(nlist_);
 #pragma omp parallel for
-      for (size_t i = 0; i < nlist_; ++i) {
-        candidate_centroids[i] = {i, l2distance(centroids_[i].centroid, query, dim_)};
-      }
-
-      std::make_heap(candidate_centroids.begin(), candidate_centroids.end(), req);
-      for (size_t i = 0; i < nprobe; i++) {
-        search_centroid_idx[i] = candidate_centroids.front().first;
-        std::pop_heap(candidate_centroids.begin(), candidate_centroids.end(), req);
-        candidate_centroids.pop_back();
-      }
+    for (size_t i = 0; i < nlist_; ++i) {
+      candidate_centroids[i] = {i, l2distance(centroids_[i].centroid, query, dim_)};
     }
 
-    std::vector<std::pair<size_t, float>> sum_result;
-
+    std::nth_element(
+        candidate_centroids.begin(), candidate_centroids.begin() + nprobe - 1, candidate_centroids.end(), leq);
+    std::vector<std::pair<size_t, float>>().swap(sum_result);
 #pragma omp parallel for
     for (size_t i = 0; i < nprobe; i++) {
-      const auto                            centroid_idx_ = search_centroid_idx[i];
+      const auto                            centroid_idx_ = candidate_centroids[i].first;
       std::vector<std::pair<size_t, float>> results;
 
       const auto &vector_indices = centroids_[centroid_idx_].indices;
@@ -97,6 +89,9 @@ private:
   size_t                   dim_;
   std::vector<ClusterNode> centroids_;
   posq::POSQ8              quantizer_;
+
+  std::vector<std::pair<size_t, float>> sum_result;
+  std::vector<std::pair<size_t, float>> candidate_centroids;
 
   // K-means++聚类算法实现（并行版本）
   void kmeans_clustering(const float *data, size_t num_samples) {

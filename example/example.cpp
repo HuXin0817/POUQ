@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 
   auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
   auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
-  data                 = std::vector(data.begin(), data.begin() + dim * 50000);
+  data                 = std::vector(data.begin(), data.begin() + dim * 100000);
   query_data           = std::vector(query_data.begin(), query_data.begin() + dim * 100);
   auto Nq              = query_data.size() / dim;
 

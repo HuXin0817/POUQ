@@ -210,7 +210,7 @@ if __name__ == "__main__":
     query_data = fvecs_read(f"../data/{dataset_name}/{dataset_name}_query.fvecs")
 
     # 为了快速测试，使用较小的数据集
-    data = data[:10000]
+    data = data[:100000]
     query_data = query_data[:100]
 
     print(f"Data shape: {data.shape}")
@@ -224,10 +224,10 @@ if __name__ == "__main__":
     # 准备结果存储
     results = []
 
-    # 2. 测试Faiss IndexIVFSQ - 不同nprobe参数
+    # 2. 测试Faiss IndexIVFSQ - 8个不同nprobe参数
     print("\n=== Testing Faiss IndexIVFSQ with different nprobe values ===")
     try:
-        nlist = 100
+        nlist = 1024  # 修改为1024
         # Use ScalarQuantizer type instead of separate m and nbits
         qtype = faiss.ScalarQuantizer.QT_8bit  # 8-bit scalar quantization
 
@@ -238,8 +238,8 @@ if __name__ == "__main__":
         index_ivfsq.train(data.astype("float32"))
         index_ivfsq.add(data.astype("float32"))
 
-        # 测试不同的nprobe值
-        nprobe_values = [5, 10, 20, 50]
+        # 测试8个不同的nprobe值
+        nprobe_values = [1, 5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_ivfsq,
@@ -265,14 +265,15 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Faiss IVFSQ test failed: {e}")
 
-    # 1. 测试POSQ IVF索引 - 不同nprobe参数
+    # 1. 测试POSQ IVF索引 - 8个不同nprobe参数
     print("\n=== Testing POSQ IVF Index with different nprobe values ===")
     try:
-        posq_index = posq.IvfIndex(nlist=100, dim=data.shape[1])
+        nlist = 1024  # 修改为1024
+        posq_index = posq.IvfIndex(nlist=nlist, dim=data.shape[1])
         posq_index.train(data.astype("float32"))
 
-        # 测试不同的nprobe值（对应POSQ的搜索参数）
-        nprobe_values = [5, 10, 20, 50]
+        # 测试8个不同的nprobe值（对应POSQ的搜索参数）
+        nprobe_values = [1, 5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 posq_index,
@@ -298,15 +299,15 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"POSQ IVF test failed: {e}")
 
-    # 3. 测试Faiss IndexHNSW - 不同ef_search参数
+    # 3. 测试Faiss IndexHNSW - 8个不同ef_search参数
     print("\n=== Testing Faiss IndexHNSW with different ef_search values ===")
     try:
         M = 16  # HNSW参数
         index_hnsw = faiss.IndexHNSWFlat(data.shape[1], M)
         index_hnsw.add(data.astype("float32"))
 
-        # 测试不同的ef_search值
-        ef_search_values = [32, 64, 128, 256, 512]
+        # 测试8个不同的ef_search值
+        ef_search_values = [16, 32, 64, 128, 256, 512, 1024, 2048]
         for ef_search in ef_search_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_hnsw,
@@ -332,10 +333,10 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Faiss HNSW test failed: {e}")
 
-    # 4. 测试Faiss IndexIVFPQ - 不同nprobe参数
+    # 4. 测试Faiss IndexIVFPQ - 8个不同nprobe参数
     print("\n=== Testing Faiss IndexIVFPQ with different nprobe values ===")
     try:
-        nlist = 100
+        nlist = 1024  # 修改为1024
         m = 4  # 子量化器数量
         nbits = 8  # 每个子量化器的位数
 
@@ -344,8 +345,8 @@ if __name__ == "__main__":
         index_ivfpqfs.train(data.astype("float32"))
         index_ivfpqfs.add(data.astype("float32"))
 
-        # 测试不同的nprobe值
-        nprobe_values = [5, 10, 20, 50]
+        # 测试8个不同的nprobe值
+        nprobe_values = [1, 5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_ivfpqfs,
@@ -371,17 +372,17 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Faiss IVFPQ test failed: {e}")
 
-    # 5. 测试Faiss IndexIVFRaBitQ - 不同nprobe参数 (作为基准)
+    # 5. 测试Faiss IndexIVFRaBitQ - 8个不同nprobe参数 (作为基准)
     print("\n=== Testing Faiss IndexIVFRaBitQ with different nprobe values ===")
     try:
-        nlist = 100
+        nlist = 1024  # 修改为1024
         quantizer = faiss.IndexFlatL2(data.shape[1])
         index_ivf = faiss.IndexIVFRaBitQ(quantizer, data.shape[1], nlist)
         index_ivf.train(data.astype("float32"))
         index_ivf.add(data.astype("float32"))
 
-        # 测试不同的nprobe值
-        nprobe_values = [5, 10, 20, 50]
+        # 测试8个不同的nprobe值
+        nprobe_values = [1, 5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_ivf,
