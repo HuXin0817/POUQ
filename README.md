@@ -1,3 +1,3 @@
-# POUQ: A Clustering and Swarm-Optimized Framework for Precision-Driven Uniform Quantization of Non-uniform Data
+# POUQ: A High-Precision Quantization via Piecewise Segmentation and Swarm Optimization
 
-![](GraphicalAbstract.svg)
+![](POUQ.png)
