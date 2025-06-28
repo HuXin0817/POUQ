@@ -5,6 +5,7 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <random>
 
 constexpr size_t Dim = 256;
 constexpr size_t N   = 1e4 * Dim;
