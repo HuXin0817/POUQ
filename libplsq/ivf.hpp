@@ -99,8 +99,8 @@ private:
 
   // K-means++聚类算法实现
   void kmeans_clustering(const float *data, size_t num_samples) {
-    const size_t max_iterations = 100;
-    const float  tolerance      = 1e-6f;
+    constexpr size_t max_iterations = 1000;
+    constexpr float  tolerance      = 1e-9f;
 
     // K-means++初始化聚类中心
     std::random_device                    rd;
@@ -176,7 +176,7 @@ private:
       }
 
       // 更新聚类中心
-      bool converged = true;
+      int converged = 0;
       for (auto &centroid : centroids_) {
         if (centroid.indices.empty()) {
           // 如果某个聚类中心没有分配到任何点，随机重新初始化
@@ -201,13 +201,15 @@ private:
         // 检查收敛性
         float centroid_shift = l2distance(centroid.centroid, new_centroid, dim_);
         if (centroid_shift > tolerance) {
-          converged = false;
+          converged = 0;
+        } else {
+          converged++;
         }
 
         centroid.centroid = std::move(new_centroid);
       }
 
-      if (converged) {
+      if (converged == 16) {
         break;
       }
     }
