@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     dataset_name = sys.argv[1]
     data = fvecs_read(f"../data/{dataset_name}/{dataset_name}_base.fvecs")
-    data = data[:1000]
+    # data = data[:1000]
 
     n, d = data.shape
     data_f32 = data.astype(np.float32)

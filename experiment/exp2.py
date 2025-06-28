@@ -210,8 +210,8 @@ if __name__ == "__main__":
     query_data = fvecs_read(f"../data/{dataset_name}/{dataset_name}_query.fvecs")
 
     # 为了快速测试，使用较小的数据集
-    data = data[:100000]
-    query_data = query_data[:100]
+    # data = data[:100000]
+    # query_data = query_data[:100]
 
     print(f"Data shape: {data.shape}")
     print(f"Query shape: {query_data.shape}")
@@ -232,7 +232,7 @@ if __name__ == "__main__":
         posq_index.train(data.astype("float32"))
 
         # 测试8个不同的nprobe值（对应POSQ的搜索参数）
-        nprobe_values = [1, 5, 10, 20, 40, 80, 160, 320]
+        nprobe_values = [5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 posq_index,
@@ -266,7 +266,7 @@ if __name__ == "__main__":
         posq_index.train(data.astype("float32"))
 
         # 测试8个不同的nprobe值（对应POSQ的搜索参数）
-        nprobe_values = [1, 5, 10, 20, 40, 80, 160, 320]
+        nprobe_values = [5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 posq_index,
@@ -339,7 +339,7 @@ if __name__ == "__main__":
         index_ivfpqfs.add(data.astype("float32"))
 
         # 测试8个不同的nprobe值
-        nprobe_values = [1, 5, 10, 20, 40, 80, 160, 320]
+        nprobe_values = [5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_ivfpqfs,
@@ -375,7 +375,7 @@ if __name__ == "__main__":
         index_ivf.add(data.astype("float32"))
 
         # 测试8个不同的nprobe值
-        nprobe_values = [1, 5, 10, 20, 40, 80, 160, 320]
+        nprobe_values = [5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_ivf,
