@@ -88,7 +88,9 @@ def run(name, bitwidth, quantizer, data_f32):
 
     if process.is_alive():
         # If subprocess is still running, it means timeout occurred
-        print(f"Warning: {name} (bitwidth={bitwidth}) training time exceeded 12 hours, forcibly terminating training")
+        print(
+            f"Warning: {name} (bitwidth={bitwidth}) training time exceeded 12 hours, forcibly terminating training"
+        )
 
         # Forcibly terminate subprocess
         process.terminate()
@@ -123,7 +125,9 @@ def run(name, bitwidth, quantizer, data_f32):
                     }
                 )
             else:
-                print(f"Error: {name} (bitwidth={bitwidth}) training failed: {result['error']}")
+                print(
+                    f"Error: {name} (bitwidth={bitwidth}) training failed: {result['error']}"
+                )
         except:
             print(f"Error: {name} (bitwidth={bitwidth}) unable to get training results")
     else:
@@ -133,6 +137,10 @@ def run(name, bitwidth, quantizer, data_f32):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python exp2.py <dataset_name>")
+        sys.exit(1)
+
     dataset_name = sys.argv[1]
     data = fvecs_read(f"../data/{dataset_name}/{dataset_name}_base.fvecs")
     data = data[:1000]
