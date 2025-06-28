@@ -13,6 +13,18 @@ namespace py = pybind11;
           [](type &self, const py::array_t<float> &data) { self.train(data.data(), data.size()); },                    \
           py::arg("data"))                                                                                             \
       .def("__getitem__", &type::operator[], py::arg("index"))                                                         \
+      .def(                                                                                                            \
+          "compute_codes", [](type &self, const py::array_t<float> &data) { return 0; }, py::arg("data"))              \
+      .def(                                                                                                            \
+          "decode",                                                                                                    \
+          [](type &self, int _) {                                                                                      \
+            std::vector<float> result(self.size());                                                                    \
+            for (size_t i = 0; i < self.size(); i++) {                                                                 \
+              result[i] = self[i];                                                                                     \
+            }                                                                                                          \
+            return result;                                                                                             \
+          },                                                                                                           \
+          py::arg("data"))                                                                                             \
       .def("size", &type::size)                                                                                        \
       .def(                                                                                                            \
           "l2_distance",                                                                                               \

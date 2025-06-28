@@ -1,21 +1,22 @@
 import numpy as np
 
+
 def ivecs_read(filename):
     print(f"Reading File - {filename}")
-    a = np.fromfile(filename, dtype='int32')
+    a = np.fromfile(filename, dtype="int32")
     d = a[0]
     print(f"\t{filename} readed")
     return a.reshape(-1, d + 1)[:, 1:].copy()
 
 
 def fvecs_read(filename):
-    return ivecs_read(filename).view('float32')
+    return ivecs_read(filename).view("float32")
 
 
 def ivecs_write(filename, m):
     print(f"Writing File - {filename}")
     n, d = m.shape
-    m1 = np.empty((n, d + 1), dtype='int32')
+    m1 = np.empty((n, d + 1), dtype="int32")
     m1[:, 0] = d
     m1[:, 1:] = m
     m1.tofile(filename)
@@ -23,8 +24,8 @@ def ivecs_write(filename, m):
 
 
 def fvecs_write(filename, m):
-    m = m.astype('float32')
-    ivecs_write(filename, m.view('int32'))
+    m = m.astype("float32")
+    ivecs_write(filename, m.view("int32"))
 
 
 ###
@@ -52,8 +53,9 @@ def fvecs_write(filename, m):
 # SOFTWARE.
 ###
 
+
 def read_fbin(filename, start_idx=0, chunk_size=None):
-    """ Read *.fbin file that contains float32 vectors
+    """Read *.fbin file that contains float32 vectors
     Args:
         :param filename (str): path to *.fbin file
         :param start_idx (int): start reading vectors from this index
@@ -65,13 +67,14 @@ def read_fbin(filename, start_idx=0, chunk_size=None):
     with open(filename, "rb") as f:
         nvecs, dim = np.fromfile(f, count=2, dtype=np.int32)
         nvecs = (nvecs - start_idx) if chunk_size is None else chunk_size
-        arr = np.fromfile(f, count=nvecs * dim, dtype=np.float32,
-                          offset=start_idx * 4 * dim)
+        arr = np.fromfile(
+            f, count=nvecs * dim, dtype=np.float32, offset=start_idx * 4 * dim
+        )
     return arr.reshape(nvecs, dim)
 
 
 def read_ibin(filename, start_idx=0, chunk_size=None):
-    """ Read *.ibin file that contains int32 vectors
+    """Read *.ibin file that contains int32 vectors
     Args:
         :param filename (str): path to *.ibin file
         :param start_idx (int): start reading vectors from this index
@@ -83,6 +86,7 @@ def read_ibin(filename, start_idx=0, chunk_size=None):
     with open(filename, "rb") as f:
         nvecs, dim = np.fromfile(f, count=2, dtype=np.int32)
         nvecs = (nvecs - start_idx) if chunk_size is None else chunk_size
-        arr = np.fromfile(f, count=nvecs * dim, dtype=np.int32,
-                          offset=start_idx * 4 * dim)
+        arr = np.fromfile(
+            f, count=nvecs * dim, dtype=np.int32, offset=start_idx * 4 * dim
+        )
     return arr.reshape(nvecs, dim)
