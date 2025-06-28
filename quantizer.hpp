@@ -12,18 +12,18 @@ class Quantizer {
 public:
   Quantizer() = default;
 
-  explicit Quantizer(size_t dimension) : dimension_(dimension) {}
+  explicit Quantizer(size_t dim) : dimension(dim) {}
 
-  void set_dimension(size_t dimension) { dimension_ = dimension; }
+  void set_dimension(size_t dim) { dimension = dim; }
 
-  size_t get_dimension() const { return dimension_; }
+  size_t get_dimension() const { return dimension; }
 
   void train(const float *data, size_t data_size) {
-    codebook_      = new std::pair<float, float>[dimension_ * 16];
-    encoded_codes_ = new uint8_t[data_size];
+    codebook = new std::pair<float, float>[dimension * 16];
+    encode   = new uint8_t[data_size];
 
 #pragma omp parallel for
-    for (size_t dim = 0; dim < dimension_; dim++) {
+    for (size_t dim = 0; dim < dimension; dim++) {
       const auto   value_frequency_map = count_freq(data, data_size, dim);
       const auto   cluster_bounds      = clustering(16, value_frequency_map);
       const size_t codebook_offset     = dim * 16;
@@ -49,45 +49,45 @@ public:
           upper_bound                                   = optimized_upper;
         }
         if (lower_bound == upper_bound) {
-          codebook_[codebook_offset + i] = {lower_bound, 1.0};
+          codebook[codebook_offset + i] = {lower_bound, 1.0};
         } else {
-          codebook_[codebook_offset + i] = {lower_bound, (upper_bound - lower_bound) / 15.0f};
+          codebook[codebook_offset + i] = {lower_bound, (upper_bound - lower_bound) / 15.0f};
         }
       }
 
       static_cast<std::vector<std::pair<float, size_t>>>(value_frequency_map).clear();
-      for (size_t i = dim; i < data_size; i += dimension_) {
+      for (size_t i = dim; i < data_size; i += dimension) {
         const float  data_value       = data[i];
         const auto   cluster_it       = std::upper_bound(cluster_bounds.begin(),
             cluster_bounds.end(),
             data_value,
             [](const float value, const std::pair<float, float> &bound) -> bool { return value < bound.first; });
         const size_t cluster_index    = cluster_it - cluster_bounds.begin() - 1;
-        auto [lower_bound, step_size] = codebook_[codebook_offset + cluster_index];
+        auto [lower_bound, step_size] = codebook[codebook_offset + cluster_index];
         const float normalized_value  = std::clamp((data_value - lower_bound) / step_size + 0.5f, 0.0f, 15.0f);
-        encoded_codes_[i]             = cluster_index | static_cast<size_t>(normalized_value) << 4;
+        encode[i]                     = cluster_index | static_cast<size_t>(normalized_value) << 4;
       }
     }
   }
 
   float l2distance(const float *data, size_t data_index) const {
-    return simd::l2distance_simd(data, data_index, dimension_, codebook_, encoded_codes_);
+    return simd::l2distance_simd(data, data_index, dimension, codebook, encode);
   }
 
   ~Quantizer() {
-    delete[] codebook_;
-    delete[] encoded_codes_;
+    delete[] codebook;
+    delete[] encode;
   }
 
 private:
-  size_t                   dimension_     = 0;
-  std::pair<float, float> *codebook_      = nullptr;
-  uint8_t                 *encoded_codes_ = nullptr;
+  size_t                   dimension = 0;
+  std::pair<float, float> *codebook  = nullptr;
+  uint8_t                 *encode    = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t data_size, const size_t dim) const {
     std::vector<float> sorted_data;
-    sorted_data.reserve(data_size / dimension_);
-    for (size_t i = dim; i < data_size; i += dimension_) {
+    sorted_data.reserve(data_size / dimension);
+    for (size_t i = dim; i < data_size; i += dimension) {
       sorted_data.push_back(data[i]);
     }
     std::sort(sorted_data.begin(), sorted_data.end());
