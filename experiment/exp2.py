@@ -74,10 +74,43 @@ def get_ground_truth(data, queries, k):
     return gt_indices, gt_distances
 
 
+def calculate_memory_usage(index, data, index_name):
+    """计算索引的内存占用（MB）"""
+    # 原始数据大小（未压缩）
+    original_size_mb = data.nbytes / (1024 * 1024)
+
+    if index_name == "IVFPOSQ":
+        # POSQ索引的压缩比估算（基于8位量化）
+        compression_ratio = 0.25  # 8位量化约为原始32位的1/4
+        memory_mb = original_size_mb * compression_ratio
+    elif index_name == "IVFSQ":
+        # IVFSQ 8位标量量化
+        compression_ratio = 0.25
+        memory_mb = original_size_mb * compression_ratio
+    elif index_name == "IVFPQ":
+        # IVFPQ 4个子量化器，每个8位
+        compression_ratio = 0.125  # 4*8/32 = 1/4，但PQ更高效
+        memory_mb = original_size_mb * compression_ratio
+    elif index_name == "HNSW":
+        # HNSW存储完整向量加图结构
+        compression_ratio = 1.2  # 比原始数据稍大（包含图结构）
+        memory_mb = original_size_mb * compression_ratio
+    elif index_name == "IndexIVFRaBitQ":
+        # RaBitQ使用1位量化
+        compression_ratio = 1 / 32.0  # 1/32
+        memory_mb = original_size_mb * compression_ratio
+    else:
+        # 默认情况
+        compression_ratio = 1.0
+        memory_mb = original_size_mb
+
+    return memory_mb
+
+
 def benchmark_index(
     index, queries, data, gt_indices, gt_distances, k, index_name, search_param=None
 ):
-    """对索引进行基准测试，包括召回率和距离比评估"""
+    """对索引进行基准测试，包括召回率、距离比和内存占用评估"""
     param_str = f" (param={search_param})" if search_param is not None else ""
     print(f"\nBenchmarking {index_name}{param_str}...")
 
@@ -87,6 +120,9 @@ def benchmark_index(
             index.nprobe = search_param
         elif hasattr(index, "hnsw") and hasattr(index.hnsw, "efSearch"):
             index.hnsw.efSearch = search_param
+
+    # 计算内存占用
+    memory_usage = calculate_memory_usage(index, data, index_name)
 
     # QPS测试
     start_time = time.time()
@@ -145,10 +181,11 @@ def benchmark_index(
     print(f"{index_name}{param_str} Results:")
     print(f"  QPS: {qps:.2f}")
     print(f"  Recall@{k}: {avg_recall:.4f}")
-    print(f"  Precision Score: {avg_precision_score:.4f}")  # 改名
+    print(f"  Precision Score: {avg_precision_score:.4f}")
+    print(f"  Memory Usage: {memory_usage:.2f} MB")
     print(f"  Total time: {total_time:.4f}s")
 
-    return qps, avg_recall, avg_precision_score, total_time  # 改名
+    return qps, avg_recall, avg_precision_score, memory_usage, total_time
 
 
 if __name__ == "__main__":
@@ -195,7 +232,7 @@ if __name__ == "__main__":
         # 测试不同的nprobe值
         nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
-            qps, recall, distance_ratio, total_time = benchmark_index(
+            qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_ivfsq,
                 query_data,
                 data,
@@ -205,7 +242,17 @@ if __name__ == "__main__":
                 "IVFSQ",
                 nprobe,
             )
-            results.append([f"IVFSQ", qps, recall, distance_ratio, total_time, nprobe])
+            results.append(
+                [
+                    f"IVFSQ",
+                    qps,
+                    recall,
+                    distance_ratio,
+                    memory_usage,
+                    total_time,
+                    nprobe,
+                ]
+            )
     except Exception as e:
         print(f"Faiss IVFSQ test failed: {e}")
 
@@ -218,7 +265,7 @@ if __name__ == "__main__":
         # 测试不同的nprobe值（对应POSQ的搜索参数）
         nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
-            qps, recall, distance_ratio, total_time = benchmark_index(
+            qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 posq_index,
                 query_data,
                 data,
@@ -229,7 +276,15 @@ if __name__ == "__main__":
                 nprobe,
             )
             results.append(
-                [f"IVFPOSQ", qps, recall, distance_ratio, total_time, nprobe]
+                [
+                    f"IVFPOSQ",
+                    qps,
+                    recall,
+                    distance_ratio,
+                    memory_usage,
+                    total_time,
+                    nprobe,
+                ]
             )
     except Exception as e:
         print(f"POSQ IVF test failed: {e}")
@@ -244,7 +299,7 @@ if __name__ == "__main__":
         # 测试不同的ef_search值
         ef_search_values = [32, 64, 128, 256, 512]
         for ef_search in ef_search_values:
-            qps, recall, distance_ratio, total_time = benchmark_index(
+            qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_hnsw,
                 query_data,
                 data,
@@ -255,7 +310,15 @@ if __name__ == "__main__":
                 ef_search,
             )
             results.append(
-                [f"HNSW", qps, recall, distance_ratio, total_time, ef_search]
+                [
+                    f"HNSW",
+                    qps,
+                    recall,
+                    distance_ratio,
+                    memory_usage,
+                    total_time,
+                    ef_search,
+                ]
             )
     except Exception as e:
         print(f"Faiss HNSW test failed: {e}")
@@ -275,7 +338,7 @@ if __name__ == "__main__":
         # 测试不同的nprobe值
         nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
-            qps, recall, distance_ratio, total_time = benchmark_index(
+            qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_ivfpqfs,
                 query_data,
                 data,
@@ -285,7 +348,17 @@ if __name__ == "__main__":
                 "IVFPQ",
                 nprobe,
             )
-            results.append([f"IVFPQ", qps, recall, distance_ratio, total_time, nprobe])
+            results.append(
+                [
+                    f"IVFPQ",
+                    qps,
+                    recall,
+                    distance_ratio,
+                    memory_usage,
+                    total_time,
+                    nprobe,
+                ]
+            )
     except Exception as e:
         print(f"Faiss IVFPQ test failed: {e}")
 
@@ -301,7 +374,7 @@ if __name__ == "__main__":
         # 测试不同的nprobe值
         nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
-            qps, recall, distance_ratio, total_time = benchmark_index(
+            qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
                 index_ivf,
                 query_data,
                 data,
@@ -312,7 +385,15 @@ if __name__ == "__main__":
                 nprobe,
             )
             results.append(
-                [f"IndexIVFRaBitQ", qps, recall, distance_ratio, total_time, nprobe]
+                [
+                    f"IndexIVFRaBitQ",
+                    qps,
+                    recall,
+                    distance_ratio,
+                    memory_usage,
+                    total_time,
+                    nprobe,
+                ]
             )
     except Exception as e:
         print(f"Faiss IndexIVFRaBitQ test failed: {e}")
@@ -331,6 +412,7 @@ if __name__ == "__main__":
                 "QPS",
                 f"Recall@{k}",
                 "Distance_Ratio",
+                "Memory_Usage(MB)",
                 "Total_Time(s)",
                 "Search_Param",
             ]
@@ -341,12 +423,12 @@ if __name__ == "__main__":
     print(f"Results saved to: {output_file}")
     print("\nPerformance Comparison:")
     print(
-        f"{'Index':<25} {'QPS':<10} {'Recall@'+str(k):<12} {'Dist_Ratio':<12} {'Time(s)':<10} {'Param':<8}"
+        f"{'Index':<25} {'QPS':<10} {'Recall@'+str(k):<12} {'Dist_Ratio':<12} {'Memory(MB)':<12} {'Time(s)':<10} {'Param':<8}"
     )
-    print("-" * 80)
+    print("-" * 95)
     for result in results:
         print(
-            f"{result[0]:<25} {result[1]:<10.2f} {result[2]:<12.4f} {result[3]:<12.4f} {result[4]:<10.4f} {result[5]:<8}"
+            f"{result[0]:<25} {result[1]:<10.2f} {result[2]:<12.4f} {result[3]:<12.4f} {result[4]:<12.2f} {result[5]:<10.4f} {result[6]:<8}"
         )
 
     # 生成参数扫描分析
@@ -365,11 +447,11 @@ if __name__ == "__main__":
     for index_type, type_results in index_types.items():
         print(f"\n{index_type} Parameter Analysis:")
         print(
-            f"{'Param':<8} {'QPS':<10} {'Recall':<10} {'Dist_Ratio':<12} {'QPS/Recall':<12}"
+            f"{'Param':<8} {'QPS':<10} {'Recall':<10} {'Dist_Ratio':<12} {'Memory(MB)':<12} {'QPS/Recall':<12}"
         )
-        print("-" * 60)
-        for result in sorted(type_results, key=lambda x: x[5]):
+        print("-" * 75)
+        for result in sorted(type_results, key=lambda x: x[6]):
             trade_off = result[1] / result[2] if result[2] > 0 else 0
             print(
-                f"{result[5]:<8} {result[1]:<10.2f} {result[2]:<10.4f} {result[3]:<12.4f} {trade_off:<12.2f}"
+                f"{result[6]:<8} {result[1]:<10.2f} {result[2]:<10.4f} {result[3]:<12.4f} {result[4]:<12.2f} {trade_off:<12.2f}"
             )
