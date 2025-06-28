@@ -1,4 +1,4 @@
-# POUQ: A Clustering and Swarm-Optimized Framework for Precision-Driven Uniform Quantization of Non-uniform Data
+# PLSQ: A Clustering and Swarm-Optimized Framework for Precision-Driven Uniform Quantization of Non-uniform Data
 
 ![](GraphicalAbstract.svg)
 
@@ -66,7 +66,7 @@ int main() {
     d = dis(gen);
   }
 
-  pouq::POUQQuantizer quantizer(4, 4, 256);
+  pouq::PLSQQuantizer quantizer(4, 4, 256);
 
   const auto start_time = std::chrono::high_resolution_clock::now();
   quantizer.train(data.data(), N);
@@ -87,9 +87,9 @@ int main() {
 
 ## Results
 
-Comparison table of quantization mean squared error (MSE) between scalar quantization (SQ) and POUQ method across different datasets (quantization bit depth `cbit + qbit = 8`) **as follows**:
+Comparison table of quantization mean squared error (MSE) between scalar quantization (SQ) and PLSQ method across different datasets (quantization bit depth `cbit + qbit = 8`) **as follows**:
 
-| Dataset  | Dimension | Size      | SQ       | POUQ (Ours) | Reduction  |
+| Dataset  | Dimension | Size      | SQ       | PLSQ (Ours) | Reduction  |
 | -------- | --------- | --------- | -------- | ----------- | ---------- |
 | SIFT     | 128       | 1,000,000 | 1.78e-02 | 1.11e-03    | **93.76%** |
 | GIST     | 960       | 1,000,000 | 1.34e-07 | 3.02e-08    | **77.46%** |
@@ -100,11 +100,11 @@ Comparison table of quantization mean squared error (MSE) between scalar quantiz
 
 ## Reference
 
-Reference to cite when you use POUQ in a research paper:
+Reference to cite when you use PLSQ in a research paper:
 
 ```latex
 @article{hu2025pouq,
-  title={POUQ: A Clustering and Swarm-Optimized Framework for Precision-Driven Uniform Quantization of Non-uniform Data},
+  title={PLSQ: A Clustering and Swarm-Optimized Framework for Precision-Driven Uniform Quantization of Non-uniform Data},
   author={Xin Hu},
   year={2025},
 }

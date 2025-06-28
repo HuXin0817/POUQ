@@ -29,13 +29,13 @@ def plot_tradeoff(results_dict, dataset_name):
             "linestyles": ["-", "--", ":"],
             "fill_styles": ["full", "full", "full"],
         },
-        "OSQ": {
+        "LSQ": {
             "color": "#ff7f0e",
             "marker": "s",
             "linestyles": ["-", "--", ":"],
             "fill_styles": ["full", "full", "full"],
         },
-        "POUQ": {
+        "PLSQ": {
             "color": "#2ca02c",
             "marker": "^",
             "linestyles": ["-", "--", ":"],

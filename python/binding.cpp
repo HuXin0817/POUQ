@@ -20,29 +20,27 @@ namespace py = pybind11;
   });
 
 PYBIND11_MODULE(pouq, m) {
-  m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
+  m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (PLSQ))pbdoc";
 
   py::class_<pouq::Float32Quantizer>(m, "Float32Quantizer") BIND_QUANTIZER_METHODS(pouq::Float32Quantizer);
 
   py::class_<pouq::SQQuantizer>(m, "SQQuantizer")
-      .def(py::init<size_t, size_t>(), py::arg("q_bit"), py::arg("groups") = 1)
-          BIND_QUANTIZER_METHODS(pouq::SQQuantizer);
+      .def(py::init<size_t, size_t>(), py::arg("q_bit"), py::arg("sub") = 1) BIND_QUANTIZER_METHODS(pouq::SQQuantizer);
 
-  py::class_<pouq::OSQQuantizer>(m, "OSQQuantizer")
-      .def(py::init<size_t, size_t>(), py::arg("q_bit"), py::arg("groups") = 1)
-          BIND_QUANTIZER_METHODS(pouq::OSQQuantizer);
+  py::class_<pouq::LSQQuantizer>(m, "LSQQuantizer")
+      .def(py::init<size_t, size_t>(), py::arg("q_bit"), py::arg("sub") = 1) BIND_QUANTIZER_METHODS(pouq::LSQQuantizer);
 
   py::class_<pouq::LloydMaxQuantizer>(m, "LloydMaxQuantizer")
-      .def(py::init<size_t, size_t>(), py::arg("c_bit"), py::arg("groups") = 1)
+      .def(py::init<size_t, size_t>(), py::arg("c_bit"), py::arg("sub") = 1)
           BIND_QUANTIZER_METHODS(pouq::LloydMaxQuantizer);
 
-  py::class_<pouq::POUQQuantizer>(m, "POUQQuantizer")
-      .def(py::init<size_t, size_t, size_t>(), py::arg("c_bit"), py::arg("q_bit"), py::arg("groups") = 1)
-          BIND_QUANTIZER_METHODS(pouq::POUQQuantizer);
+  py::class_<pouq::PLSQQuantizer>(m, "PLSQQuantizer")
+      .def(py::init<size_t, size_t, size_t>(), py::arg("c_bit"), py::arg("q_bit"), py::arg("sub") = 1)
+          BIND_QUANTIZER_METHODS(pouq::PLSQQuantizer);
 
   BIND_COMPUTE_MSE(pouq::Float32Quantizer)
   BIND_COMPUTE_MSE(pouq::SQQuantizer)
-  BIND_COMPUTE_MSE(pouq::OSQQuantizer)
+  BIND_COMPUTE_MSE(pouq::LSQQuantizer)
   BIND_COMPUTE_MSE(pouq::LloydMaxQuantizer)
-  BIND_COMPUTE_MSE(pouq::POUQQuantizer)
+  BIND_COMPUTE_MSE(pouq::PLSQQuantizer)
 }

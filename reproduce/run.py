@@ -38,10 +38,10 @@ def run(data: np.ndarray, results_dict):
     print(f"N={N}, Dim={Dim}")
 
     methods = [
-        ("SQ", SQQuantizer(q_bit=8, groups=Dim)),
-        ("OSQ", OSQQuantizer(q_bit=8, groups=Dim)),
-        ("POUQ", POUQQuantizer(c_bit=4, q_bit=4, groups=Dim)),
-        ("LloydMax", LloydMaxQuantizer(c_bit=8, groups=Dim)),
+        ("SQ", SQQuantizer(q_bit=8, sub=Dim)),
+        ("LSQ", LSQQuantizer(q_bit=8, sub=Dim)),
+        ("PLSQ", PLSQQuantizer(c_bit=4, q_bit=4, sub=Dim)),
+        ("LloydMax", LloydMaxQuantizer(c_bit=8, sub=Dim)),
     ]
 
     for method_name, quantizer in methods:

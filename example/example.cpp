@@ -1,3 +1,4 @@
+#include "../libpouq/index/ivf.hpp"
 #include "../libpouq/quantizer.hpp"
 #include "../libpouq/utils.hpp"
 
@@ -32,7 +33,7 @@ int main() {
     d = dis(gen);
   }
 
-  pouq::POUQQuantizer quantizer(4, 4, 256);
+  pouq::PLSQQuantizer quantizer(4, 4, 256);
 
   const auto start_time = std::chrono::high_resolution_clock::now();
   quantizer.train(data.data(), N);

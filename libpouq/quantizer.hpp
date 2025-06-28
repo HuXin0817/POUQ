@@ -43,18 +43,18 @@ private:
 template <typename Clusterer, typename Optimizer>
 class QuantizerImpl : public Quantizer {
 public:
-  explicit QuantizerImpl(size_t c_bit, size_t q_bit, size_t groups) : c_bit_(c_bit), q_bit_(q_bit), groups_(groups) {}
+  explicit QuantizerImpl(size_t c_bit, size_t q_bit, size_t sub) : c_bit_(c_bit), q_bit_(q_bit), sub_(sub) {}
 
   void train(const float *data, size_t size) override {
     this->size_        = size;
-    this->step_size_   = new float[this->groups_ * (1 << this->c_bit_)];
-    this->lower_bound_ = new float[this->groups_ * (1 << this->c_bit_)];
+    this->step_size_   = new float[this->sub_ * (1 << this->c_bit_)];
+    this->lower_bound_ = new float[this->sub_ * (1 << this->c_bit_)];
     this->cid_         = new uint8_t[(this->c_bit_ * this->size_ + 7) / 8];
     this->code_        = new uint8_t[(this->q_bit_ * this->size_ + 7) / 8];
     const auto div     = static_cast<float>((1 << this->q_bit_) - 1);
 
 #pragma omp parallel for default(none) shared(data, div)
-    for (size_t group = 0; group < this->groups_; group++) {
+    for (size_t group = 0; group < this->sub_; group++) {
       const auto data_freq_map = this->count_freq(data, group);
       const auto bounds        = clusterer(1 << this->c_bit_, data_freq_map);
       const auto offset        = group * (1 << this->c_bit_);
@@ -84,7 +84,7 @@ public:
       }
 
       static_cast<std::vector<std::pair<float, size_t>>>(data_freq_map).clear();
-      for (size_t i = group; i < this->size_; i += this->groups_) {
+      for (size_t i = group; i < this->size_; i += this->sub_) {
         const float d  = data[i];
         const auto  it = std::upper_bound(
             bounds.begin(), bounds.end(), d, [](const float rhs, const std::pair<float, float> &lhs) -> bool {
@@ -100,7 +100,7 @@ public:
   }
 
   float operator[](size_t i) const override {
-    const size_t group  = i % this->groups_;
+    const size_t group  = i % this->sub_;
     const size_t offset = bitmap::get(this->cid_, i, this->c_bit_) + group * (1 << this->c_bit_);
     const size_t x      = bitmap::get(this->code_, i, this->q_bit_);
     return this->lower_bound_[offset] + this->step_size_[offset] * static_cast<float>(x);
@@ -119,7 +119,7 @@ private:
   size_t   c_bit_       = 0;
   size_t   q_bit_       = 0;
   size_t   size_        = 0;
-  size_t   groups_      = 0;
+  size_t   sub_         = 0;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
   uint8_t *cid_         = nullptr;
@@ -130,8 +130,8 @@ private:
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, const size_t group) const {
     std::vector<float> sorted_data;
-    sorted_data.reserve(this->size_ / this->groups_);
-    for (size_t i = group; i < this->size_; i += this->groups_) {
+    sorted_data.reserve(this->size_ / this->sub_);
+    for (size_t i = group; i < this->size_; i += this->sub_) {
       sorted_data.push_back(data[i]);
     }
     std::sort(sorted_data.begin(), sorted_data.end());
@@ -157,22 +157,22 @@ private:
 
 class SQQuantizer final : public QuantizerImpl<Clusterer, Optimizer> {
 public:
-  explicit SQQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
+  explicit SQQuantizer(size_t q_bit, size_t sub = 1) : QuantizerImpl(0, q_bit, sub) {}
 };
 
-class OSQQuantizer final : public QuantizerImpl<Clusterer, PSOptimizer> {
+class LSQQuantizer final : public QuantizerImpl<Clusterer, PSOptimizer> {
 public:
-  explicit OSQQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
+  explicit LSQQuantizer(size_t q_bit, size_t sub = 1) : QuantizerImpl(0, q_bit, sub) {}
 };
 
 class LloydMaxQuantizer final : public QuantizerImpl<KmeansClusterer, CenterCalculator> {
 public:
-  explicit LloydMaxQuantizer(size_t c_bit, size_t groups = 1) : QuantizerImpl(c_bit, 0, groups) {}
+  explicit LloydMaxQuantizer(size_t c_bit, size_t sub = 1) : QuantizerImpl(c_bit, 0, sub) {}
 };
 
-class POUQQuantizer final : public QuantizerImpl<KrangeClusterer, PSOptimizer> {
+class PLSQQuantizer final : public QuantizerImpl<KrangeClusterer, PSOptimizer> {
 public:
-  explicit POUQQuantizer(size_t c_bit, size_t q_bit, size_t groups = 1) : QuantizerImpl(c_bit, q_bit, groups) {}
+  explicit PLSQQuantizer(size_t c_bit, size_t q_bit, size_t sub = 1) : QuantizerImpl(c_bit, q_bit, sub) {}
 };
 
 }  // namespace pouq
