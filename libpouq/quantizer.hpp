@@ -12,7 +12,6 @@
 namespace pouq {
 
 inline void set(uint8_t *data, size_t index, size_t n) {
-  n &= 3;
   const size_t byte_index = index >> 2;
   const size_t bit_offset = (index & 3) << 1;
   data[byte_index] &= ~(3 << bit_offset);
@@ -120,27 +119,23 @@ public:
     __m256       sum8        = _mm256_setzero_ps();
 
     for (size_t i = 0; i < dim_; i += 8) {
-      const size_t group_idx1   = i / 4;
-      const size_t combined_idx = (base_offset + group_idx1) / 2;
+      const size_t idx          = i / 4;
+      const size_t combined_idx = (base_offset + idx) / 2;
+      const auto [c1, c2, code] = combined_data_[combined_idx];
+      const auto [lb1, st1]     = bounds_data_[idx * 256 + c1];
+      const auto [lb2, st2]     = bounds_data_[(idx + 1) * 256 + c2];
 
-      const auto [cid_byte1, cid_byte2, combined_code] = combined_data_[combined_idx];
-
-      auto [lb1, st1] = bounds_data_[group_idx1 * 256 + cid_byte1];
-      auto [lb2, st2] = bounds_data_[(group_idx1 + 1) * 256 + cid_byte2];
-
-      __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
-      __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
-
-      __m256i bytes    = _mm256_set1_epi32(combined_code);
-      __m256i shifts   = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
-      __m256i shifted  = _mm256_srlv_epi32(bytes, shifts);
-      __m256i masked   = _mm256_and_si256(shifted, _mm256_set1_epi32(3));
-      __m256  code_vec = _mm256_cvtepi32_ps(masked);
-
-      __m256 reconstructed = _mm256_fmadd_ps(code_vec, st_vec, lb_vec);
-      __m256 data_vec      = _mm256_loadu_ps(data + i);
-      __m256 diff          = _mm256_sub_ps(reconstructed, data_vec);
-      sum8                 = _mm256_add_ps(sum8, _mm256_mul_ps(diff, diff));
+      const __m256  lb_vec        = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
+      const __m256  st_vec        = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
+      const __m256i bytes         = _mm256_set1_epi32(code);
+      const __m256i shifts        = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
+      const __m256i shifted       = _mm256_srlv_epi32(bytes, shifts);
+      const __m256i masked        = _mm256_and_si256(shifted, _mm256_set1_epi32(3));
+      const __m256  code_vec      = _mm256_cvtepi32_ps(masked);
+      const __m256  reconstructed = _mm256_fmadd_ps(code_vec, st_vec, lb_vec);
+      const __m256  data_vec      = _mm256_loadu_ps(data + i);
+      const __m256  diff          = _mm256_sub_ps(reconstructed, data_vec);
+      sum8                        = _mm256_add_ps(sum8, _mm256_mul_ps(diff, diff));
     }
 
     __m128 sum4 = _mm_add_ps(_mm256_extractf128_ps(sum8, 1), _mm256_castps256_ps128(sum8));
