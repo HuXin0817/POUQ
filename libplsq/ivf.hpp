@@ -25,12 +25,17 @@ public:
   }
 
   void train(const float *data, size_t size) {
+    std::cout << "start quantization ... ";
+    std::cout.flush();
     quantizer_.train(data, size);
+    std::cout << "done" << std::endl;
 
     size_t num_samples = size / dim_;
 
-    // 使用K-means算法进行聚类
+    std::cout << "start clustering ... " << std::endl;
+    std::cout.flush();
     kmeans_clustering(data, num_samples);
+    std::cout << "finish training" << std::endl;
   }
 
   std::vector<size_t> search(const float *query, size_t k, size_t nprobe) const {
@@ -97,9 +102,9 @@ private:
   std::vector<ClusterNode> centroids_;
   plsq::PLSQQuantizer      quantizer_;
 
-  // K-means++聚类算法实现
+  // K-means++聚类算法实现（并行版本）
   void kmeans_clustering(const float *data, size_t num_samples) {
-    constexpr size_t max_iterations = 1000;
+    constexpr size_t max_iterations = 500;
     constexpr float  tolerance      = 1e-9f;
 
     // K-means++初始化聚类中心
@@ -119,7 +124,8 @@ private:
       std::vector<float> distances(num_samples);
       float              total_distance = 0.0f;
 
-      // 计算每个数据点到最近已选聚类中心的距离
+      // 并行计算每个数据点到最近已选聚类中心的距离
+#pragma omp parallel for reduction(+ : total_distance)
       for (size_t j = 0; j < num_samples; ++j) {
         const float *vec      = data + j * dim_;
         float        min_dist = std::numeric_limits<float>::max();
@@ -152,18 +158,31 @@ private:
       centroids_[i].indices.clear();
     }
 
+    // 初始化OpenMP锁
+    std::vector<omp_lock_t> locks(nlist_);
+    for (auto &lock : locks) {
+      omp_init_lock(&lock);
+    }
+
+    size_t consecutive_converged = 0;
     for (size_t iter = 0; iter < max_iterations; ++iter) {
+      if (iter % 50 == 0) {
+        std::cout << "[" << iter << "/" << max_iterations << "] " << std::endl;
+      }
+
       // 清空之前的分配
       for (auto &centroid : centroids_) {
         centroid.indices.clear();
       }
 
-      // 分配每个数据点到最近的聚类中心
+      // 并行分配每个数据点到最近的聚类中心
+#pragma omp parallel for
       for (size_t i = 0; i < num_samples; ++i) {
         const float *vec          = data + i * dim_;
         size_t       best_cluster = 0;
         float        min_distance = std::numeric_limits<float>::max();
 
+        // 查找最近的聚类中心
         for (size_t j = 0; j < nlist_; ++j) {
           float distance = l2distance(vec, centroids_[j].centroid, dim_);
           if (distance < min_distance) {
@@ -172,20 +191,29 @@ private:
           }
         }
 
+        // 加锁保护聚类索引列表
+        omp_set_lock(&locks[best_cluster]);
         centroids_[best_cluster].indices.push_back(i);
+        omp_unset_lock(&locks[best_cluster]);
       }
 
-      // 更新聚类中心
-      int converged = 0;
-      for (auto &centroid : centroids_) {
+      // 更新聚类中心并检查收敛性
+      bool not_converged = false;
+#pragma omp parallel for reduction(|| : not_converged)
+      for (size_t c = 0; c < nlist_; ++c) {
+        auto &centroid = centroids_[c];
         if (centroid.indices.empty()) {
-          // 如果某个聚类中心没有分配到任何点，随机重新初始化
-          size_t       random_idx = dis(gen);
+          // 如果聚类为空，重新初始化
+          size_t random_idx;
+#pragma omp critical
+          { random_idx = dis(gen); }
           const float *random_vec = data + random_idx * dim_;
-          memcpy(centroid.centroid.data(), random_vec, dim_ * sizeof(float));
+          std::copy_n(random_vec, dim_, centroid.centroid.data());
+          not_converged = true;  // 重新初始化视为变化
           continue;
         }
 
+        // 计算新的聚类中心
         std::vector<float> new_centroid(dim_, 0.0f);
         for (const auto idx : centroid.indices) {
           const float *vec = data + idx * dim_;
@@ -201,17 +229,27 @@ private:
         // 检查收敛性
         float centroid_shift = l2distance(centroid.centroid, new_centroid, dim_);
         if (centroid_shift > tolerance) {
-          converged = 0;
-        } else {
-          converged++;
+          not_converged = true;
         }
-
         centroid.centroid = std::move(new_centroid);
       }
 
-      if (converged == 16) {
+      // 更新连续收敛计数器
+      if (not_converged) {
+        consecutive_converged = 0;
+      } else {
+        consecutive_converged++;
+      }
+
+      // 检查收敛条件
+      if (consecutive_converged >= 16) {
         break;
       }
+    }
+
+    // 销毁OpenMP锁
+    for (auto &lock : locks) {
+      omp_destroy_lock(&lock);
     }
   }
 };

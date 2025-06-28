@@ -17,15 +17,16 @@ std::vector<float> generate_vector(size_t size) {
   return result;
 }
 
-int main() {
-  // const std::string dataset_name = argv[1];
-  size_t dim        = 100;
-  auto   data       = generate_vector(dim * 50000);
-  auto   query_data = generate_vector(dim * 10);
+int main(int argc, char *argv[]) {
+  const std::string dataset_name = argv[1];
+  // size_t dim        = 100;
+  // auto   data       = generate_vector(dim * 50000);
+  // auto   query_data = generate_vector(dim * 10);
 
-  // const auto [data, dim]         = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
-  // const auto [query_data, _]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
-  auto Nq = query_data.size() / dim;
+  const auto [data, dim] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
+  auto [query_data, _]   = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
+  query_data             = std::vector(query_data.begin(), query_data.begin() + dim * 100);
+  auto Nq                = query_data.size() / dim;
 
   IvfIndex index(16, dim);
   index.train(data.data(), data.size());
