@@ -25,10 +25,12 @@ class POUQuantizer : public Quantizer {
   static_assert(1 <= q_bit && q_bit <= 16);
 
   static constexpr auto   div           = static_cast<float>((static_cast<size_t>(1) << q_bit) - 1);
-  static constexpr size_t cluster_count = (c_bit == 0) ? 1 : (static_cast<size_t>(1) << c_bit);
+  static constexpr size_t cluster_count = c_bit == 0 ? 1 : static_cast<size_t>(1) << c_bit;
 
 public:
-  explicit POUQuantizer(const size_t groups = 1) : groups_(groups) {}
+  explicit POUQuantizer() = default;
+
+  explicit POUQuantizer(const size_t groups) : groups_(groups) {}
 
   void train(const float *data, size_t size) override {
     this->size_        = size;
@@ -100,8 +102,8 @@ public:
   }
 
 private:
-  size_t   size_;
-  size_t   groups_;
+  size_t   size_        = 0;
+  size_t   groups_      = 1;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
   uint8_t *cid_         = nullptr;
@@ -115,22 +117,22 @@ private:
     }
     std::sort(sorted_data.begin(), sorted_data.end());
 
-    float  current_value = sorted_data[0];
-    size_t count         = 1;
+    float  curr_value = sorted_data[0];
+    size_t count      = 1;
 
     std::vector<std::pair<float, size_t>> data_freq_map;
     data_freq_map.reserve(sorted_data.size());
     for (size_t i = 1; i < sorted_data.size(); i++) {
-      if (sorted_data[i] == current_value) {
+      if (sorted_data[i] == curr_value) {
         count++;
       } else {
-        data_freq_map.emplace_back(current_value, count);
-        current_value = sorted_data[i];
-        count         = 1;
+        data_freq_map.emplace_back(curr_value, count);
+        curr_value = sorted_data[i];
+        count      = 1;
       }
     }
 
-    data_freq_map.emplace_back(current_value, count);
+    data_freq_map.emplace_back(curr_value, count);
     return data_freq_map;
   }
 };
