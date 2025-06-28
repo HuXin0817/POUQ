@@ -2,7 +2,7 @@
 #include "../libpouq/clusterer.hpp"
 #include "../libpouq/index/ivf.hpp"
 #include "../libpouq/optimizer.hpp"
-#include "../libpouq/quantizer.hpp"
+// #include "../libpouq/quantizer.hpp"
 
 #include <omp.h>
 
