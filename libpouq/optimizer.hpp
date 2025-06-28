@@ -7,144 +7,160 @@
 
 namespace pouq {
 
-static constexpr size_t max_iter          = 128;
-static constexpr size_t grid_side_length  = 8;
-static constexpr float  grid_scale_factor = 0.1f;
-static constexpr float  init_inertia      = 0.9f;
-static constexpr float  final_inertia     = 0.4f;
-static constexpr float  c1                = 1.8f;
-static constexpr float  c2                = 1.8f;
+static constexpr size_t MAX_ITERATIONS           = 128;
+static constexpr size_t PARTICLE_COUNT           = 64;
+static constexpr float  GRID_SCALE_FACTOR        = 0.1f;
+static constexpr float  INITIAL_INERTIA          = 0.9f;
+static constexpr float  FINAL_INERTIA            = 0.4f;
+static constexpr float  PERSONAL_LEARNING_FACTOR = 1.8f;
+static constexpr float  SOCIAL_LEARNING_FACTOR   = 1.8f;
 
 struct Particle {
-  float center;
-  float width;
-  float v_center;
-  float v_width;
-  float best_center;
-  float best_width;
-  float min_loss;
+  float position_center;
+  float position_width;
+  float velocity_center;
+  float velocity_width;
+  float best_position_center;
+  float best_position_width;
+  float best_loss;
 
-  Particle(const float c_val, const float w_val, const float vc_val, const float vw_val)
-      : center(c_val),
-        width(w_val),
-        v_center(vc_val),
-        v_width(vw_val),
-        best_center(c_val),
-        best_width(w_val),
-        min_loss(std::numeric_limits<float>::max()) {}
+  Particle(const float center_val,
+      const float      width_val,
+      const float      velocity_center_val,
+      const float      velocity_width_val)
+      : position_center(center_val),
+        position_width(width_val),
+        velocity_center(velocity_center_val),
+        velocity_width(velocity_width_val),
+        best_position_center(center_val),
+        best_position_width(width_val),
+        best_loss(std::numeric_limits<float>::max()) {}
 };
 
-inline float loss(const float                                    div,
+inline float calculate_quantization_loss(const float             division_count,
     float                                                        cluster_lower_bound,
-    float                                                        step_size_value,
+    float                                                        step_size,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_begin,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
-  step_size_value  = std::max(step_size_value, 1e-8f);
+  step_size        = std::max(step_size, 1e-8f);
   float total_loss = 0.0f;
 
   for (auto it = data_begin; it != data_end; ++it) {
     const auto &[data_value, point_count] = *it;
-    const float real_quantized_code       = (data_value - cluster_lower_bound) / step_size_value;
+    const float real_quantized_code       = (data_value - cluster_lower_bound) / step_size;
     float       quantized_code            = 0.0f;
 
     if (data_value > cluster_lower_bound) {
       quantized_code = std::round(real_quantized_code);
-      if (quantized_code > div) {
-        quantized_code = div;
+      if (quantized_code > division_count) {
+        quantized_code = division_count;
       }
     }
 
-    const float code_loss = real_quantized_code - quantized_code;
-    total_loss += code_loss * code_loss * static_cast<float>(point_count);
+    const float quantization_error = real_quantized_code - quantized_code;
+    total_loss += quantization_error * quantization_error * static_cast<float>(point_count);
   }
 
-  return total_loss * step_size_value * step_size_value;
+  return total_loss * step_size * step_size;
 }
 
-inline std::pair<float, float> optimizing(float                  div,
+inline std::pair<float, float> optimize_quantization_range(float division_count,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
-  auto        init_lower_bound  = data_start->first;
-  auto        init_upper_bound  = (data_end - 1)->first;
-  const float init_range_width  = init_upper_bound - init_lower_bound;
-  const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
+  auto        initial_lower_bound  = data_start->first;
+  auto        initial_upper_bound  = (data_end - 1)->first;
+  const float initial_range_width  = initial_upper_bound - initial_lower_bound;
+  const float initial_range_center = (initial_lower_bound + initial_upper_bound) * 0.5f;
 
-  std::random_device             rd;
-  std::mt19937                   gen(rd());
-  std::uniform_real_distribution v_dis(-init_range_width * 0.1f, init_range_width * 0.1f);
-  std::uniform_real_distribution p_dis(0.0f, 1.0f);
+  std::random_device             random_device;
+  std::mt19937                   random_generator(random_device());
+  std::uniform_real_distribution velocity_distribution(-initial_range_width * 0.1f, initial_range_width * 0.1f);
+  std::uniform_real_distribution random_factor_distribution(0.0f, 1.0f);
 
-  std::vector<Particle> swarm;
-  swarm.reserve(grid_side_length * grid_side_length);
-  for (size_t i = 0; i < grid_side_length; i++) {
-    for (size_t j = 0; j < grid_side_length; j++) {
-      const float lower_bound = init_lower_bound - grid_scale_factor * init_range_width +
-                                static_cast<float>(i) * 2 * grid_scale_factor * init_range_width / grid_side_length;
-      const float upper_bound = init_upper_bound - grid_scale_factor * init_range_width +
-                                static_cast<float>(j) * 2 * grid_scale_factor * init_range_width / grid_side_length;
-      const float particle_center = (lower_bound + upper_bound) / 2.0f;
-      const float particle_width  = upper_bound - lower_bound;
+  const float                    expanded_lower_bound = initial_lower_bound - GRID_SCALE_FACTOR * initial_range_width;
+  const float                    expanded_upper_bound = initial_upper_bound + GRID_SCALE_FACTOR * initial_range_width;
+  std::uniform_real_distribution center_distribution(expanded_lower_bound, expanded_upper_bound);
+  std::uniform_real_distribution width_distribution(initial_range_width * 0.1f, initial_range_width * 1.2f);
 
-      swarm.emplace_back(particle_center, particle_width, v_dis(gen), v_dis(gen));
+  std::vector<Particle> particle_swarm;
+  particle_swarm.reserve(PARTICLE_COUNT);
+
+  for (size_t i = 0; i < PARTICLE_COUNT; i++) {
+    const float particle_center = center_distribution(random_generator);
+    const float particle_width  = width_distribution(random_generator);
+
+    particle_swarm.emplace_back(particle_center,
+        particle_width,
+        velocity_distribution(random_generator),
+        velocity_distribution(random_generator));
+  }
+
+  float global_best_center = initial_range_center;
+  float global_best_width  = initial_range_width;
+  float global_min_loss    = calculate_quantization_loss(
+      division_count, initial_lower_bound, initial_range_width / division_count, data_start, data_end);
+
+  for (auto &particle : particle_swarm) {
+    const float current_lower_bound = particle.position_center - particle.position_width * 0.5f;
+    const float current_loss        = calculate_quantization_loss(
+        division_count, current_lower_bound, particle.position_width / division_count, data_start, data_end);
+
+    particle.best_loss = current_loss;
+    if (current_loss < global_min_loss) {
+      global_min_loss    = current_loss;
+      global_best_center = particle.position_center;
+      global_best_width  = particle.position_width;
     }
   }
 
-  float global_best_center = init_range_center;
-  float global_best_width  = init_range_width;
-  float global_min_loss    = loss(div, init_lower_bound, init_range_width / div, data_start, data_end);
+  for (size_t iteration = 0; iteration < MAX_ITERATIONS; ++iteration) {
+    const float inertia_weight =
+        INITIAL_INERTIA - (INITIAL_INERTIA - FINAL_INERTIA) * static_cast<float>(iteration) / MAX_ITERATIONS;
 
-  for (auto &particle : swarm) {
-    const float curr_lower_bound = particle.center - particle.width * 0.5f;
-    const float curr_loss        = loss(div, curr_lower_bound, particle.width / div, data_start, data_end);
+    for (auto &particle : particle_swarm) {
+      const float cognitive_random_factor = random_factor_distribution(random_generator);
+      const float social_random_factor    = random_factor_distribution(random_generator);
 
-    particle.min_loss = curr_loss;
-    if (curr_loss < global_min_loss) {
-      global_min_loss    = curr_loss;
-      global_best_center = particle.center;
-      global_best_width  = particle.width;
-    }
-  }
+      particle.velocity_center =
+          inertia_weight * particle.velocity_center +
+          PERSONAL_LEARNING_FACTOR * cognitive_random_factor *
+              (particle.best_position_center - particle.position_center) +
+          SOCIAL_LEARNING_FACTOR * social_random_factor * (global_best_center - particle.position_center);
 
-  for (size_t iter = 0; iter < max_iter; ++iter) {
-    const float inertia = init_inertia - (init_inertia - final_inertia) * static_cast<float>(iter) / max_iter;
+      particle.velocity_width =
+          inertia_weight * particle.velocity_width +
+          PERSONAL_LEARNING_FACTOR * cognitive_random_factor *
+              (particle.best_position_width - particle.position_width) +
+          SOCIAL_LEARNING_FACTOR * social_random_factor * (global_best_width - particle.position_width);
 
-    for (auto &particle : swarm) {
-      const float r1 = p_dis(gen);
-      const float r2 = p_dis(gen);
+      particle.position_center += particle.velocity_center;
+      particle.position_width += particle.velocity_width;
 
-      particle.v_center = inertia * particle.v_center + c1 * r1 * (particle.best_center - particle.center) +
-                          c2 * r2 * (global_best_center - particle.center);
-
-      particle.v_width = inertia * particle.v_width + c1 * r1 * (particle.best_width - particle.width) +
-                         c2 * r2 * (global_best_width - particle.width);
-
-      particle.center += particle.v_center;
-      particle.width += particle.v_width;
-
-      if (particle.width <= std::numeric_limits<float>::epsilon()) {
-        particle.width = std::numeric_limits<float>::epsilon();
+      if (particle.position_width <= std::numeric_limits<float>::epsilon()) {
+        particle.position_width = std::numeric_limits<float>::epsilon();
       }
 
-      const float curr_lower = particle.center - particle.width * 0.5f;
-      const float curr_loss  = loss(div, curr_lower, particle.width / div, data_start, data_end);
+      const float current_lower_bound = particle.position_center - particle.position_width * 0.5f;
+      const float current_loss        = calculate_quantization_loss(
+          division_count, current_lower_bound, particle.position_width / division_count, data_start, data_end);
 
-      if (curr_loss < particle.min_loss) {
-        particle.min_loss    = curr_loss;
-        particle.best_center = particle.center;
-        particle.best_width  = particle.width;
+      if (current_loss < particle.best_loss) {
+        particle.best_loss            = current_loss;
+        particle.best_position_center = particle.position_center;
+        particle.best_position_width  = particle.position_width;
       }
 
-      if (curr_loss < global_min_loss) {
-        global_min_loss    = curr_loss;
-        global_best_center = particle.center;
-        global_best_width  = particle.width;
+      if (current_loss < global_min_loss) {
+        global_min_loss    = current_loss;
+        global_best_center = particle.position_center;
+        global_best_width  = particle.position_width;
       }
     }
   }
 
-  const float opt_lower = global_best_center - global_best_width * 0.5f;
-  const float opt_upper = global_best_center + global_best_width * 0.5f;
-  return {opt_lower, opt_upper};
+  const float optimal_lower_bound = global_best_center - global_best_width * 0.5f;
+  const float optimal_upper_bound = global_best_center + global_best_width * 0.5f;
+  return {optimal_lower_bound, optimal_upper_bound};
 }
 
 }  // namespace pouq
