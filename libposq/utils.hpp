@@ -1,11 +1,14 @@
 #pragma once
 
 #include <fstream>
-#include <immintrin.h>  // 添加SIMD头文件
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#if defined(__i386__) || defined(__x86_64__)
+
+#include <immintrin.h>  // 添加SIMD头文件
 
 // SIMD优化的L2距离计算函数
 template <typename D1, typename D2, typename T>
@@ -55,6 +58,21 @@ float l2distance(const D1 &d1, const D2 &d2, T size) {
 
   return sum;  // 移除除法，保持与search函数中的计算一致
 }
+
+#else
+
+// SIMD优化的L2距离计算函数
+template <typename D1, typename D2, typename T>
+float l2distance(const D1 &d1, const D2 &d2, T size) {
+  float sum = 0;
+  for (T i = 0; i < size; ++i) {
+    const float dif = d1[i] - d2[i];
+    sum += dif * dif;
+  }
+  return sum;  // 移除除法，保持与search函数中的计算一致
+}
+
+#endif
 
 std::pair<std::vector<float>, size_t> read_fvecs(const std::string &filename) {
   std::cout << "read from " << filename << std::endl;

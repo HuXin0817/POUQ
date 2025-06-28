@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 
   auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
   auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
-  data                 = std::vector(data.begin(), data.begin() + dim * 100000);
+  data                 = std::vector(data.begin(), data.begin() + dim * 50000);
   query_data           = std::vector(query_data.begin(), query_data.begin() + dim * 100);
   auto Nq              = query_data.size() / dim;
 
@@ -74,10 +74,10 @@ int main(int argc, char *argv[]) {
     auto start_time = std::chrono::high_resolution_clock::now();
 
     // 执行搜索
-    std::vector<std::vector<size_t>> search_results(Nq);
+    std::vector<std::vector<std::pair<size_t, float>>> search_results(Nq);
     for (size_t i = 0; i < Nq; i++) {
       const auto q      = query_data.data() + i * dim;
-      search_results[i] = index.search(q, topk, nprobe).second;
+      search_results[i] = index.search(q, topk, nprobe);
     }
 
     // 结束计时
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
       std::unordered_set<size_t> gt_set(ground_truth[i].begin(), ground_truth[i].end());
       size_t                     found = 0;
       for (size_t j = 0; j < std::min(search_results[i].size(), static_cast<size_t>(topk)); j++) {
-        if (gt_set.find(search_results[i][j]) != gt_set.end()) {
+        if (gt_set.find(search_results[i][j].first) != gt_set.end()) {
           found++;
         }
       }
