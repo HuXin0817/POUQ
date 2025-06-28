@@ -275,7 +275,7 @@ if __name__ == "__main__":
         index_ivfpqfs.add(data.astype("float32"))
 
         # 测试不同的nprobe值
-        nprobe_values = [1, 5, 10, 20, 50]
+        nprobe_values = [5, 10, 20, 50]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, total_time = benchmark_index(
                 index_ivfpqfs,
