@@ -127,11 +127,10 @@ public:
     static const __m256i mask   = _mm256_set1_epi32(3);
 
     for (size_t i = 0; i < dim_; i += 8) {
-      const size_t idx          = i / 4;
-      const auto [c1, c2, code] = combined_data_[(offset + idx) / 2];
-      const auto [lb1, st1]     = bounds_data_[idx * 256 + c1];
-      const auto [lb2, st2]     = bounds_data_[(idx + 1) * 256 + c2];
-
+      const size_t idx            = i / 4;
+      const auto [c1, c2, code]   = combined_data_[(offset + idx) / 2];
+      const auto [lb1, st1]       = bounds_data_[idx * 256 + c1];
+      const auto [lb2, st2]       = bounds_data_[(idx + 1) * 256 + c2];
       const __m256  lb_vec        = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       const __m256  st_vec        = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
       const __m256i bytes         = _mm256_set1_epi32(code);
