@@ -18,8 +18,8 @@ public:
 float compute_mse(const py::array_t<float> &data, const Quantizer &quantizer) {
   float mse = 0;
   for (uint64_t i = 0; i < static_cast<uint64_t>(data.size()); ++i) {
-    const float dif = data.data()[i] - quantizer[i];
-    mse += dif * dif;
+    const float diff = data.data()[i] - quantizer[i];
+    mse += diff * diff;
   }
   return mse / static_cast<float>(data.size());
 }
