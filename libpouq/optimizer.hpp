@@ -13,9 +13,7 @@ public:
 
   virtual std::pair<float, float> operator()(float                 div,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
-    return {data_start->first, (data_end - 1)->first};
-  }
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) = 0;
 
 protected:
   static float loss(const float                                    div,
@@ -43,6 +41,15 @@ protected:
     }
 
     return total_loss * step_size_value * step_size_value;
+  }
+};
+
+class MinMaxOptimizer : public Optimizer {
+public:
+  std::pair<float, float> operator()(float                         div,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
+    return {data_start->first, (data_end - 1)->first};
   }
 };
 
@@ -78,9 +85,9 @@ public:
   std::pair<float, float> operator()(float                         div,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
-    const auto [init_lower_bound, init_upper_bound] = Optimizer::operator()(div, data_start, data_end);
-    const float                                                  init_range_width = init_upper_bound - init_lower_bound;
-    const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
+    const auto [init_lower_bound, init_upper_bound] = MinMaxOptimizer()(div, data_start, data_end);
+    const float init_range_width                    = init_upper_bound - init_lower_bound;
+    const float init_range_center                   = (init_lower_bound + init_upper_bound) * 0.5f;
 
     std::random_device             rd;
     std::mt19937                   gen(rd());

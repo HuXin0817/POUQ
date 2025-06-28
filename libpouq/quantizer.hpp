@@ -155,7 +155,7 @@ private:
   }
 };
 
-class SQQuantizer final : public QuantizerImpl<Clusterer, Optimizer> {
+class SQQuantizer final : public QuantizerImpl<Clusterer, MinMaxOptimizer> {
 public:
   explicit SQQuantizer(size_t q_bit, size_t sub = 1) : QuantizerImpl(0, q_bit, sub) {}
 };
