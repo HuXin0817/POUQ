@@ -1,0 +1,12 @@
+python run.py sift
+python plot.py sift
+python run.py word2vec
+python plot.py word2vec
+python run.py gist
+python plot.py gist
+python run.py deep1M
+python plot.py deep1M
+python run.py msong
+python plot.py msong
+python run.py imagenet
+python plot.py imagenet

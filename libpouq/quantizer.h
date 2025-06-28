@@ -148,14 +148,14 @@ private:
   }
 };
 
-class ScaledQuantizer final : public QuantizerImpl<Clusterer, Optimizer> {
+class SQQuantizer final : public QuantizerImpl<Clusterer, Optimizer> {
 public:
-  explicit ScaledQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
+  explicit SQQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
 };
 
-class OptimizedScaledQuantizer final : public QuantizerImpl<Clusterer, PSOptimizer> {
+class OSQQuantizer final : public QuantizerImpl<Clusterer, PSOptimizer> {
 public:
-  explicit OptimizedScaledQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
+  explicit OSQQuantizer(size_t q_bit, size_t groups = 1) : QuantizerImpl(0, q_bit, groups) {}
 };
 
 class LloydMaxQuantizer final : public QuantizerImpl<KmeansClusterer, CenterCalculator> {
@@ -163,9 +163,9 @@ public:
   explicit LloydMaxQuantizer(size_t c_bit, size_t groups = 1) : QuantizerImpl(c_bit, 0, groups) {}
 };
 
-class POUQuantizer final : public QuantizerImpl<KrangeClusterer, PSOptimizer> {
+class POUQQuantizer final : public QuantizerImpl<KrangeClusterer, PSOptimizer> {
 public:
-  explicit POUQuantizer(size_t c_bit, size_t q_bit, size_t groups = 1) : QuantizerImpl(c_bit, q_bit, groups) {}
+  explicit POUQQuantizer(size_t c_bit, size_t q_bit, size_t groups = 1) : QuantizerImpl(c_bit, q_bit, groups) {}
 };
 
 }  // namespace pouq

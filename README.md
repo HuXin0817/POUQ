@@ -66,7 +66,7 @@ int main() {
     d = dis(gen);
   }
 
-  pouq::POUQuantizer quantizer(4, 4, 256);
+  pouq::POUQQuantizer quantizer(4, 4, 256);
 
   const auto start_time = std::chrono::high_resolution_clock::now();
   quantizer.train(data.data(), N);
