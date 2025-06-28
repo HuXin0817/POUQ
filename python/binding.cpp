@@ -22,18 +22,15 @@ namespace py = pybind11;
 PYBIND11_MODULE(pouq, m) {
   m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
 
-  py::class_<pouq::Float32Quantizer>(m, "Float32Quantizer")
-      .def(py::init<>()) BIND_QUANTIZER_METHODS(pouq::Float32Quantizer);
+  py::class_<pouq::Float32Quantizer>(m, "Float32Quantizer") BIND_QUANTIZER_METHODS(pouq::Float32Quantizer);
 
   py::class_<pouq::ScaledQuantizer>(m, "ScaledQuantizer")
-      .def(py::init<const size_t, const size_t>(), py::arg("q_bit"), py::arg("groups") = 1)
+      .def(py::init<size_t, size_t>(), py::arg("q_bit"), py::arg("groups") = 1)
           BIND_QUANTIZER_METHODS(pouq::ScaledQuantizer);
 
   py::class_<pouq::POUQuantizer<>>(m, "POUQuantizer")
-      .def(py::init<const size_t, const size_t, const size_t>(),
-          py::arg("c_bit"),
-          py::arg("q_bit"),
-          py::arg("groups") = 1) BIND_QUANTIZER_METHODS(pouq::POUQuantizer<>);
+      .def(py::init<size_t, size_t, size_t>(), py::arg("c_bit"), py::arg("q_bit"), py::arg("groups") = 1)
+          BIND_QUANTIZER_METHODS(pouq::POUQuantizer<>);
 
   BIND_COMPUTE_MSE(pouq::POUQuantizer<>)
   BIND_COMPUTE_MSE(pouq::ScaledQuantizer)
