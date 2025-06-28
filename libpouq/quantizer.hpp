@@ -40,8 +40,8 @@ public:
   void train(const float *data, size_t size) {
     combined_data_ = new std::tuple<uint8_t, uint8_t, uint16_t>[size / 4];
 
-    std::vector<float>   step_size(dim_ * 4);
-    std::vector<float>   lower_bound(dim_ * 4);
+    std::vector<float>   temp_step_size(dim_ * 4);
+    std::vector<float>   temp_lower_bound(dim_ * 4);
     std::vector<uint8_t> temp_cid(size / 4);
     std::vector<uint8_t> temp_code(size / 4);
 
@@ -69,11 +69,11 @@ public:
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
-        lower_bound[d_times_4 + i] = lower;
+        temp_lower_bound[d_times_4 + i] = lower;
         if (lower == upper) {
-          step_size[d_times_4 + i] = 1.0;
+          temp_step_size[d_times_4 + i] = 1.0;
         } else {
-          step_size[d_times_4 + i] = (upper - lower) / 3.0f;
+          temp_step_size[d_times_4 + i] = (upper - lower) / 3.0f;
         }
       }
 
@@ -84,7 +84,7 @@ public:
             });
         const size_t c = it - bounds.begin() - 1;
         const float  x =
-            std::clamp((data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
+            std::clamp((data[i] - temp_lower_bound[d_times_4 + c]) / temp_step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
         const size_t base_index = (i / dim_) * dim_div_4;
         set(&temp_cid[base_index], i % dim_, c);
         set(&temp_code[base_index], i % dim_, x);
@@ -103,14 +103,14 @@ public:
       for (size_t j = 0; j < 256; j++) {
         const auto [x0, x1, x2, x3] = get(j);
         const size_t base_idx       = g * 16;
-        const __m128 lb             = _mm_setr_ps(lower_bound[base_idx + 0 * 4 + x0],
-            lower_bound[base_idx + 1 * 4 + x1],
-            lower_bound[base_idx + 2 * 4 + x2],
-            lower_bound[base_idx + 3 * 4 + x3]);
-        const __m128 st             = _mm_setr_ps(step_size[base_idx + 0 * 4 + x0],
-            step_size[base_idx + 1 * 4 + x1],
-            step_size[base_idx + 2 * 4 + x2],
-            step_size[base_idx + 3 * 4 + x3]);
+        const __m128 lb             = _mm_setr_ps(temp_lower_bound[base_idx + 0 * 4 + x0],
+            temp_lower_bound[base_idx + 1 * 4 + x1],
+            temp_lower_bound[base_idx + 2 * 4 + x2],
+            temp_lower_bound[base_idx + 3 * 4 + x3]);
+        const __m128 st             = _mm_setr_ps(temp_step_size[base_idx + 0 * 4 + x0],
+            temp_step_size[base_idx + 1 * 4 + x1],
+            temp_step_size[base_idx + 2 * 4 + x2],
+            temp_step_size[base_idx + 3 * 4 + x3]);
         bounds_data_[g * 256 + j]   = {lb, st};
       }
     }
