@@ -40,9 +40,9 @@ def run(data: np.ndarray, results_dict):
     print(f"N={N}, Dim={Dim}")
 
     methods = [
-        ("SQ", ScaledQuantizer(q_bit=8, groups=Dim)),
-        ("POUQ", POUQuantizer(c_bit=4, q_bit=4, groups=Dim)),
-        ("LloydMax", LloydMaxQuantizer(c_bit=8, groups=Dim)),
+        ("SQ8", ScaledQuantizer(q_bit=8, groups=Dim)),
+        ("POUQ8", POUQuantizer(c_bit=4, q_bit=4, groups=Dim)),
+        ("LloydMax8", LloydMaxQuantizer(c_bit=8, groups=Dim)),
     ]
 
     for method_name, quantizer in methods:
@@ -67,10 +67,26 @@ def plot_tradeoff(results_dict, dataset_name):
     colors = {"SQ": "blue", "POUQ": "red", "LloydMax": "green"}
     markers = {"SQ": "o", "POUQ": "s", "LloydMax": "^"}
 
+    has_zero_mse = False
+    min_nonzero_mse = float("inf")
+
     for method_name, data in results_dict.items():
+        for mse in data["mses"]:
+            if mse == 0:
+                has_zero_mse = True
+            elif mse > 0 and mse < min_nonzero_mse:
+                min_nonzero_mse = mse
+
+    zero_replacement = (
+        min_nonzero_mse / 100 if min_nonzero_mse != float("inf") else 1e-17
+    )
+
+    for method_name, data in results_dict.items():
+        adjusted_mses = [mse if mse > 0 else zero_replacement for mse in data["mses"]]
+
         plt.scatter(
             data["times"],
-            data["mses"],
+            adjusted_mses,
             c=colors.get(method_name, "black"),
             marker=markers.get(method_name, "o"),
             label=method_name,
@@ -80,15 +96,26 @@ def plot_tradeoff(results_dict, dataset_name):
 
         plt.plot(
             data["times"],
-            data["mses"],
+            adjusted_mses,
             c=colors.get(method_name, "black"),
             alpha=0.3,
             linewidth=1,
         )
 
+    if has_zero_mse:
+        plt.axhline(
+            y=zero_replacement,
+            color="blue",
+            linestyle="--",
+            linewidth=2,
+            alpha=0.8,
+            label="MSE=0",
+        )
+
     plt.xlabel("Training Time (seconds)")
     plt.ylabel("MSE")
     plt.title(f"Training Time vs MSE Trade-off ({dataset_name})")
+
     plt.legend()
     plt.grid(True, alpha=0.3)
 
