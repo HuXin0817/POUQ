@@ -64,10 +64,13 @@ public:
     }
   }
 
-  float l2distance(const float *data, size_t offset) const {
+  float l2distance(const float *data, size_t n) const {
     float dis = 0.0f;
     for (size_t i = 0; i < dim_; i++) {
-      float diff = data[i] - at(offset + i);
+      uint8_t v      = codes_[n + i];
+      size_t  off    = 2 * ((v & 0xF) + i * (1 << 4));
+      float   decode = codebook_[off] + codebook_[off + 1] * (v >> 4 & 0xF);
+      float   diff   = data[i] - decode;
       dis += diff * diff;
     }
     return dis;
@@ -121,12 +124,12 @@ private:
     return data_freq_map;
   }
 
-  float at(size_t i) const {
-    const auto   v      = codes_[i];
-    const size_t group  = i % dim_;
-    const size_t offset = 2 * ((v & 0xF) + group * (1 << 4));
-    return codebook_[offset] + codebook_[offset + 1] * static_cast<float>(v >> 4 & 0xF);
-  }
+  // float at(size_t i) const {
+  //   const auto   v      = codes_[i];
+  //   const size_t group  = i % dim_;
+  //   const size_t offset = 2 * ((v & 0xF) + group * (1 << 4));
+  //   return codebook_[offset] + codebook_[offset + 1] * static_cast<float>(v >> 4 & 0xF);
+  // }
 
   void set(uint8_t *data, size_t index, size_t n) {
     n &= (1 << 4) - 1;
