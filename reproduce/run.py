@@ -31,8 +31,8 @@ N, Dim = data.shape
 print(f"N={N}, Dim={Dim}")
 
 
-def print_err(method: str, qvector: Quantizer):
-    print(f"Method: {method}, Error: {compute_mse(data, qvector)}")
+def print_err(method: str, quantizer: Quantizer):
+    print(f"Method: {method}, Error: {compute_mse(data, quantizer)}")
 
 
 print_err("SQ", Quantizer(data, c_bit=0, q_bit=8, groups=Dim, opt_bound=False))
