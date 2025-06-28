@@ -7,15 +7,15 @@
 #include "clusterer.hpp"
 #include "optimizer.hpp"
 
-#include <assert.h>
+#include <cassert>
 
 namespace pouq {
 
-inline void set(uint8_t *data, size_t index, size_t n) {
-  const size_t byte_index = index >> 2;
-  const size_t bit_offset = (index & 3) << 1;
-  data[byte_index] &= ~(3 << bit_offset);
-  data[byte_index] |= n << bit_offset;
+inline void set(uint8_t *data, size_t i, size_t n) {
+  const size_t offset = (i & 3) << 1;
+  i >>= 2;
+  data[i] &= ~(3 << offset);
+  data[i] |= n << offset;
 }
 
 inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
@@ -38,11 +38,10 @@ public:
   explicit Quantizer(size_t groups) : dim_(groups) { assert(dim_ % 32 == 0); }
 
   void train(const float *data, size_t size) {
-    std::vector<float> step_size(dim_ * 4);
-    std::vector<float> lower_bound(dim_ * 4);
-
     combined_data_ = new std::tuple<uint8_t, uint8_t, uint16_t>[size / 4];
 
+    std::vector<float>   step_size(dim_ * 4);
+    std::vector<float>   lower_bound(dim_ * 4);
     std::vector<uint8_t> temp_cid(size / 4);
     std::vector<uint8_t> temp_code(size / 4);
 
@@ -57,18 +56,18 @@ public:
       for (size_t i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
         if (lower < upper) {
-          auto data_start = std::lower_bound(data_freq_map.begin(),
+          const auto data_start = std::lower_bound(data_freq_map.begin(),
               data_freq_map.end(),
               lower,
-              [](const std::pair<float, size_t> &lhs, float rhs) -> bool { return lhs.first < rhs; });
-          auto data_end   = std::upper_bound(data_freq_map.begin(),
+              [](const std::pair<float, size_t> &lhs, const float rhs) -> bool { return lhs.first < rhs; });
+          const auto data_end   = std::upper_bound(data_freq_map.begin(),
               data_freq_map.end(),
               upper,
-              [](float rhs, const std::pair<float, size_t> &lhs) -> bool { return rhs < lhs.first; });
+              [](const float rhs, const std::pair<float, size_t> &lhs) -> bool { return rhs < lhs.first; });
 
-          auto [opt_lower, opt_upper] = optimise(3, lower, upper, data_start, data_end);
-          lower                       = opt_lower;
-          upper                       = opt_upper;
+          const auto [opt_lower, opt_upper] = optimise(3, lower, upper, data_start, data_end);
+          lower                             = opt_lower;
+          upper                             = opt_upper;
         }
         lower_bound[d_times_4 + i] = lower;
         if (lower == upper) {
@@ -93,8 +92,8 @@ public:
     }
 
     for (size_t i = 0; i < size / 4; i += 2) {
-      uint16_t combined_code = static_cast<uint16_t>(temp_code[i + 1]) << 8 | temp_code[i];
-      combined_data_[i / 2]  = std::make_tuple(temp_cid[i], temp_cid[i + 1], combined_code);
+      const uint16_t combined_code = static_cast<uint16_t>(temp_code[i + 1]) << 8 | temp_code[i];
+      combined_data_[i / 2]        = std::make_tuple(temp_cid[i], temp_cid[i + 1], combined_code);
     }
 
     bounds_data_ = new ReconstructParameter[dim_ / 4 * 256];
@@ -102,19 +101,17 @@ public:
 #pragma omp parallel for
     for (size_t g = 0; g < dim_ / 4; g++) {
       for (size_t j = 0; j < 256; j++) {
-        auto [x0, x1, x2, x3] = get(j);
-        const size_t base_idx = g * 16;
-
-        __m128 lb = _mm_setr_ps(lower_bound[base_idx + 0 * 4 + x0],
+        const auto [x0, x1, x2, x3] = get(j);
+        const size_t base_idx       = g * 16;
+        const __m128 lb             = _mm_setr_ps(lower_bound[base_idx + 0 * 4 + x0],
             lower_bound[base_idx + 1 * 4 + x1],
             lower_bound[base_idx + 2 * 4 + x2],
             lower_bound[base_idx + 3 * 4 + x3]);
-        __m128 st = _mm_setr_ps(step_size[base_idx + 0 * 4 + x0],
+        const __m128 st             = _mm_setr_ps(step_size[base_idx + 0 * 4 + x0],
             step_size[base_idx + 1 * 4 + x1],
             step_size[base_idx + 2 * 4 + x2],
             step_size[base_idx + 3 * 4 + x3]);
-
-        bounds_data_[g * 256 + j] = {lb, st};
+        bounds_data_[g * 256 + j]   = {lb, st};
       }
     }
   }
