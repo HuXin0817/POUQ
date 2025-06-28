@@ -9,21 +9,22 @@
 namespace pouq {
 
 class Quantizer {
+  static constexpr auto div = static_cast<float>(4 - 1);
+
 public:
-  explicit Quantizer(size_t c_bit, size_t groups) : c_bit_(c_bit), dim_(groups) {}
+  explicit Quantizer(size_t groups) : dim_(groups) {}
 
   void train(const float *data, size_t size) {
-    step_size_     = new float[dim_ * (1 << c_bit_)];
-    lower_bound_   = new float[dim_ * (1 << c_bit_)];
-    cid_           = new uint8_t[(c_bit_ * size + 7) / 8];
-    code_          = new uint8_t[(c_bit_ * size + 7) / 8];
-    const auto div = static_cast<float>((1 << c_bit_) - 1);
+    step_size_   = new float[dim_ * 4];
+    lower_bound_ = new float[dim_ * 4];
+    cid_         = new uint8_t[(2 * size + 7) / 8];
+    code_        = new uint8_t[(2 * size + 7) / 8];
 
 #pragma omp parallel for
     for (size_t group = 0; group < dim_; group++) {
       const auto data_freq_map = count_freq(data, size, group);
-      const auto bounds        = cluster(1 << c_bit_, data_freq_map);
-      const auto offset        = group * (1 << c_bit_);
+      const auto bounds        = cluster(4, data_freq_map);
+      const auto offset        = group * 4;
 
       for (size_t i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
@@ -57,17 +58,17 @@ public:
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        bitmap::set(cid_, i, c, c_bit_);
-        const float x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
-        bitmap::set(code_, i, static_cast<size_t>(x), c_bit_);
+        const float  x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
+        bitmap::set(cid_, i, c);
+        bitmap::set(code_, i, x);
       }
     }
   }
 
   float operator[](size_t i) const {
     const size_t group  = i % dim_;
-    const size_t offset = bitmap::get(cid_, i, c_bit_) + group * (1 << c_bit_);
-    const size_t x      = bitmap::get(code_, i, c_bit_);
+    const size_t offset = bitmap::get(cid_, i) + group * 4;
+    const size_t x      = bitmap::get(code_, i);
     return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
   }
 
@@ -79,7 +80,6 @@ public:
   }
 
 private:
-  size_t   c_bit_       = 0;
   size_t   dim_         = 0;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
