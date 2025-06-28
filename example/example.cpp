@@ -42,6 +42,6 @@ int main() {
   std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
   std::cout << std::left << std::setw(18) << "Error:" << compute_mse(data, quantizer, N) << std::endl;
 
-  print_vector("Origin Vector:    ", data);
-  print_vector("Quantized Vector: ", quantizer);
+  print_vector("Origin Vector:", data);
+  print_vector("Quantized Vector:", quantizer);
 }
