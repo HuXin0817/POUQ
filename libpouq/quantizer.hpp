@@ -120,16 +120,15 @@ public:
   }
 
   float l2distance(const float *data, size_t offset) const {
-    const size_t base_offset = offset / 4;
-    __m256       sum8        = _mm256_setzero_ps();
+    offset /= 4;
+    __m256 sum8 = _mm256_setzero_ps();
 
     static const __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
     static const __m256i mask   = _mm256_set1_epi32(3);
 
     for (size_t i = 0; i < dim_; i += 8) {
       const size_t idx          = i / 4;
-      const size_t combined_idx = (base_offset + idx) / 2;
-      const auto [c1, c2, code] = combined_data_[combined_idx];
+      const auto [c1, c2, code] = combined_data_[(offset + idx) / 2];
       const auto [lb1, st1]     = bounds_data_[idx * 256 + c1];
       const auto [lb2, st2]     = bounds_data_[(idx + 1) * 256 + c2];
 
