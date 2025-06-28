@@ -3,7 +3,7 @@ from setuptools import Extension, setup
 
 ext_modules = [
     Extension(
-        "plsq",
+        "posq",
         ["binding.cpp"],
         include_dirs=[pybind11.get_include(), "."],
         language="c++",
@@ -13,7 +13,7 @@ ext_modules = [
 ]
 
 setup(
-    name="plsq",
+    name="posq",
     version="0.1",
     ext_modules=ext_modules,
 )

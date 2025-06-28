@@ -100,7 +100,7 @@ private:
   size_t                   nlist_;
   size_t                   dim_;
   std::vector<ClusterNode> centroids_;
-  plsq::PLSQQuantizer      quantizer_;
+  posq::PLSQQuantizer      quantizer_;
 
   // K-means++聚类算法实现（并行版本）
   void kmeans_clustering(const float *data, size_t num_samples) {

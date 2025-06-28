@@ -6,7 +6,7 @@
 #include "clusterer.hpp"
 #include "optimizer.hpp"
 
-namespace plsq {
+namespace posq {
 
 template <typename Clusterer, typename Optimizer>
 class QuantizerImpl {
@@ -125,4 +125,4 @@ private:
 
 using PLSQQuantizer = QuantizerImpl<KrangeClusterer, PSOptimizer>;
 
-}  // namespace plsq
+}  // namespace posq

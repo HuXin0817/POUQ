@@ -1,4 +1,4 @@
-#include "../libplsq/ivf.hpp"
+#include "../libposq/ivf.hpp"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -40,20 +40,20 @@ namespace py = pybind11;
           py::arg("data"),                                                                                             \
           py::arg("i"))
 
-PYBIND11_MODULE(plsq, m) {
+PYBIND11_MODULE(posq, m) {
   m.doc() = R"pbdoc(Piecewise-Optimized Uniform Quantization (POUQ))pbdoc";
 
-  using SQQuantizer         = plsq::QuantizerImpl<plsq::Clusterer, plsq::MinMaxOptimizer>;
-  using LSQQuantizer        = plsq::QuantizerImpl<plsq::Clusterer, plsq::SGDOptimizer>;
-  using LSQ2Quantizer       = plsq::QuantizerImpl<plsq::Clusterer, plsq::PSOptimizer>;
-  using PLSQKRangeQuantizer = plsq::QuantizerImpl<plsq::KrangeClusterer, plsq::MinMaxOptimizer>;
-  using PLSQKMeansQuantizer = plsq::QuantizerImpl<plsq::CKmeansClusterer, plsq::MinMaxOptimizer>;
+  using SQQuantizer         = posq::QuantizerImpl<posq::Clusterer, posq::MinMaxOptimizer>;
+  using LSQQuantizer        = posq::QuantizerImpl<posq::Clusterer, posq::SGDOptimizer>;
+  using LSQ2Quantizer       = posq::QuantizerImpl<posq::Clusterer, posq::PSOptimizer>;
+  using PLSQKRangeQuantizer = posq::QuantizerImpl<posq::KrangeClusterer, posq::MinMaxOptimizer>;
+  using PLSQKMeansQuantizer = posq::QuantizerImpl<posq::CKmeansClusterer, posq::MinMaxOptimizer>;
   BIND_Quantizer("SQQuantizer", SQQuantizer);
   BIND_Quantizer("LSQQuantizer", LSQQuantizer);
   BIND_Quantizer("LSQ2Quantizer", LSQ2Quantizer);
   BIND_Quantizer("PLSQKRangeQuantizer", PLSQKRangeQuantizer);
   BIND_Quantizer("PLSQKMeansQuantizer", PLSQKMeansQuantizer);
-  BIND_Quantizer("PLSQQuantizer", plsq::PLSQQuantizer);
+  BIND_Quantizer("PLSQQuantizer", posq::PLSQQuantizer);
 
   py::class_<IvfIndex>(m, "IvfIndex")
       .def(py::init<size_t, size_t>(), py::arg("nlist"), py::arg("dim"))
@@ -74,7 +74,7 @@ PYBIND11_MODULE(plsq, m) {
     return l2distance(sq, data.data(), data.size()) / static_cast<float>(data.size());
   });
 
-  m.def("compute_mse", [](const plsq::PLSQQuantizer &sq, const py::array_t<float> &data) {
+  m.def("compute_mse", [](const posq::PLSQQuantizer &sq, const py::array_t<float> &data) {
     return l2distance(sq, data.data(), data.size()) / static_cast<float>(data.size());
   });
 }

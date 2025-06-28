@@ -15,7 +15,7 @@ print(f"Available CPU cores: {os.cpu_count()}")
 print(f"faiss OpenMP threads: {faiss.omp_get_max_threads()}")
 
 import numpy as np
-import plsq
+import posq
 from util.io import fvecs_read
 
 
@@ -47,27 +47,27 @@ if __name__ == "__main__":
     print("=" * 50)
 
     for i in range(4, 9):
-        q = plsq.SQQuantizer(c_bit=0, q_bit=i, sub=d)
+        q = posq.SQQuantizer(c_bit=0, q_bit=i, sub=d)
         run("SQ", i, q, data_f32)
 
     for i in range(4, 9):
-        q = plsq.LSQQuantizer(c_bit=0, q_bit=i, sub=d)
+        q = posq.LSQQuantizer(c_bit=0, q_bit=i, sub=d)
         run("OSQ-Baseline", i, q, data_f32)
 
     for i in range(4, 9):
-        q = plsq.LSQ2Quantizer(c_bit=0, q_bit=i, sub=d)
+        q = posq.LSQ2Quantizer(c_bit=0, q_bit=i, sub=d)
         run("OSQ-PSO", i, q, data_f32)
 
     for i in range(2, 5):
-        q = plsq.PLSQKMeansQuantizer(c_bit=i, q_bit=4, sub=d)
+        q = posq.PLSQKMeansQuantizer(c_bit=i, q_bit=4, sub=d)
         run("POSQ-KMeans-MinMax", i + 4, q, data_f32)
 
     for i in range(2, 5):
-        q = plsq.PLSQKRangeQuantizer(c_bit=i, q_bit=4, sub=d)
+        q = posq.PLSQKRangeQuantizer(c_bit=i, q_bit=4, sub=d)
         run("PLSQ-KRange-MinMax", i + 4, q, data_f32)
 
     for i in range(4, 9):
-        q = plsq.PLSQQuantizer(c_bit=i // 2, q_bit=i - (i // 2), sub=d)
+        q = posq.PLSQQuantizer(c_bit=i // 2, q_bit=i - (i // 2), sub=d)
         run("PLSQ (Ours)", i, q, data_f32)
 
     for M in range(2, d // 4 + 1):

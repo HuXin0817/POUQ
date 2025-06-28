@@ -4,7 +4,7 @@
 #include <limits>
 #include <vector>
 
-namespace plsq {
+namespace posq {
 
 class Clusterer {
 public:
@@ -204,4 +204,4 @@ public:
   }
 };
 
-}  // namespace plsq
+}  // namespace posq

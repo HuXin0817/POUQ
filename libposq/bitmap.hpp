@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace plsq::bitmap {
+namespace posq::bitmap {
 
 using std::size_t;
 
@@ -43,4 +43,4 @@ inline size_t get(const uint8_t *data, size_t index, size_t bit_size) {
   return result;
 }
 
-}  // namespace plsq::bitmap
+}  // namespace posq::bitmap
