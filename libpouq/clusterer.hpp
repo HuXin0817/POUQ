@@ -22,15 +22,15 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
   const size_t size = data_freq_map.size();
   k                 = std::min(size, k);
 
-  std::vector sum_count(size + 1, 0.0);
+  std::vector sum_count(size + 1, 0.0f);
   for (size_t i = 1; i <= size; ++i) {
-    sum_count[i] = sum_count[i - 1] + static_cast<double>(data_freq_map[i - 1].second);
+    sum_count[i] = sum_count[i - 1] + static_cast<float>(data_freq_map[i - 1].second);
   }
 
-  std::vector prev_dp(size + 1, std::numeric_limits<double>::max());
-  std::vector curr_dp(size + 1, std::numeric_limits<double>::max());
+  std::vector prev_dp(size + 1, std::numeric_limits<float>::max());
+  std::vector curr_dp(size + 1, std::numeric_limits<float>::max());
   std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
-  prev_dp[0] = 0.0;
+  prev_dp[0] = 0.0f;
 
   for (size_t j = 1; j <= k; ++j) {
     std::vector<Task> tasks{{j, j, size, 0, size - 1}};
@@ -46,13 +46,13 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
       const size_t mid       = (l + r) / 2;
       const size_t start     = std::max(j - 1, opt_l);
       const size_t end       = std::min(mid - 1, opt_r);
-      double       min_cost  = std::numeric_limits<double>::max();
+      float        min_cost  = std::numeric_limits<float>::max();
       size_t       split_pos = 0;
       for (size_t m = start; m <= end; ++m) {
-        const double width =
-            static_cast<double>(data_freq_map[mid - 1].first) - static_cast<double>(data_freq_map[m].first);
-        const double count = sum_count[mid] - sum_count[m];
-        const double cost  = prev_dp[m] + width * width * count;
+        const float width =
+            static_cast<float>(data_freq_map[mid - 1].first) - static_cast<float>(data_freq_map[m].first);
+        const float count = sum_count[mid] - sum_count[m];
+        const float cost  = prev_dp[m] + width * width * count;
         if (cost < min_cost) {
           min_cost  = cost;
           split_pos = m;
@@ -68,7 +68,7 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
     }
 
     std::swap(prev_dp, curr_dp);
-    std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<double>::max());
+    std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<float>::max());
   }
 
   std::vector<size_t> split_pos(k);
