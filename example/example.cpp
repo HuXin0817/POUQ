@@ -50,17 +50,20 @@ std::pair<float, float> mse_bound(float          k,
 
     size_t start = p;
     size_t cnt   = 0;
-    while (data_freq_map[p].first < up) {
+    while (p < data_freq_map.size() && data_freq_map[p].first <= up) {
       cnt += data_freq_map[p].second;
       p++;
     }
-    mse += static_cast<float>(cnt) * step_size * step_size/4.f;
+    mse += static_cast<float>(cnt) * step_size * step_size;
     for (size_t i = start; i < p; i++) {
-      auto code   = std::round((data_freq_map[i].first - lb) / step_size);
-      auto decode = code * step_size + lb;
-      auto dif    = data_freq_map[i].first - decode;
+      size_t code   = (data_freq_map[i].first - lb) / step_size + 0.5f;
+      auto   decode = code * step_size + lb;
+      auto   dif    = data_freq_map[i].first - decode;
       real_mse += dif * dif * data_freq_map[i].second;
     }
+  }
+  if (p != data_freq_map.size()) {
+    exit(-1);
   }
   return {mse, real_mse};
 }
@@ -78,7 +81,8 @@ void run(size_t k, std::vector<float> &data, const std::vector<std::vector<std::
     mse += p.first;
     read_mse += p.second;
   }
-  std::cout << mse / data.size() << " " << read_mse / data.size() << std::endl;
+  std::cout << mse / static_cast<float>(data.size()) / 4.f << " " << read_mse / static_cast<float>(data.size())
+            << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -96,10 +100,10 @@ int main(int argc, char *argv[]) {
   }
 
   run<pouq::Clusterer>(16, data, data_freq_maps);
+  run<pouq::KmeansClusterer>(4, data, data_freq_maps);
+  run<pouq::KrangeClusterer>(4, data, data_freq_maps);
+  std::cout << std::endl;
+  run<pouq::Clusterer>(256, data, data_freq_maps);
   run<pouq::KmeansClusterer>(16, data, data_freq_maps);
   run<pouq::KrangeClusterer>(16, data, data_freq_maps);
-
-  run<pouq::Clusterer>(256, data, data_freq_maps);
-  run<pouq::KmeansClusterer>(256, data, data_freq_maps);
-  run<pouq::KrangeClusterer>(256, data, data_freq_maps);
 }
