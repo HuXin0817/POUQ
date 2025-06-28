@@ -91,6 +91,7 @@ public:
       }
     }
 
+#pragma omp parallel for
     for (size_t i = 0; i < size / 4; i += 2) {
       const uint16_t combined_code = static_cast<uint16_t>(code[i + 1]) << 8 | code[i];
       combined_data_[i / 2]        = std::make_tuple(cid[i], cid[i + 1], combined_code);
