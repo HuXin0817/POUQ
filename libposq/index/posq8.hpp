@@ -78,35 +78,54 @@ public:
       // 加载8个输入数据
       __m256 data_vec = _mm256_loadu_ps(&data[i]);
 
-      // 解码8个量化值
-      float decoded[8];
-      for (size_t j = 0; j < 8; j++) {
-        uint8_t v    = codes_[n + i + j];
-        auto [lb, s] = codebook_[((v & 0xF) + (i + j) * (1 << 4))];
-        decoded[j]   = lb + s * (v >> 4 & 0xF);
-      }
+      // 批量解码8个量化值 - 关键优化点
+      __m256 decoded_vec;
+      {
+        // 预先计算codebook索引和值
+        alignas(32) float   decoded[8];
+        alignas(32) uint8_t codes_batch[8];
 
-      // 加载解码后的数据
-      __m256 decoded_vec = _mm256_loadu_ps(decoded);
+        // 批量加载codes
+        for (size_t j = 0; j < 8; j++) {
+          codes_batch[j] = codes_[n + i + j];
+        }
+
+        // 向量化解码过程
+        __m256i codes_vec   = _mm256_cvtepu8_epi32(_mm_loadl_epi64((__m128i *)codes_batch));
+        __m256i lower_4bits = _mm256_and_si256(codes_vec, _mm256_set1_epi32(0xF));
+        __m256i upper_4bits = _mm256_and_si256(_mm256_srli_epi32(codes_vec, 4), _mm256_set1_epi32(0xF));
+
+        // 批量查找codebook值
+        alignas(32) int32_t lower_indices[8];
+        alignas(32) int32_t upper_values[8];
+        _mm256_store_si256((__m256i *)lower_indices, lower_4bits);
+        _mm256_store_si256((__m256i *)upper_values, upper_4bits);
+
+        for (size_t j = 0; j < 8; j++) {
+          const size_t codebook_idx = lower_indices[j] + (i + j) * (1 << 4);
+          auto [lb, s]              = codebook_[codebook_idx];
+          decoded[j]                = lb + s * static_cast<float>(upper_values[j]);
+        }
+
+        decoded_vec = _mm256_load_ps(decoded);
+      }
 
       // 计算差值
       __m256 diff_vec = _mm256_sub_ps(data_vec, decoded_vec);
 
-      // 计算平方并累加
-      __m256 sq_diff = _mm256_mul_ps(diff_vec, diff_vec);
-      sum_vec        = _mm256_add_ps(sum_vec, sq_diff);
+      // 计算平方并累加 - 使用FMA指令优化
+      sum_vec = _mm256_fmadd_ps(diff_vec, diff_vec, sum_vec);
     }
 
-    // 水平求和AVX2寄存器中的8个值
+    // 优化的水平求和
     __m128 sum_high = _mm256_extractf128_ps(sum_vec, 1);
     __m128 sum_low  = _mm256_castps256_ps128(sum_vec);
     __m128 sum_128  = _mm_add_ps(sum_high, sum_low);
 
-    // 继续水平求和
-    __m128 sum_64 = _mm_add_ps(sum_128, _mm_movehl_ps(sum_128, sum_128));
-    __m128 sum_32 = _mm_add_ss(sum_64, _mm_shuffle_ps(sum_64, sum_64, 0x55));
-
-    dis = _mm_cvtss_f32(sum_32);
+    // 使用更高效的水平求和
+    sum_128 = _mm_hadd_ps(sum_128, sum_128);
+    sum_128 = _mm_hadd_ps(sum_128, sum_128);
+    dis     = _mm_cvtss_f32(sum_128);
 
     // 处理剩余的元素（标量处理）
     for (size_t i = simd_end; i < dim_; i++) {
@@ -119,7 +138,6 @@ public:
 
     return dis;
   }
-
 #else
 
   float l2distance(const float *data, size_t n) const {
