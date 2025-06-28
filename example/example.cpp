@@ -20,8 +20,8 @@ std::vector<float> generate_vector(size_t size) {
 int main() {
   // const std::string dataset_name = argv[1];
   size_t dim        = 100;
-  auto   data       = generate_vector(dim * 500);
-  auto   query_data = generate_vector(dim);
+  auto   data       = generate_vector(dim * 50000);
+  auto   query_data = generate_vector(dim * 10);
 
   // const auto [data, dim]         = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
   // const auto [query_data, _]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
@@ -48,7 +48,8 @@ int main() {
       }
     }
 
-    auto ret = index.search(q, 10, 10);
+    constexpr auto topk = 5;
+    auto           ret  = index.search(q, topk, 4);
 
     size_t finded = 0;
     for (auto idx : ret) {
@@ -57,7 +58,7 @@ int main() {
       }
     }
 
-    sum_recall += static_cast<float>(finded) / 10.f;
+    sum_recall += static_cast<float>(finded) / static_cast<float>(topk);
   }
 
   sum_recall /= Nq;
