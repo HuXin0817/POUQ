@@ -1,38 +1,32 @@
-#include "../libpouq/quantizer.hpp"
-#include "../libpouq/utils.hpp"
+#include "../libpouq/pouq8.hpp"
 
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <random>
 
-constexpr size_t N = 1e6;
+constexpr size_t N   = 1e4;
+constexpr size_t Dim = 256;
 
-template <typename DataType>
-void print_vector(const char *prefix, const DataType &data) {
-  std::cout << std::left << std::setw(18) << prefix << "[";
-  std::cout << std::fixed << std::setprecision(3);
-  for (size_t i = 0; i < 5; ++i) {
-    std::cout << data[i];
-    if (i < 4) {
-      std::cout << ", ";
-    } else {
-      std::cout << "...]\n";
-    }
+float compute_mse(const pouq::POUQ8bit &quant, const std::vector<float> &data) {
+  float err = 0;
+  for (size_t i = 0; i < data.size(); i += Dim) {
+    err += quant.l2distance(data.data() + i, i);
   }
-  std::cout << std::defaultfloat;
+  return err / static_cast<float>(data.size());
 }
 
 int main() {
   std::random_device             rd;
   std::mt19937                   gen(rd());
-  std::uniform_real_distribution dis(0.0f, 256.0f);
+  std::uniform_real_distribution dis(0.0f, 1.0f);
 
-  std::vector<float> data(N);
+  std::vector<float> data(N * Dim);
   for (auto &d : data) {
     d = dis(gen);
   }
 
-  pouq::POUQQuantizer quantizer(4, 4, 256);
+  pouq::POUQ8bit quantizer(Dim);
 
   const auto start_time = std::chrono::high_resolution_clock::now();
   quantizer.train(data.data(), N);
@@ -40,8 +34,5 @@ int main() {
   const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
 
   std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
-  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(data, quantizer, N) << std::endl;
-
-  print_vector("Origin Vector:", data);
-  print_vector("Quantized Vector:", quantizer);
+  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(quantizer, data) << std::endl;
 }
