@@ -122,10 +122,11 @@ private:
   }
 
   float at(size_t i) const {
+    const size_t b1     = get(codes_, 2 * i);
+    const size_t b2     = get(codes_, 2 * i + 1);
     const size_t group  = i % dim_;
-    const size_t offset = 2 * (get(codes_, 2 * i) + group * (1 << 4));
-    const size_t x      = get(codes_, 2 * i + 1);
-    return codebook_[offset] + codebook_[offset + 1] * static_cast<float>(x);
+    const size_t offset = 2 * (b1 + group * (1 << 4));
+    return codebook_[offset] + codebook_[offset + 1] * static_cast<float>(b2);
   }
 
   void set(uint8_t *data, size_t index, size_t n) {
