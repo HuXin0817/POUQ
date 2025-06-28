@@ -26,9 +26,9 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
     sum_count[i] = sum_count[i - 1] + static_cast<float>(data_freq_map[i - 1].second);
   }
 
-  std::vector prev_dp(size + 1, std::numeric_limits<float>::max());
-  std::vector curr_dp(size + 1, std::numeric_limits<float>::max());
-  std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
+  std::vector<float>  prev_dp(size + 1, std::numeric_limits<float>::max());
+  std::vector<float>  curr_dp(size + 1, std::numeric_limits<float>::max());
+  std::vector<size_t> prev_idx((size + 1) * (k + 1), 0);
   prev_dp[0] = 0.0f;
 
   Task  *tasks      = new Task[size];
@@ -49,8 +49,8 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
       auto [min_cost, split_pos] =
           simd::dp_cost_simd(j, mid, opt_l, opt_r, data_freq_map.data(), sum_count.data(), prev_dp.data());
 
-      curr_dp[mid]     = min_cost;
-      prev_idx[mid][j] = split_pos;
+      curr_dp[mid]                = min_cost;
+      prev_idx[mid * (k + 1) + j] = split_pos;
       if (l < r) {
         tasks[tasks_size++] = {j, mid + 1, r, split_pos, opt_r};
         tasks[tasks_size++] = {j, l, mid - 1, opt_l, split_pos};
@@ -66,7 +66,7 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
   size_t split_pos[k];
   size_t curr_pos = size;
   for (size_t j = k; j > 0; --j) {
-    const size_t m   = prev_idx[curr_pos][j];
+    const size_t m   = prev_idx[curr_pos * (k + 1) + j];
     split_pos[j - 1] = m;
     curr_pos         = m;
   }
