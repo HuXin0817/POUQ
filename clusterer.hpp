@@ -14,9 +14,6 @@ struct Task {
   size_t right;
   size_t opt_left;
   size_t opt_right;
-
-  Task(const size_t j, const size_t left, const size_t right, const size_t opt_left, const size_t opt_right)
-      : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {}
 };
 
 inline std::vector<std::pair<float, float>> clustering(size_t k,
@@ -34,13 +31,16 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
   std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
   prev_dp[0] = 0.0f;
 
-  for (size_t j = 1; j <= k; ++j) {
-    std::vector<Task> tasks{{j, j, size, 0, size - 1}};
-    tasks.reserve(size);
+  Task  *tasks      = new Task[size];
+  size_t tasks_size = 0;
 
-    while (!tasks.empty()) {
-      auto [j, l, r, opt_l, opt_r] = tasks.back();
-      tasks.pop_back();
+  for (size_t j = 1; j <= k; ++j) {
+    tasks[0]   = {j, j, size, 0, size - 1};
+    tasks_size = 1;
+
+    while (tasks_size) {
+      tasks_size--;
+      auto [j, l, r, opt_l, opt_r] = tasks[tasks_size];
       if (l > r) {
         continue;
       }
@@ -52,8 +52,8 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
       curr_dp[mid]     = min_cost;
       prev_idx[mid][j] = split_pos;
       if (l < r) {
-        tasks.emplace_back(j, mid + 1, r, split_pos, opt_r);
-        tasks.emplace_back(j, l, mid - 1, opt_l, split_pos);
+        tasks[tasks_size++] = {j, mid + 1, r, split_pos, opt_r};
+        tasks[tasks_size++] = {j, l, mid - 1, opt_l, split_pos};
       }
     }
 
@@ -61,8 +61,10 @@ inline std::vector<std::pair<float, float>> clustering(size_t k,
     std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<float>::max());
   }
 
-  std::vector<size_t> split_pos(k);
-  size_t              curr_pos = size;
+  delete[] tasks;
+
+  size_t split_pos[k];
+  size_t curr_pos = size;
   for (size_t j = k; j > 0; --j) {
     const size_t m   = prev_idx[curr_pos][j];
     split_pos[j - 1] = m;
