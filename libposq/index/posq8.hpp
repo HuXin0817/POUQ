@@ -13,15 +13,15 @@ public:
   explicit POSQ8(size_t dim) : dim_(dim) {}
 
   void train(const float *data, size_t size) {
-    size_        = size;
+    // size_        = size;
     step_size_   = new float[dim_ * (1 << 4)];
     lower_bound_ = new float[dim_ * (1 << 4)];
-    cid_         = new uint8_t[(4 * size_ + 7) / 8];
-    code_        = new uint8_t[(4 * size_ + 7) / 8];
+    cid_         = new uint8_t[(4 * size + 7) / 8];
+    code_        = new uint8_t[(4 * size + 7) / 8];
 
-#pragma omp parallel for default(none) shared(data, div)
+#pragma omp parallel for
     for (size_t group = 0; group < dim_; group++) {
-      const auto data_freq_map = count_freq(data, group);
+      const auto data_freq_map = count_freq(data, size, group);
       const auto bounds        = clusterer(1 << 4, data_freq_map);
       const auto offset        = group * (1 << 4);
 
@@ -50,16 +50,16 @@ public:
       }
 
       static_cast<std::vector<std::pair<float, size_t>>>(data_freq_map).clear();
-      for (size_t i = group; i < size_; i += dim_) {
+      for (size_t i = group; i < size; i += dim_) {
         const float d  = data[i];
         const auto  it = std::upper_bound(
             bounds.begin(), bounds.end(), d, [](const float rhs, const std::pair<float, float> &lhs) -> bool {
               return rhs < lhs.first;
             });
         const size_t c = it - bounds.begin() - 1;
-        bitmap::set(cid_, i, c, 4);
+        set(cid_, i, c);
         const float x = std::clamp((d - lower_bound_[offset + c]) / step_size_[offset + c] + 0.5f, 0.0f, div);
-        bitmap::set(code_, i, x, 4);
+        set(code_, i, x);
       }
     }
   }
@@ -83,7 +83,7 @@ public:
   }
 
 private:
-  size_t   size_        = 0;
+  // size_t   size_        = 0;
   size_t   dim_         = 0;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
@@ -95,10 +95,10 @@ private:
 
   static constexpr auto div = static_cast<float>((1 << 4) - 1);
 
-  std::vector<std::pair<float, size_t>> count_freq(const float *data, const size_t group) const {
+  std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, const size_t group) const {
     std::vector<float> sorted_data;
-    sorted_data.reserve(size_ / dim_);
-    for (size_t i = group; i < size_; i += dim_) {
+    sorted_data.reserve(size / dim_);
+    for (size_t i = group; i < size; i += dim_) {
       sorted_data.push_back(data[i]);
     }
     std::sort(sorted_data.begin(), sorted_data.end());
@@ -123,8 +123,8 @@ private:
 
   float at(size_t i) const {
     const size_t group  = i % dim_;
-    const size_t offset = bitmap::get(cid_, i, 4) + group * (1 << 4);
-    const size_t x      = bitmap::get(code_, i, 4);
+    const size_t offset = get(cid_, i) + group * (1 << 4);
+    const size_t x      = get(code_, i);
     return lower_bound_[offset] + step_size_[offset] * static_cast<float>(x);
   }
 
