@@ -29,58 +29,56 @@ cd python/ && bash build.sh
 
 ### Example
 
-For examples on real-world datasets, please refer to `./reproduce`
+For examples on random datasets, please refer to `./example.cpp`
 
-```python
-import sys
-import time
+```cpp
+#include "../libpouq/quantizer.h"
+#include "../libpouq/utils.h"
 
-import numpy as np
-from pouq import LloydMaxQuantizer, POUQuantizer, ScaledQuantizer, compute_mse
+#include <chrono>
+#include <iomanip>
+#include <iostream>
 
+constexpr size_t N = 1e6;
 
-# read_fvecs sourced from https://github.com/gaoj0017/RaBitQ/blob/main/data/utils/io.py
-def read_fvecs(filename, c_contiguous=True) -> np.ndarray:
-    print(f"Reading from {filename}.")
-    fv = np.fromfile(filename, dtype=np.float32)
-    if fv.size == 0:
-        return np.zeros((0, 0))
-    dim = fv.view(np.int32)[0]
-    assert dim > 0
-    fv = fv.reshape(-1, 1 + dim)
-    if not all(fv.view(np.int32)[:, 0] == dim):
-        raise IOError("Non-uniform vector sizes in " + filename)
-    fv = fv[:, 1:]
-    if c_contiguous:
-        fv = fv.copy()
-    return fv
+template <typename DataType>
+void print_vector(const char *prefix, const DataType &data) {
+  std::cout << std::left << std::setw(18) << prefix << "[";
+  std::cout << std::fixed << std::setprecision(3);
+  for (size_t i = 0; i < 5; ++i) {
+    std::cout << data[i];
+    if (i < 4) {
+      std::cout << ", ";
+    } else {
+      std::cout << "...]\n";
+    }
+  }
+  std::cout << std::defaultfloat;
+}
 
+int main() {
+  std::random_device             rd;
+  std::mt19937                   gen(rd());
+  std::uniform_real_distribution dis(0.0f, 256.0f);
 
-if len(sys.argv) != 2:
-    print(f"usage: {sys.argv[0]} <dataset_name>")
-    exit(0)
-dataset_name = sys.argv[1]
-data = read_fvecs(f"../data/{dataset_name}/{dataset_name}_base.fvecs")
+  std::vector<float> data(N);
+  for (auto &d : data) {
+    d = dis(gen);
+  }
 
-N, Dim = data.shape
-print(f"N={N}, Dim={Dim}")
+  pouq::POUQuantizer quantizer(4, 4, 256);
 
+  const auto start_time = std::chrono::high_resolution_clock::now();
+  quantizer.train(data.data(), N);
+  const auto end_time = std::chrono::high_resolution_clock::now();
+  const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
 
-def print_err(method: str, quantizer):
-    start_time = time.time()
-    quantizer.train(data)
-    end_time = time.time()
-    training_time = end_time - start_time
-    print(
-        f"Method: {method}, "
-        f"Error: {compute_mse(data, quantizer)}, "
-        f"Training Time: {training_time:.4f}s"
-    )
+  std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
+  std::cout << std::left << std::setw(18) << "Error:" << compute_mse(data, quantizer, N) << std::endl;
 
-
-print_err("SQ", ScaledQuantizer(q_bit=8, groups=Dim))
-print_err("POUQ", POUQuantizer(c_bit=4, q_bit=4, groups=Dim))
-print_err("LloydMax", LloydMaxQuantizer(c_bit=8, groups=Dim))
+  print_vector("Origin Vector:", data);
+  print_vector("Quantized Vector:", quantizer);
+}
 ```
 
 ## Reproduce
