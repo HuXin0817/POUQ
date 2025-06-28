@@ -64,8 +64,7 @@ public:
         const size_t cluster_index   = cluster_it - cluster_bounds.begin() - 1;
         auto [lower_bound, scale]    = codebook_[codebook_offset + cluster_index];
         const float normalized_value = std::clamp((data_value - lower_bound) / scale + 0.5f, 0.0f, div);
-        set(encoded_codes_, 2 * i, cluster_index);
-        set(encoded_codes_, 2 * i + 1, normalized_value);
+        encoded_codes_[i]            = cluster_index | static_cast<size_t>(normalized_value) << 4;
       }
     }
   }
@@ -238,18 +237,6 @@ private:
 
     value_frequency_map.emplace_back(current_value, count);
     return value_frequency_map;
-  }
-
-  void set(uint8_t *data, size_t index, size_t value) {
-    value &= (1 << 4) - 1;
-    const size_t byte_index      = index / 2;
-    const size_t nibble_position = index % 2;
-
-    if (nibble_position == 0) {
-      data[byte_index] = data[byte_index] & 0xF0 | value;
-    } else {
-      data[byte_index] = data[byte_index] & 0x0F | value << 4;
-    }
   }
 };
 
