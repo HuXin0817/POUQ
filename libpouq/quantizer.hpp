@@ -28,6 +28,7 @@ inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
 }
 
 class Quantizer {
+  static inline __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
 
 public:
   explicit Quantizer(size_t groups) : dim_(groups) { assert(dim_ % 32 == 0); }
@@ -128,7 +129,6 @@ public:
       const __m256  lb_vec        = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       const __m256  st_vec        = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
       const __m256i bytes         = _mm256_set1_epi32(code);
-      const __m256i shifts        = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
       const __m256i shifted       = _mm256_srlv_epi32(bytes, shifts);
       const __m256i masked        = _mm256_and_si256(shifted, _mm256_set1_epi32(3));
       const __m256  code_vec      = _mm256_cvtepi32_ps(masked);
