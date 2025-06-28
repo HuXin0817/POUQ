@@ -29,11 +29,15 @@ void run(const std::string &method_name, size_t dim, const std::vector<float> &d
   auto   duration   = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
   double train_time = duration.count() / 1000000.0;
 
-  auto mse = compute_mse(q, data, data.size());
+  start_time      = std::chrono::high_resolution_clock::now();
+  auto mse        = compute_mse(q, data, data.size());
+  end_time        = std::chrono::high_resolution_clock::now();
+  duration        = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+  auto decode_qps = data.size() / dim / (duration.count() / 1000000.0);
 
   // 写入CSV: method,bitwidth,train_time,mse
   size_t total_bitwidth = cbit + qbit;
-  csv_file << method_name << "," << total_bitwidth << "," << train_time << "," << mse << std::endl;
+  csv_file << method_name << "," << total_bitwidth << "," << train_time << "," << mse << "," << decode_qps << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -61,9 +65,7 @@ int main(int argc, char *argv[]) {
   }
 
   // 写入CSV表头
-  csv_file << "method,bitwidth,train_time,mse" << std::endl;
-
-  pouq::POUQQuantizer quantizer(4, 4, 256);
+  csv_file << "method,bitwidth,train_time,mse,decode_qps" << std::endl;
 
   for (size_t i = 4; i <= 8; i++) {
 #define run_sq(M) run<M>(#M, Dim, data, 0, i)
@@ -71,11 +73,11 @@ int main(int argc, char *argv[]) {
 #define run_pouq(M) run<M>(#M, Dim, data, i - (i / 2), i / 2)
 
     run_sq(SQ);
-    run_sq(OSQ_Baseline);
-    run_sq(OSQ);
-
-    run_pouq(PUQ_KMeans);
-    run_pouq(PUQ_KRange);
+    // run_sq(OSQ_Baseline);
+    // run_sq(OSQ);
+    //
+    // run_pouq(PUQ_KMeans);
+    // run_pouq(PUQ_KRange);
     run_pouq(POUQ);
 
     run<LloydMax>("LloydMax", Dim, data, i, 0);
