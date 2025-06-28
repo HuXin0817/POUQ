@@ -9,7 +9,7 @@
 #include <immintrin.h>  // AVX2指令集头文件
 #endif
 
-namespace posq {
+namespace pouq {
 
 class SQ8 {
 public:
@@ -196,4 +196,4 @@ private:
   }
 };
 
-}  // namespace posq
+}  // namespace pouq

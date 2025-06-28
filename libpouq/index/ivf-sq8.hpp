@@ -2,7 +2,7 @@
 
 #include "../quantizer.hpp"
 #include "../utils.hpp"
-#include "posq8.hpp"
+#include "pouq8.hpp"
 #include "sq8.hpp"
 
 #include <algorithm>
@@ -90,7 +90,7 @@ private:
   size_t                   nlist_;
   size_t                   dim_;
   std::vector<ClusterNode> centroids_;
-  posq::SQ8                quantizer_;
+  pouq::SQ8                quantizer_;
 
   std::vector<std::pair<size_t, float>> sum_result;
   std::vector<std::pair<size_t, float>> candidate_centroids;

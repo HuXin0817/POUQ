@@ -19,7 +19,7 @@ print(f"Available CPU cores: {os.cpu_count()}")
 print(f"faiss OpenMP threads: {faiss.omp_get_max_threads()}")
 
 import numpy as np
-import posq
+import pouq
 from util.io import fvecs_read
 
 
@@ -79,8 +79,8 @@ def calculate_memory_usage(index, data, index_name):
     # 原始数据大小（未压缩）
     original_size_mb = data.nbytes / (1024 * 1024)
 
-    if index_name == "IVFPOSQ":
-        # POSQ索引的压缩比估算（基于8位量化）
+    if index_name == "IVFPOUQ":
+        # POUQ索引的压缩比估算（基于8位量化）
         compression_ratio = 0.25  # 8位量化约为原始32位的1/4
         memory_mb = original_size_mb * compression_ratio
     elif index_name == "IvfSQ8Index":
@@ -128,7 +128,7 @@ def benchmark_index(
     start_time = time.time()
     # 为保证公平性，所有索引都使用单个查询向量的方式
     for i in range(len(queries)):
-        if index_name == "IVFPOSQ" or index_name == "IvfSQ8Index":
+        if index_name == "IVFPOUQ" or index_name == "IvfSQ8Index":
             index.search(queries[i : i + 1].astype("float32"), k, search_param)
         else:
             index.search(queries[i : i + 1].astype("float32"), k)
@@ -138,7 +138,7 @@ def benchmark_index(
     all_results = []
     all_distances = []
     for i in range(len(queries)):
-        if index_name == "IVFPOSQ" or index_name == "IvfSQ8Index":
+        if index_name == "IVFPOUQ" or index_name == "IvfSQ8Index":
             assert search_param is not None
             ret = index.search(queries[i : i + 1].astype("float32"), k, search_param)
             result = []
@@ -224,18 +224,18 @@ if __name__ == "__main__":
     # 准备结果存储
     results = []
 
-    # 1. 测试POSQ IVF索引 - 8个不同nprobe参数
+    # 1. 测试POUQ IVF索引 - 8个不同nprobe参数
     print("\n=== Testing IvfSQ8Index with different nprobe values ===")
     try:
         nlist = 1024  # 修改为1024
-        posq_index = posq.IvfSQ8Index(nlist=nlist, dim=data.shape[1])
-        posq_index.train(data.astype("float32"))
+        pouq_index = pouq.IvfSQ8Index(nlist=nlist, dim=data.shape[1])
+        pouq_index.train(data.astype("float32"))
 
-        # 测试8个不同的nprobe值（对应POSQ的搜索参数）
+        # 测试8个不同的nprobe值（对应POUQ的搜索参数）
         nprobe_values = [5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
-                posq_index,
+                pouq_index,
                 query_data,
                 data,
                 gt_indices,
@@ -258,29 +258,29 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"IvfSQ8Index test failed: {e}")
 
-    # 1. 测试POSQ IVF索引 - 8个不同nprobe参数
-    print("\n=== Testing POSQ IVF Index with different nprobe values ===")
+    # 1. 测试POUQ IVF索引 - 8个不同nprobe参数
+    print("\n=== Testing POUQ IVF Index with different nprobe values ===")
     try:
         nlist = 1024  # 修改为1024
-        posq_index = posq.IvfIndex(nlist=nlist, dim=data.shape[1])
-        posq_index.train(data.astype("float32"))
+        pouq_index = pouq.IvfIndex(nlist=nlist, dim=data.shape[1])
+        pouq_index.train(data.astype("float32"))
 
-        # 测试8个不同的nprobe值（对应POSQ的搜索参数）
+        # 测试8个不同的nprobe值（对应POUQ的搜索参数）
         nprobe_values = [5, 10, 20, 40, 80, 160, 320]
         for nprobe in nprobe_values:
             qps, recall, distance_ratio, memory_usage, total_time = benchmark_index(
-                posq_index,
+                pouq_index,
                 query_data,
                 data,
                 gt_indices,
                 gt_distances,
                 k,
-                "IVFPOSQ",
+                "IVFPOUQ",
                 nprobe,
             )
             results.append(
                 [
-                    f"IVFPOSQ",
+                    f"IVFPOUQ",
                     qps,
                     recall,
                     distance_ratio,
@@ -290,7 +290,7 @@ if __name__ == "__main__":
                 ]
             )
     except Exception as e:
-        print(f"POSQ IVF test failed: {e}")
+        print(f"POUQ IVF test failed: {e}")
 
     # 3. 测试Faiss IndexHNSW - 8个不同ef_search参数
     print("\n=== Testing Faiss IndexHNSW with different ef_search values ===")

@@ -22,7 +22,7 @@ def get_compile_args():
 
 ext_modules = [
     Extension(
-        "posq",
+        "pouq",
         ["binding.cpp"],
         include_dirs=[pybind11.get_include(), "."],
         language="c++",
@@ -32,7 +32,7 @@ ext_modules = [
 ]
 
 setup(
-    name="posq",
+    name="pouq",
     version="0.1",
     ext_modules=ext_modules,
 )

@@ -10,11 +10,11 @@
 #include <immintrin.h>  // AVX2指令集头文件
 #endif
 
-namespace posq {
+namespace pouq {
 
-class POSQ8 {
+class POUQ8 {
 public:
-  explicit POSQ8(size_t dim) : dim_(dim) {}
+  explicit POUQ8(size_t dim) : dim_(dim) {}
 
   void train(const float *data, size_t size) {
     // size_        = size;
@@ -156,7 +156,7 @@ public:
 
   // size_t size() const { return size_; }
 
-  ~POSQ8() {
+  ~POUQ8() {
     delete[] codebook_;
     delete[] codes_;
   }
@@ -235,4 +235,4 @@ private:
   // }
 };
 
-}  // namespace posq
+}  // namespace pouq

@@ -1,6 +1,7 @@
-#include "../libposq/index/ivf.hpp"
+#include "../libpouq/index/ivf.hpp"
 #include <chrono>
 #include <iomanip>
+#include <queue>
 #include <string>
 #include <unordered_set>
 
@@ -60,7 +61,7 @@ int main(int argc, char *argv[]) {
   }
 
   // QPS测试
-  std::cout << "\n=== Testing POSQ IVF Index ===" << std::endl;
+  std::cout << "\n=== Testing POUQ IVF Index ===" << std::endl;
 
   // 测试不同的nprobe值
   std::vector<size_t> nprobe_values = {1, 5, 10, 20, 50};
