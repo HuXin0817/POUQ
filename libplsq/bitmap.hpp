@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace plsq::bitmap {
+
+using std::size_t;
 
 inline void set(uint8_t *data, size_t index, size_t n, size_t bit_size) {
   if (bit_size == 0) {
