@@ -13,31 +13,12 @@ void run(size_t        dim,
     size_t             Nq,
     std::vector<float> query_data,
     const std::string &method_name,
-    std::ofstream     &csv_file) {
+    std::ofstream     &csv_file,
+    const std::vector<std::vector<size_t>>& ground_truth) {
   Index index(1024, dim);
   index.train(data.data(), data.size());
 
   constexpr auto topk = 10;
-
-  // 计算ground truth
-  std::cout << "Computing ground truth using brute force search for " << method_name << "..." << std::endl;
-  std::vector<std::vector<size_t>> ground_truth(Nq);
-  auto cmp = [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) { return a.second > b.second; };
-
-  for (size_t i = 0; i < Nq; i++) {
-    std::unordered_set<size_t> real_idx;
-    const auto                 q = query_data.data() + i * dim;
-    {
-      std::priority_queue<std::pair<size_t, float>, std::vector<std::pair<size_t, float>>, decltype(cmp)> pq(cmp);
-      for (size_t p = 0; p < data.size() / dim; p++) {
-        pq.emplace(p, l2distance(q, data.data() + p * dim, dim));
-      }
-      for (size_t k = 0; k < topk; k++) {
-        ground_truth[i].push_back(pq.top().first);
-        pq.pop();
-      }
-    }
-  }
 
   // 测试不同的nprobe值
   std::vector<size_t> nprobe_values = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024};
@@ -98,6 +79,24 @@ int main(int argc, char *argv[]) {
   std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
   std::cout << "Query shape: (" << Nq << ", " << dim << ")" << std::endl;
 
+  // 计算ground truth（只计算一次）
+  constexpr auto topk = 10;
+  std::cout << "Computing ground truth using brute force search..." << std::endl;
+  std::vector<std::vector<size_t>> ground_truth(Nq);
+  auto cmp = [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) { return a.second > b.second; };
+
+  for (size_t i = 0; i < Nq; i++) {
+    const auto q = query_data.data() + i * dim;
+    std::priority_queue<std::pair<size_t, float>, std::vector<std::pair<size_t, float>>, decltype(cmp)> pq(cmp);
+    for (size_t p = 0; p < data.size() / dim; p++) {
+      pq.emplace(p, l2distance(q, data.data() + p * dim, dim));
+    }
+    for (size_t k = 0; k < topk; k++) {
+      ground_truth[i].push_back(pq.top().first);
+      pq.pop();
+    }
+  }
+
   // 创建CSV文件
   std::string   csv_filename = "../result/exp2_" + dataset_name + ".csv";
   std::ofstream csv_file(csv_filename);
@@ -113,11 +112,11 @@ int main(int argc, char *argv[]) {
   std::cout << "Writing CSV header: " << header << std::endl;
 
   // 运行不同的方法并保存结果
-  run<IVF>(dim, data, Nq, query_data, "IVF", csv_file);
-  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file);
-  run<IVFSQ8>(dim, data, Nq, query_data, "IVF-SQ8", csv_file);
-  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file);
-  run<IVFPOUQ8>(dim, data, Nq, query_data, "IVF-POUQ8", csv_file);
+  run<IVF>(dim, data, Nq, query_data, "IVF", csv_file, ground_truth);
+  run<IVFSQ4>(dim, data, Nq, query_data, "IVF-SQ4", csv_file, ground_truth);
+  run<IVFSQ8>(dim, data, Nq, query_data, "IVF-SQ8", csv_file, ground_truth);
+  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth);
+  run<IVFPOUQ8>(dim, data, Nq, query_data, "IVF-POUQ8", csv_file, ground_truth);
 
   csv_file.close();
   std::cout << "Results saved to " << csv_filename << std::endl;
