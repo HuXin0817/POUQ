@@ -97,7 +97,7 @@ public:
       combined_data_[i / 2]        = std::make_tuple(cid[i], cid[i + 1], combined_code);
     }
 
-    bounds_data_ = new ReconstructParameter[dim_ / 4 * 256];
+    bounds_data_ = new ReconstructParameter[dim_ * 64];
 
 #pragma omp parallel for
     for (size_t g = 0; g < dim_ / 4; g++) {
@@ -146,6 +146,13 @@ public:
     sum4        = _mm_hadd_ps(sum4, sum4);
 
     return _mm_cvtss_f32(sum4);
+  }
+
+  void l2distance_batch(const float *data, size_t size, float *distance) const {
+#pragma omp parallel for
+    for (size_t i = 0; i < size; i += dim_) {
+      distance[i / dim_] = l2distance(data, i);
+    }
   }
 
 private:
