@@ -130,14 +130,12 @@ public:
       __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
 
-      __m256 code_vec = _mm256_setr_ps((code_byte1 >> 0) & 3,
-          (code_byte1 >> 2) & 3,
-          (code_byte1 >> 4) & 3,
-          (code_byte1 >> 6) & 3,
-          (code_byte2 >> 0) & 3,
-          (code_byte2 >> 2) & 3,
-          (code_byte2 >> 4) & 3,
-          (code_byte2 >> 6) & 3);
+      // 优化版本
+      __m256i bytes    = _mm256_set1_epi32((code_byte2 << 8) | code_byte1);
+      __m256i shifts   = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
+      __m256i shifted  = _mm256_srlv_epi32(bytes, shifts);
+      __m256i masked   = _mm256_and_si256(shifted, _mm256_set1_epi32(3));
+      __m256  code_vec = _mm256_cvtepi32_ps(masked);
 
       __m256 reconstructed = _mm256_fmadd_ps(code_vec, st_vec, lb_vec);
       __m256 data_vec      = _mm256_loadu_ps(data + i);
