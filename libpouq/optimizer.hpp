@@ -44,7 +44,7 @@ protected:
   }
 };
 
-class MinMaxOptimizer : public Optimizer {
+class MinMaxOptimizer final : public Optimizer {
 public:
   std::pair<float, float> operator()(float                         div,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
