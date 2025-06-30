@@ -77,12 +77,19 @@ public:
     }
 
     // 水平求和AVX2寄存器中的8个浮点数
-    alignas(32) float sum_array[8];
-    _mm256_store_ps(sum_array, sum_vec);
+    // 水平求和AVX2寄存器中的8个浮点数 - 优化版本
+    // 第一步：将256位寄存器分成两个128位部分并相加
+    __m128 low128  = _mm256_castps256_ps128(sum_vec);    // 低128位
+    __m128 high128 = _mm256_extractf128_ps(sum_vec, 1);  // 高128位
+    __m128 sum128  = _mm_add_ps(low128, high128);        // 相加得到4个元素
 
-    for (int i = 0; i < 8; i++) {
-      ret += sum_array[i];
-    }
+    // 第二步：水平求和4个元素
+    __m128 shuf = _mm_movehdup_ps(sum128);      // 复制奇数位置元素
+    sum128      = _mm_add_ps(sum128, shuf);     // 相邻元素相加
+    shuf        = _mm_movehl_ps(shuf, sum128);  // 移动高位到低位
+    sum128      = _mm_add_ss(sum128, shuf);     // 最终求和
+
+    ret += _mm_cvtss_f32(sum128);  // 提取结果
 
     return ret;
   }
