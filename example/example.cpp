@@ -1,5 +1,5 @@
 // #include "../libpouq/quantizer.hpp"
-#include "sq4.hpp"
+#include "uq4.hpp"
 
 #include <assert.h>
 #include <chrono>
@@ -10,7 +10,7 @@
 constexpr size_t Dim = 256;
 constexpr size_t N   = 1e4 * Dim;
 
-template<typename Quantizer>
+template <typename Quantizer>
 float compute_mse(const std::vector<float> &d1, const Quantizer &d2, size_t size) {
   float mse = 0;
   for (size_t i = 0; i < size; i += Dim) {
@@ -28,7 +28,7 @@ int main() {
     d = dis(gen);
   }
 
-  SQ4Quantizer quantizer(Dim);
+  UQQuantizer quantizer(Dim);
 
   const auto start_time = std::chrono::high_resolution_clock::now();
   quantizer.train(data.data(), N);
@@ -42,7 +42,8 @@ int main() {
   const auto mse_end_time   = std::chrono::high_resolution_clock::now();
   const auto mse_duration   = std::chrono::duration_cast<std::chrono::duration<double>>(mse_end_time - mse_start_time);
 
-  std::cout << std::left << std::setw(18) << "MSE compute time:" << mse_duration.count() << "s" << std::endl;
+  std::cout << std::left << std::setw(18) << "Decode Speed:" << static_cast<double>(N) / Dim / mse_duration.count()
+            << "vector / s" << std::endl;
   std::cout << std::left << std::setw(18) << "Error:" << error << std::endl;
 
   return 0;
