@@ -143,16 +143,8 @@ public:
 
     __m128 sum4 = _mm_add_ps(_mm256_extractf128_ps(sum8, 1), _mm256_castps256_ps128(sum8));
     sum4        = _mm_hadd_ps(sum4, sum4);
-    sum4        = _mm_hadd_ps(sum4, sum4);
 
     return _mm_cvtss_f32(sum4);
-  }
-
-  void l2distance_batch(const float *data, size_t size, float *distance) const {
-#pragma omp parallel for
-    for (size_t i = 0; i < size; i += dim_) {
-      distance[i / dim_] = l2distance(data, i);
-    }
   }
 
   ~Quantizer() {
