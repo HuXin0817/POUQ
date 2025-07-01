@@ -74,14 +74,10 @@ public:
       uint32_t bytes = *(uint32_t *)&codes_[byte_pos];
 
       // Extract 8 combined values (4 bits each) into a 256-bit vector
-      __m256i combined = _mm256_setr_epi32(bytes & 0xF,
-          (bytes >> 4) & 0xF,
-          (bytes >> 8) & 0xF,
-          (bytes >> 12) & 0xF,
-          (bytes >> 16) & 0xF,
-          (bytes >> 20) & 0xF,
-          (bytes >> 24) & 0xF,
-          (bytes >> 28) & 0xF);
+      __m256i bytes_vec = _mm256_set1_epi32(bytes);
+      __m256i shifts    = _mm256_setr_epi32(0, 4, 8, 12, 16, 20, 24, 28);
+      __m256i shifted   = _mm256_srlv_epi32(bytes_vec, shifts);
+      __m256i combined  = _mm256_and_si256(shifted, _mm256_set1_epi32(0xF));
 
       // Extract offset (lower 2 bits) and x (upper 2 bits)
       __m256i offset = _mm256_and_si256(combined, _mm256_set1_epi32(0x3));
@@ -109,21 +105,22 @@ public:
     }
 
     // Handle remaining dimensions (if dim_ is not a multiple of 8)
-    float result = 0.0f;
-    for (; i < dim_; i++) {
-      const size_t index           = i + data_index;
-      const size_t group           = index % dim_;
-      const size_t pos             = index * 4;
-      const size_t byte_pos        = pos / 8;
-      const size_t is_high_nibble  = i & 1;
-      size_t       combined        = is_high_nibble ? (codes_[byte_pos] >> 4) & 0xF : codes_[byte_pos] & 0xF;
-      const size_t offset          = combined & 0x3;
-      const size_t x               = (combined >> 2) & 0x3;
-      const size_t final_offset    = offset + group * (1 << 2);
-      const float  quantized_value = lower_bound_[final_offset] + step_size_[final_offset] * static_cast<float>(x);
-      float        dif             = data[i] - quantized_value;
-      result += dif * dif;
-    }
+    // float result = 0.0f;
+    // for (; i < dim_; i++)
+    // {
+    //   const size_t index = i + data_index;
+    //   const size_t group = index % dim_;
+    //   const size_t pos = index * 4;
+    //   const size_t byte_pos = pos / 8;
+    //   const size_t is_high_nibble = i & 1;
+    //   size_t combined = is_high_nibble ? (codes_[byte_pos] >> 4) & 0xF : codes_[byte_pos] & 0xF;
+    //   const size_t offset = combined & 0x3;
+    //   const size_t x = (combined >> 2) & 0x3;
+    //   const size_t final_offset = offset + group * (1 << 2);
+    //   const float quantized_value = lower_bound_[final_offset] + step_size_[final_offset] * static_cast<float>(x);
+    //   float dif = data[i] - quantized_value;
+    //   result += dif * dif;
+    // }
 
     // Horizontal sum of the vectorized result
     __m256 hsum   = _mm256_hadd_ps(sum_vec, sum_vec);
@@ -131,9 +128,8 @@ public:
     __m128 low    = _mm256_castps256_ps128(hsum);
     __m128 high   = _mm256_extractf128_ps(hsum, 1);
     __m128 sum128 = _mm_add_ps(low, high);
-    result += _mm_cvtss_f32(sum128);
 
-    return result;
+    return _mm_cvtss_f32(sum128);
   }
 
   size_t size() const { return size_; }

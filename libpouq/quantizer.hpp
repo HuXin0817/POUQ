@@ -8,6 +8,7 @@
 #include "optimizer.hpp"
 
 #include <cassert>
+#include <vector>
 
 namespace pouq {
 
@@ -27,23 +28,72 @@ inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
   };
 }
 
+// 添加新的set和get函数用于uint16_t
+inline void set16(uint16_t *data, size_t i, size_t n) {
+  const size_t offset = (i & 7) << 1;  // 支持8个2位值
+  i >>= 3;
+  data[i] &= ~(3 << offset);
+  data[i] |= n << offset;
+}
+
+inline std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t> get16(uint16_t value) {
+  return {
+      value & 3,
+      (value >> 2) & 3,
+      (value >> 4) & 3,
+      (value >> 6) & 3,
+      (value >> 8) & 3,
+      (value >> 10) & 3,
+      (value >> 12) & 3,
+      (value >> 14) & 3,
+  };
+}
+
 struct ReconstructParameter {
   __m128 lower_bound;
   __m128 step_size;
 };
 
 class Quantizer {
-
 public:
-  explicit Quantizer(size_t groups) : dim_(groups) { assert(dim_ % 32 == 0); }
+  explicit Quantizer(size_t groups) : dim_(groups) {
+    assert(dim_ % 32 == 0);
+    bounds_data_   = nullptr;
+    combined_data_ = nullptr;
+  }
 
   void train(const float *data, size_t size) {
-    combined_data_ = new std::tuple<uint8_t, uint8_t, uint16_t>[size / 4];
+    // 释放之前分配的内存
+    if (combined_data_) {
+      _mm_free(combined_data_);
+      combined_data_ = nullptr;
+    }
+    if (bounds_data_) {
+      _mm_free(bounds_data_);
+      bounds_data_ = nullptr;
+    }
 
-    std::vector<float>   step_size(dim_ * 4);
-    std::vector<float>   lower_bound(dim_ * 4);
-    std::vector<uint8_t> cid(size / 4);
-    std::vector<uint8_t> code(size / 4);
+    // 计算所需内存大小并分配
+    size_t combined_data_size = size / 4;
+    combined_data_            = static_cast<std::tuple<uint8_t, uint8_t, uint16_t> *>(
+        _mm_malloc(combined_data_size * sizeof(std::tuple<uint8_t, uint8_t, uint16_t>), 256));
+    if (!combined_data_) {
+      throw std::bad_alloc();
+    }
+
+    size_t bounds_data_size = dim_ * 64;
+    bounds_data_ =
+        static_cast<ReconstructParameter *>(_mm_malloc(bounds_data_size * sizeof(ReconstructParameter), 256));
+    if (!bounds_data_) {
+      _mm_free(combined_data_);
+      combined_data_ = nullptr;
+      throw std::bad_alloc();
+    }
+
+    std::vector<float>    step_size(dim_ * 4);
+    std::vector<float>    lower_bound(dim_ * 4);
+    std::vector<uint8_t>  cid(size / 4);
+    std::vector<uint16_t> code(size / 8);  // 修改为uint16_t，大小调整为size/8
 
     const size_t dim_div_4 = dim_ / 4;
 
@@ -87,17 +137,15 @@ public:
             std::clamp((data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
         const size_t base_index = (i / dim_) * dim_div_4;
         set(&cid[base_index], i % dim_, c);
-        set(&code[base_index], i % dim_, x);
+        set16(&code[base_index / 2], i % dim_, x);  // 使用set16函数
       }
     }
 
-#pragma omp parallel for
+    // 调整combined_data_的组合逻辑
     for (size_t i = 0; i < size / 4; i += 2) {
-      const uint16_t combined_code = static_cast<uint16_t>(code[i + 1]) << 8 | code[i];
+      const uint16_t combined_code = code[i / 2];  // 直接使用uint16_t的code
       combined_data_[i / 2]        = std::make_tuple(cid[i], cid[i + 1], combined_code);
     }
-
-    bounds_data_ = new ReconstructParameter[dim_ * 64];
 
 #pragma omp parallel for
     for (size_t g = 0; g < dim_ / 4; g++) {
@@ -152,8 +200,12 @@ public:
   }
 
   ~Quantizer() {
-    delete[] bounds_data_;
-    delete[] combined_data_;
+    if (combined_data_) {
+      _mm_free(combined_data_);
+    }
+    if (bounds_data_) {
+      _mm_free(bounds_data_);
+    }
   }
 
 private:
