@@ -119,7 +119,7 @@ public:
 
   float l2distance(const float *data, size_t offset) const {
     offset /= 4;
-    __m256 sum8 = _mm256_setzero_ps();
+    __m256 sum_vec = _mm256_setzero_ps();
 
     static const __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
     static const __m256i mask   = _mm256_set1_epi32(3);
@@ -138,13 +138,17 @@ public:
       const __m256  reconstructed = _mm256_fmadd_ps(code_vec, st_vec, lb_vec);
       const __m256  data_vec      = _mm256_loadu_ps(data + i);
       const __m256  diff          = _mm256_sub_ps(reconstructed, data_vec);
-      sum8                        = _mm256_add_ps(sum8, _mm256_mul_ps(diff, diff));
+      sum_vec                     = _mm256_fmadd_ps(diff, diff, sum_vec);
     }
 
-    __m128 sum4 = _mm_add_ps(_mm256_extractf128_ps(sum8, 1), _mm256_castps256_ps128(sum8));
-    sum4        = _mm_hadd_ps(sum4, sum4);
-
-    return _mm_cvtss_f32(sum4);
+    __m128 low128  = _mm256_castps256_ps128(sum_vec);
+    __m128 high128 = _mm256_extractf128_ps(sum_vec, 1);
+    __m128 sum128  = _mm_add_ps(low128, high128);
+    __m128 shuf    = _mm_movehdup_ps(sum128);
+    sum128         = _mm_add_ps(sum128, shuf);
+    shuf           = _mm_movehl_ps(shuf, sum128);
+    sum128         = _mm_add_ss(sum128, shuf);
+    return _mm_cvtss_f32(sum128);
   }
 
   ~Quantizer() {
