@@ -5,6 +5,7 @@
 #include "optimizer.hpp"
 #include "quantizer.hpp"
 #include "segmenter.hpp"
+#include "space.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -18,67 +19,43 @@
 
 class Quantizer {
 public:
+  explicit Quantizer(size_t dim) : dim_(dim) { assert(dim_ % 8 == 0); }
+
   virtual ~Quantizer() = default;
 
   virtual void train(const float *data, size_t data_size) = 0;
 
   virtual float l2distance(const float *data, size_t data_index) const = 0;
+
+protected:
+  size_t dim_;
 };
 
-class Float32Quantizer : public Quantizer {
+class Float32Quantizer final : public Quantizer {
 public:
-  explicit Float32Quantizer(size_t dim) : dim(dim) {}
+  explicit Float32Quantizer(size_t dim) : Quantizer(dim) {}
 
-  void train(const float *data, size_t data_size) {
+  void train(const float *data, size_t data_size) override {
     encode = new float[data_size];
     memcpy(encode, data, data_size * sizeof(float));
   }
 
-  float l2distance(const float *data, size_t data_index) const {
-    float        dis        = 0.0f;
-    const float *encode_ptr = encode + data_index;
-
-    size_t simd_end = (dim / 8) * 8;
-    __m256 sum_vec  = _mm256_setzero_ps();
-
-    for (size_t i = 0; i < simd_end; i += 8) {
-      __m256 data_vec   = _mm256_loadu_ps(&data[i]);
-      __m256 encode_vec = _mm256_loadu_ps(&encode_ptr[i]);
-
-      __m256 diff_vec = _mm256_sub_ps(data_vec, encode_vec);
-
-      sum_vec = _mm256_fmadd_ps(diff_vec, diff_vec, sum_vec);
-    }
-
-    __m128 sum_high = _mm256_extractf128_ps(sum_vec, 1);
-    __m128 sum_low  = _mm256_castps256_ps128(sum_vec);
-    __m128 sum_128  = _mm_add_ps(sum_high, sum_low);
-
-    sum_128 = _mm_hadd_ps(sum_128, sum_128);
-    sum_128 = _mm_hadd_ps(sum_128, sum_128);
-    dis     = _mm_cvtss_f32(sum_128);
-
-    for (size_t i = simd_end; i < dim; i++) {
-      float diff = data[i] - encode_ptr[i];
-      dis += diff * diff;
-    }
-
-    return dis;
+  float l2distance(const float *data, size_t data_index) const override {
+    return ::l2distance(data, encode + data_index, dim_);
   }
 
-  ~Float32Quantizer() { delete[] encode; }
+  ~Float32Quantizer() override { delete[] encode; }
 
 private:
-  size_t dim;
   float *encode = nullptr;
 };
 
 template <typename Segmenter, typename Optimizer>
 class QuantizerImpl : public Quantizer {
 public:
-  explicit QuantizerImpl(size_t c_bit, size_t q_bit, size_t groups) : c_bit_(c_bit), q_bit_(q_bit), dim_(groups) {}
+  explicit QuantizerImpl(size_t c_bit, size_t q_bit, size_t dim) : Quantizer(dim), c_bit_(c_bit), q_bit_(q_bit) {}
 
-  void train(const float *data, size_t size) {
+  void train(const float *data, size_t size) override {
     step_size_     = new float[dim_ * (1 << c_bit_)];
     lower_bound_   = new float[dim_ * (1 << c_bit_)];
     cid_           = new uint8_t[size];
@@ -138,7 +115,7 @@ public:
     return dis;
   }
 
-  ~QuantizerImpl() {
+  ~QuantizerImpl() override {
     delete[] lower_bound_;
     delete[] step_size_;
     delete[] cid_;
@@ -155,7 +132,6 @@ private:
 
   size_t   c_bit_       = 0;
   size_t   q_bit_       = 0;
-  size_t   dim_         = 0;
   float   *lower_bound_ = nullptr;
   float   *step_size_   = nullptr;
   uint8_t *cid_         = nullptr;
@@ -195,27 +171,25 @@ public:
 };
 
 template <size_t nbit, typename Segmenter, typename Optimizer>
-class POUQQuantizer : public QuantizerImpl<Segmenter, Optimizer> {
+class POUQQuantizer final : public QuantizerImpl<Segmenter, Optimizer> {
 public:
   explicit POUQQuantizer(size_t dim) : QuantizerImpl<Segmenter, Optimizer>(nbit / 2, nbit / 2, dim) {}
 };
 
-class UQ4bitSIMDQuantizer : public Quantizer {
+class UQ4bitSIMDQuantizer final : public Quantizer {
 public:
-  explicit UQ4bitSIMDQuantizer(size_t groups) : dim_(groups), num_vectors_(dim_ / 8) {
-    assert(dim_ % 32 == 0);
+  explicit UQ4bitSIMDQuantizer(size_t dim) : Quantizer(dim), num_vectors_(dim_ / 8) {
     lowers_     = static_cast<__m256 *>(_mm_malloc(num_vectors_ * sizeof(__m256), 32));
     step_sizes_ = static_cast<__m256 *>(_mm_malloc(num_vectors_ * sizeof(__m256), 32));
   }
 
-  ~UQ4bitSIMDQuantizer() {
+  ~UQ4bitSIMDQuantizer() override {
     delete[] code;
     _mm_free(lowers_);
     _mm_free(step_sizes_);
   }
 
-  void train(const float *data, size_t size) {
-    assert(size % dim_ == 0);
+  void train(const float *data, size_t size) override {
     size_t n_samples = size / dim_;
 
     std::vector<float> lowers(dim_);
@@ -259,7 +233,7 @@ public:
     }
   }
 
-  float l2distance(const float *data, size_t offset) const {
+  float l2distance(const float *data, size_t offset) const override {
     offset /= 8;
     __m256 sum_vec = _mm256_setzero_ps();
 
@@ -292,7 +266,6 @@ public:
   }
 
 private:
-  size_t    dim_         = 0;
   size_t    num_vectors_ = 0;
   __m256   *lowers_      = nullptr;
   __m256   *step_sizes_  = nullptr;
@@ -307,14 +280,12 @@ class POUQ4bitSIMDQuantizer : public Quantizer {
   };
 
 public:
-  explicit POUQ4bitSIMDQuantizer(size_t groups) : dim_(groups) {
-    assert(dim_ % 32 == 0);
+  explicit POUQ4bitSIMDQuantizer(size_t groups) : Quantizer(groups) {
     bounds_data_   = nullptr;
     combined_data_ = nullptr;
   }
 
-  void train(const float *data, size_t size) {
-
+  void train(const float *data, size_t size) override {
     if (combined_data_) {
       _mm_free(combined_data_);
       combined_data_ = nullptr;
@@ -413,7 +384,7 @@ public:
     }
   }
 
-  float l2distance(const float *data, size_t offset) const {
+  float l2distance(const float *data, size_t offset) const override {
     offset /= 4;
     __m256 sum_vec = _mm256_setzero_ps();
 
@@ -447,7 +418,7 @@ public:
     return _mm_cvtss_f32(sum128);
   }
 
-  ~POUQ4bitSIMDQuantizer() {
+  ~POUQ4bitSIMDQuantizer() override {
     if (combined_data_) {
       _mm_free(combined_data_);
     }
@@ -457,7 +428,6 @@ public:
   }
 
 private:
-  size_t                                  dim_           = 0;
   ReconstructParameter                   *bounds_data_   = nullptr;
   std::tuple<uint8_t, uint8_t, uint16_t> *combined_data_ = nullptr;
 
@@ -487,14 +457,14 @@ private:
     return data_freq_map;
   }
 
-  inline void set(uint8_t *data, size_t i, size_t n) {
+  static void set(uint8_t *data, size_t i, size_t n) {
     const size_t offset = (i & 3) << 1;
     i >>= 2;
     data[i] &= ~(3 << offset);
     data[i] |= n << offset;
   }
 
-  inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
+  static std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
     return {
         byte & 3,
         byte >> 2 & 3,
@@ -503,14 +473,14 @@ private:
     };
   }
 
-  inline void set16(uint16_t *data, size_t i, size_t n) {
+  static void set16(uint16_t *data, size_t i, size_t n) {
     const size_t offset = (i & 7) << 1;
     i >>= 3;
     data[i] &= ~(3 << offset);
     data[i] |= n << offset;
   }
 
-  inline std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t> get16(uint16_t value) {
+  static std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t> get16(uint16_t value) {
     return {
         value & 3,
         (value >> 2) & 3,

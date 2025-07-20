@@ -110,11 +110,11 @@ void run(size_t                             dim,
 int main(int argc, char *argv[]) {
   const std::string dataset_name = argv[1];
 
-  auto  d1         = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
-  auto &data       = d1.first;
-  auto  dim        = d1.second;
-  auto  query_data = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs").first;
-  const auto Nq = query_data.size() / dim;
+  auto       d1         = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
+  auto      &data       = d1.first;
+  auto       dim        = d1.second;
+  auto       query_data = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs").first;
+  const auto Nq         = query_data.size() / dim;
 
   std::cout << "Data shape: (" << data.size() / dim << ", " << dim << ")" << std::endl;
   std::cout << "Query shape: (" << Nq << ", " << dim << ")" << std::endl;
