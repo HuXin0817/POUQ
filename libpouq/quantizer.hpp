@@ -1,38 +1,29 @@
 #pragma once
 
+#include <omp.h>
+
+#include "optimizer.hpp"
+#include "quantizer.hpp"
+#include "segmenter.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <immintrin.h>
-#include <omp.h>
-#include <vector>
-#include <omp.h>
-#include "optimizer.hpp"
-#include "quantizer.hpp"
-#include "segmenter.hpp"
-#include <cmath>
 #include <cstring>
-#include <immintrin.h>  // AVX2 intrinsics
-#include <limits>
-#include <vector>
 #include <immintrin.h>
-#include <omp.h>
+#include <limits>
 #include <tuple>
-#include "optimizer.hpp"
-#include "quantizer.hpp"
-#include "segmenter.hpp"
-#include <cassert>
 #include <vector>
 
 class Quantizer {
 public:
+  virtual ~Quantizer() = default;
+
   virtual void train(const float *data, size_t data_size) = 0;
 
   virtual float l2distance(const float *data, size_t data_index) const = 0;
 };
-
 
 class Float32Quantizer : public Quantizer {
 public:
@@ -85,11 +76,9 @@ public:
   ~Float32Quantizer() { delete[] encode; }
 
 private:
-  size_t nbit;
   size_t dim;
   float *encode = nullptr;
 };
-
 
 template <typename Segmenter, typename Optimizer>
 class QuantizerImpl : public Quantizer {
@@ -214,12 +203,11 @@ public:
 
 template <size_t nbit, typename Segmenter, typename Optimizer>
 class POUQQuantizer : public QuantizerImpl<Segmenter, Optimizer> {
-  public:
+public:
   explicit POUQQuantizer(size_t dim) : QuantizerImpl<Segmenter, Optimizer>(nbit / 2, nbit / 2, dim) {}
 };
 
-
-class UQ4bitSIMDQuantizer : public Quantizer  {
+class UQ4bitSIMDQuantizer : public Quantizer {
 public:
   explicit UQ4bitSIMDQuantizer(size_t groups) : dim_(groups), num_vectors_(dim_ / 8) {
     assert(dim_ % 32 == 0);
@@ -318,14 +306,12 @@ private:
   uint32_t *code         = nullptr;
 };
 
-
 class POUQ4bitSIMDQuantizer : public Quantizer {
 
-struct ReconstructParameter {
-  __m128 lower_bound;
-  __m128 step_size;
-};
-
+  struct ReconstructParameter {
+    __m128 lower_bound;
+    __m128 step_size;
+  };
 
 public:
   explicit POUQ4bitSIMDQuantizer(size_t groups) : dim_(groups) {
@@ -511,42 +497,40 @@ private:
     return data_freq_map;
   }
 
+  inline void set(uint8_t *data, size_t i, size_t n) {
+    const size_t offset = (i & 3) << 1;
+    i >>= 2;
+    data[i] &= ~(3 << offset);
+    data[i] |= n << offset;
+  }
 
-inline void set(uint8_t *data, size_t i, size_t n) {
-  const size_t offset = (i & 3) << 1;
-  i >>= 2;
-  data[i] &= ~(3 << offset);
-  data[i] |= n << offset;
-}
+  inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
+    return {
+        byte & 3,
+        byte >> 2 & 3,
+        byte >> 4 & 3,
+        byte >> 6 & 3,
+    };
+  }
 
-inline std::tuple<size_t, size_t, size_t, size_t> get(uint8_t byte) {
-  return {
-      byte & 3,
-      byte >> 2 & 3,
-      byte >> 4 & 3,
-      byte >> 6 & 3,
-  };
-}
+  // 添加新的set和get函数用于uint16_t
+  inline void set16(uint16_t *data, size_t i, size_t n) {
+    const size_t offset = (i & 7) << 1;  // 支持8个2位值
+    i >>= 3;
+    data[i] &= ~(3 << offset);
+    data[i] |= n << offset;
+  }
 
-// 添加新的set和get函数用于uint16_t
-inline void set16(uint16_t *data, size_t i, size_t n) {
-  const size_t offset = (i & 7) << 1;  // 支持8个2位值
-  i >>= 3;
-  data[i] &= ~(3 << offset);
-  data[i] |= n << offset;
-}
-
-inline std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t> get16(uint16_t value) {
-  return {
-      value & 3,
-      (value >> 2) & 3,
-      (value >> 4) & 3,
-      (value >> 6) & 3,
-      (value >> 8) & 3,
-      (value >> 10) & 3,
-      (value >> 12) & 3,
-      (value >> 14) & 3,
-  };
-}
-
+  inline std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t> get16(uint16_t value) {
+    return {
+        value & 3,
+        (value >> 2) & 3,
+        (value >> 4) & 3,
+        (value >> 6) & 3,
+        (value >> 8) & 3,
+        (value >> 10) & 3,
+        (value >> 12) & 3,
+        (value >> 14) & 3,
+    };
+  }
 };

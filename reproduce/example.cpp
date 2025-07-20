@@ -1,5 +1,5 @@
-#include "../libpouq/utils.hpp"
 #include "../libpouq/quantizer.hpp"
+#include "../libpouq/utils.hpp"
 
 #include <chrono>
 #include <fstream>

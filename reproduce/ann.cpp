@@ -1,7 +1,7 @@
 #include "../libpouq/ivfindex.hpp"
 #include "../libpouq/optimizer.hpp"
-#include "../libpouq/segmenter.hpp"
 #include "../libpouq/quantizer.hpp"
+#include "../libpouq/segmenter.hpp"
 
 #include <omp.h>
 

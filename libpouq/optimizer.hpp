@@ -7,13 +7,15 @@
 
 class Optimizer {
 public:
+  virtual ~Optimizer() = default;
+
   virtual std::pair<float, float> operator()(float                 div,
       float                                                        init_lower_bound,
       float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) = 0;
 
-  float loss(const float                                           div,
+  static float loss(const float                                    div,
       float                                                        cluster_lower_bound,
       float                                                        step_size_value,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_begin,
