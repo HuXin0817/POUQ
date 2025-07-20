@@ -62,7 +62,7 @@ public:
     code_          = new uint8_t[size];
     const auto div = static_cast<float>((1 << q_bit_) - 1);
 
-#pragma omp parallel for default(none) shared(data, size, div)
+#pragma omp parallel for
     for (size_t group = 0; group < dim_; group++) {
       const auto data_freq_map = count_freq(data, size, group);
       const auto bounds        = Segmenter()(1 << c_bit_, data_freq_map);
