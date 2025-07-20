@@ -1,7 +1,5 @@
-#include "../libpouq/POUQQuantizer.hpp"
-#include "../libpouq/QuantizerImpl.hpp"
-#include "../libpouq/UQ4Quantizer.hpp"
 #include "../libpouq/utils.hpp"
+#include "../libpouq/quantizer.hpp"
 
 #include <chrono>
 #include <fstream>
@@ -98,8 +96,30 @@ int main(int argc, char *argv[]) {
   auto  dim  = d1.second;
 
   std::vector<std::vector<std::string>> results;
-  results.push_back(run<UQ4Quantizer>(dim, data, "UQ"));
-  results.push_back(run<POUQ4bitOptimizationQuantizer>(dim, data, "POUQ"));
+
+  results.push_back(run<UQ4bitSIMDQuantizer>(dim, data, "UQ4bitSIMD"));
+  results.push_back(run<POUQ4bitSIMDQuantizer>(dim, data, "POUQ4bitSIMD"));
+
+  results.push_back(run<UQQuantizer<4, MinMaxOptimizer>>(dim, data, "UQ4bit"));
+  results.push_back(run<UQQuantizer<8, MinMaxOptimizer>>(dim, data, "UQ8bit"));
+
+  results.push_back(run<UQQuantizer<4, EMOptimizer>>(dim, data, "UQ4bitEMOptimize"));
+  results.push_back(run<UQQuantizer<8, EMOptimizer>>(dim, data, "UQ8bitEMOptimize"));
+
+  results.push_back(run<UQQuantizer<4, PSOOptimizer>>(dim, data, "UQ4bitPSOOptimize"));
+  results.push_back(run<UQQuantizer<8, PSOOptimizer>>(dim, data, "UQ8bitPSOOptimize"));
+
+  results.push_back(run<POUQQuantizer<4, POUQSegmenter, MinMaxOptimizer>>(dim, data, "POUQ4bitMinMax"));
+  results.push_back(run<POUQQuantizer<8, POUQSegmenter, MinMaxOptimizer>>(dim, data, "POUQ8bitMinMax"));
+
+  results.push_back(run<POUQQuantizer<4, KmeansSegmenter, MinMaxOptimizer>>(dim, data, "POUQ4bitKmeansMinMax"));
+  results.push_back(run<POUQQuantizer<8, KmeansSegmenter, MinMaxOptimizer>>(dim, data, "POUQ8bitKmeansMinMax"));
+
+  results.push_back(run<POUQQuantizer<4, POUQSegmenter, PSOOptimizer>>(dim, data, "POUQ4bitPSOOptimize"));
+  results.push_back(run<POUQQuantizer<8, POUQSegmenter, PSOOptimizer>>(dim, data, "POUQ8bitPSOOptimize"));
+
+  results.push_back(run<POUQQuantizer<4, POUQSegmenter, EMOptimizer>>(dim, data, "POUQ4bitEMOptimize"));
+  results.push_back(run<POUQQuantizer<8, POUQSegmenter, EMOptimizer>>(dim, data, "POUQ8bitEMOptimize"));
 
   write_to_csv(results, csv_filename);
 
