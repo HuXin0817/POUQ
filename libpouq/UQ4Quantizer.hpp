@@ -2,21 +2,21 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
+#include <cstdint>
 #include <immintrin.h>
 #include <omp.h>
 #include <vector>
-#include <cstdint>
-#include <cmath>
 
-class UQQuantizer {
+class UQ4Quantizer {
 public:
-  explicit UQQuantizer(size_t groups) : dim_(groups), num_vectors_(dim_ / 8) {
+  explicit UQ4Quantizer(size_t groups) : dim_(groups), num_vectors_(dim_ / 8) {
     assert(dim_ % 32 == 0);
     lowers_     = static_cast<__m256 *>(_mm_malloc(num_vectors_ * sizeof(__m256), 32));
     step_sizes_ = static_cast<__m256 *>(_mm_malloc(num_vectors_ * sizeof(__m256), 32));
   }
 
-  ~UQQuantizer() {
+  ~UQ4Quantizer() {
     delete[] code;
     _mm_free(lowers_);
     _mm_free(step_sizes_);

@@ -1,6 +1,6 @@
-#include "../libpouq/quantizer.hpp"
+#include "../libpouq/POUQQuantizer.hpp"
+#include "../libpouq/UQ4Quantizer.hpp"
 #include "../libpouq/utils.hpp"
-#include "uq4.hpp"
 
 #include <chrono>
 #include <fstream>
@@ -97,8 +97,8 @@ int main(int argc, char *argv[]) {
   auto  dim  = d1.second;
 
   std::vector<std::vector<std::string>> results;
-  results.push_back(run<UQQuantizer>(dim, data, "UQ"));
-  results.push_back(run<pouq::Quantizer>(dim, data, "POUQ"));
+  results.push_back(run<UQ4Quantizer>(dim, data, "UQ"));
+  results.push_back(run<pouq::POUQQuantizer>(dim, data, "POUQ"));
 
   write_to_csv(results, csv_filename);
 

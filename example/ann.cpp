@@ -1,7 +1,7 @@
 // #include "../libpouq/bitmap.hpp"
-#include "../libpouq/clusterer.hpp"
-#include "../libpouq/ivf.hpp"
-#include "../libpouq/optimizer.hpp"
+#include "../libpouq/IVFIndex.hpp"
+#include "../libpouq/Optimizer.hpp"
+#include "../libpouq/Segmenter.hpp"
 // #include "../libpouq/quantizer.hpp"
 
 #include <omp.h>
