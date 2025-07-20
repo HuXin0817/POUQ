@@ -143,8 +143,8 @@ public:
 
     // 调整combined_data_的组合逻辑
     for (size_t i = 0; i < size / 4; i += 2) {
-      const uint16_t combined_code = code[i / 2];  // 直接使用uint16_t的code
-      combined_data_[i / 2]        = std::make_tuple(cid[i], cid[i + 1], combined_code);
+      // const uint16_t combined_code = code[i / 2];  // 直接使用uint16_t的code
+      combined_data_[i / 2]        = std::make_tuple(cid[i], cid[i + 1], code[i / 2]);
     }
 
 #pragma omp parallel for

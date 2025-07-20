@@ -1,5 +1,4 @@
 #include "../libpouq/quantizer.hpp"
-#include "../libpouq/quantizer2.hpp"
 #include "uq4.hpp"
 
 #include <assert.h>
@@ -153,10 +152,8 @@ int main(int argc, char *argv[]) {
   auto  Dim  = d1.second;
 
   std::vector<std::vector<std::string>> results;
-  run<UQQuantizer>(Dim, data, "UQ");
   results.push_back(run<UQQuantizer>(Dim, data, "UQ"));
   results.push_back(run<pouq::Quantizer>(Dim, data, "POUQ"));
-  results.push_back(run<POUQ4>(Dim, data, "POUQ_4"));
 
   write_to_csv(results, csv_filename);
 
