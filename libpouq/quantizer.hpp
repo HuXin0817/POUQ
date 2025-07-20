@@ -38,33 +38,26 @@ public:
     float        dis        = 0.0f;
     const float *encode_ptr = encode + data_index;
 
-    // AVX2 vectorized computation for groups of 8 floats
     size_t simd_end = (dim / 8) * 8;
     __m256 sum_vec  = _mm256_setzero_ps();
 
     for (size_t i = 0; i < simd_end; i += 8) {
-      // Load 8 floats from data and encode
       __m256 data_vec   = _mm256_loadu_ps(&data[i]);
       __m256 encode_vec = _mm256_loadu_ps(&encode_ptr[i]);
 
-      // Compute difference
       __m256 diff_vec = _mm256_sub_ps(data_vec, encode_vec);
 
-      // UQuare the differences and accumulate
       sum_vec = _mm256_fmadd_ps(diff_vec, diff_vec, sum_vec);
     }
 
-    // Horizontal sum of the 8 elements in sum_vec
     __m128 sum_high = _mm256_extractf128_ps(sum_vec, 1);
     __m128 sum_low  = _mm256_castps256_ps128(sum_vec);
     __m128 sum_128  = _mm_add_ps(sum_high, sum_low);
 
-    // Further reduce to single value
     sum_128 = _mm_hadd_ps(sum_128, sum_128);
     sum_128 = _mm_hadd_ps(sum_128, sum_128);
     dis     = _mm_cvtss_f32(sum_128);
 
-    // Handle remaining elements (if dim is not multiple of 8)
     for (size_t i = simd_end; i < dim; i++) {
       float diff = data[i] - encode_ptr[i];
       dis += diff * diff;
@@ -321,7 +314,7 @@ public:
   }
 
   void train(const float *data, size_t size) {
-    // 释放之前分配的内存
+
     if (combined_data_) {
       _mm_free(combined_data_);
       combined_data_ = nullptr;
@@ -331,7 +324,6 @@ public:
       bounds_data_ = nullptr;
     }
 
-    // 计算所需内存大小并分配
     size_t combined_data_size = size / 4;
     combined_data_            = static_cast<std::tuple<uint8_t, uint8_t, uint16_t> *>(
         _mm_malloc(combined_data_size * sizeof(std::tuple<uint8_t, uint8_t, uint16_t>), 256));
@@ -351,7 +343,7 @@ public:
     std::vector<float>    step_size(dim_ * 4);
     std::vector<float>    lower_bound(dim_ * 4);
     std::vector<uint8_t>  cid(size / 4);
-    std::vector<uint16_t> code(size / 8);  // 修改为uint16_t，大小调整为size/8
+    std::vector<uint16_t> code(size / 8);
 
     const size_t dim_div_4 = dim_ / 4;
 
@@ -395,13 +387,11 @@ public:
             std::clamp((data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
         const size_t base_index = (i / dim_) * dim_div_4;
         set(&cid[base_index], i % dim_, c);
-        set16(&code[base_index / 2], i % dim_, x);  // 使用set16函数
+        set16(&code[base_index / 2], i % dim_, x);
       }
     }
 
-    // 调整combined_data_的组合逻辑
     for (size_t i = 0; i < size / 4; i += 2) {
-      // const uint16_t combined_code = code[i / 2];  // 直接使用uint16_t的code
       combined_data_[i / 2] = std::make_tuple(cid[i], cid[i + 1], code[i / 2]);
     }
 
@@ -513,9 +503,8 @@ private:
     };
   }
 
-  // 添加新的set和get函数用于uint16_t
   inline void set16(uint16_t *data, size_t i, size_t n) {
-    const size_t offset = (i & 7) << 1;  // 支持8个2位值
+    const size_t offset = (i & 7) << 1;
     i >>= 3;
     data[i] &= ~(3 << offset);
     data[i] |= n << offset;

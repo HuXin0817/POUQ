@@ -62,13 +62,10 @@ void write_to_csv(const std::vector<std::vector<std::string>> &rows, const std::
     exit(-1);
   }
 
-  // 设置全精度输出
   csv_file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
 
-  // 写入表头
   csv_file << "Quantizer,Training Time (s),Decode Speed (vector/s),Error\n";
 
-  // 写入数据行
   for (const auto &row : rows) {
     for (size_t i = 0; i < row.size(); ++i) {
       csv_file << row[i];

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include <immintrin.h>  // 添加SIMD头文件
+#include <immintrin.h>
 
 std::pair<std::vector<float>, size_t> read_fvecs(const std::string &filename) {
   std::cout << "read from " << filename << std::endl;
