@@ -171,9 +171,7 @@ int main(int argc, char *argv[]) {
   // 运行不同的方法并保存结果
   run<IVF>(dim, data, Nq, query_data, "IVF", csv_file, ground_truth, ground_truth_distances);
   run<IVFUQ4>(dim, data, Nq, query_data, "IVF-UQ4", csv_file, ground_truth, ground_truth_distances);
-  run<IVFPOUQ4>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth, ground_truth_distances);
-  // run<IVFPOUQ4_recall>(dim, data, Nq, query_data, "IVF-POUQ4_Recall", csv_file, ground_truth,
-  // ground_truth_distances);
+  run<IVFPOUQ>(dim, data, Nq, query_data, "IVF-POUQ4", csv_file, ground_truth, ground_truth_distances);
 
   csv_file.close();
   std::cout << "Results saved to " << csv_filename << std::endl;

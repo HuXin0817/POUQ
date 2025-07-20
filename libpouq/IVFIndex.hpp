@@ -304,4 +304,4 @@ private:
 
 using IVF      = IVFIndex<Float32Quantizer>;
 using IVFUQ4   = IVFIndex<UQ4Quantizer>;
-using IVFPOUQ4 = IVFIndex<pouq::POUQQuantizer>;
+using IVFPOUQ = IVFIndex<pouq::POUQ4bitOptimizationQuantizer>;

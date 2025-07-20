@@ -54,10 +54,9 @@ struct ReconstructParameter {
   __m128 step_size;
 };
 
-template <typename Segmenter, typename Optimizer>
-class POUQQuantizer {
+class POUQ4bitOptimizationQuantizer {
 public:
-  explicit POUQQuantizer(size_t groups) : dim_(groups) {
+  explicit POUQ4bitOptimizationQuantizer(size_t groups) : dim_(groups) {
     assert(dim_ % 32 == 0);
     bounds_data_   = nullptr;
     combined_data_ = nullptr;
@@ -101,7 +100,7 @@ public:
 #pragma omp parallel for
     for (size_t d = 0; d < dim_; d++) {
       const auto   data_freq_map = count_freq(data, size, d);
-      const auto   bounds        = Segmenter()(4, data_freq_map);
+      const auto   bounds        = POUQSegmenter()(4, data_freq_map);
       const size_t d_times_4     = d * 4;
 
       for (size_t i = 0; i < bounds.size(); i++) {
@@ -116,7 +115,7 @@ public:
               upper,
               [](const float rhs, const std::pair<float, size_t> &lhs) -> bool { return rhs < lhs.first; });
 
-          const auto [opt_lower, opt_upper] = Optimizer()(3, lower, upper, data_start, data_end);
+          const auto [opt_lower, opt_upper] = PSOOptimizer()(3, lower, upper, data_start, data_end);
           lower                             = opt_lower;
           upper                             = opt_upper;
         }
@@ -200,7 +199,7 @@ public:
     return _mm_cvtss_f32(sum128);
   }
 
-  ~POUQQuantizer() {
+  ~POUQ4bitOptimizationQuantizer() {
     if (combined_data_) {
       _mm_free(combined_data_);
     }

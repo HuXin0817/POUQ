@@ -43,6 +43,17 @@ public:
   }
 };
 
+class MinMaxOptimizer final : public Optimizer {
+public:
+  std::pair<float, float> operator()(float                         div,
+      float                                                        init_lower_bound,
+      float                                                        init_upper_bound,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
+        return {init_lower_bound, init_upper_bound};
+      }
+};
+
 class PSOOptimizer final : public Optimizer {
 
   static constexpr size_t max_iter          = 128;
@@ -72,11 +83,12 @@ class PSOOptimizer final : public Optimizer {
           min_loss(std::numeric_limits<float>::max()) {}
   };
 
+  public:
   std::pair<float, float> operator()(float                         div,
       float                                                        init_lower_bound,
       float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
     const float init_range_width  = init_upper_bound - init_lower_bound;
     const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
 
@@ -166,8 +178,10 @@ class EMOptimizer final : public Optimizer {
 
 public:
   std::pair<float, float> operator()(float                         div,
+      float                                                        init_lower_bound,
+      float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
     float sx   = 0;
     float n    = 0;
     auto  vmin = data_start->first;

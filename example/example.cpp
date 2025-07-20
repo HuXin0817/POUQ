@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::vector<std::string>> results;
   results.push_back(run<UQ4Quantizer>(dim, data, "UQ"));
-  results.push_back(run<pouq::POUQQuantizer>(dim, data, "POUQ"));
+  results.push_back(run<pouq::POUQ4bitOptimizationQuantizer>(dim, data, "POUQ"));
 
   write_to_csv(results, csv_filename);
 
