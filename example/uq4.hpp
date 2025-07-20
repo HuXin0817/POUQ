@@ -5,6 +5,8 @@
 #include <immintrin.h>
 #include <omp.h>
 #include <vector>
+#include <cstdint>
+#include <cmath>
 
 class UQQuantizer {
 public:

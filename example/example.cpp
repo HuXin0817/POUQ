@@ -1,4 +1,5 @@
 #include "../libpouq/quantizer.hpp"
+#include "../libpouq/utils.hpp"
 #include "uq4.hpp"
 
 #include <chrono>

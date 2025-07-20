@@ -126,9 +126,7 @@ int main(int argc, char *argv[]) {
   // std::shuffle(data.begin(), data.end(), std::mt19937(42));
   // std::shuffle(query_data.begin(), query_data.end(), std::mt19937(42));
 
-  // auto [data, dim]     = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
-  // auto [query_data, _] = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_query.fvecs");
-  // data = std::vector<float>(data.begin(), data.begin() + dim * 10000);
+  // data = std::vector<float>(data.begin(), data.begin() + dim * 2000);
   // query_data = std::vector<float>(query_data.begin(), query_data.begin() + dim * 10);
   const auto Nq = query_data.size() / dim;
 

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "utils.hpp"
+#include "../example/uq4.hpp"
+#include "quantizer.hpp"
+#include "f32.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -299,5 +302,6 @@ private:
   }
 };
 
+using IVF = IVFIndex<Float32Quantizer>;
 using IVFUQ4   = IVFIndex<UQQuantizer>;
 using IVFPOUQ4 = IVFIndex<pouq::Quantizer>;
