@@ -3,12 +3,16 @@ PROJECT(POUQ)
 
 SET(CMAKE_CXX_STANDARD 17)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
+# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
 
 FIND_PACKAGE(OpenMP REQUIRED)
 
 ADD_EXECUTABLE(example example/example.cpp)
-
 TARGET_LINK_LIBRARIES(example PRIVATE
+        OpenMP::OpenMP_CXX
+)
+
+ADD_EXECUTABLE(ann example/ann.cpp)
+TARGET_LINK_LIBRARIES(ann PRIVATE
         OpenMP::OpenMP_CXX
 )
