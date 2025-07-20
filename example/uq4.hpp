@@ -97,13 +97,6 @@ public:
     return _mm_cvtss_f32(sum128);
   }
 
-  void l2distance_batch(const float *data, size_t size, float *distance) const {
-#pragma omp parallel for
-    for (size_t i = 0; i < size; i += dim_) {
-      distance[i / dim_] = l2distance(data, i);
-    }
-  }
-
 private:
   size_t    dim_         = 0;
   size_t    num_vectors_ = 0;
