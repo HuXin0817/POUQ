@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
   }
 
   const std::string dataset_name = argv[1];
-  const std::string csv_filename = (argc > 2) ? argv[2] : (dataset_name + "_results.csv");
+  const std::string csv_filename = (argc > 2) ? argv[2] : ("../result/exp1_" + dataset_name + ".csv");
 
   auto  d1   = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
   auto &data = d1.first;
