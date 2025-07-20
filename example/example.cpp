@@ -1,7 +1,6 @@
 #include "../libpouq/quantizer.hpp"
 #include "uq4.hpp"
 
-#include <assert.h>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -12,13 +11,13 @@
 #include <vector>
 
 template <typename Quantizer>
-float compute_mse(const std::vector<float> &d1, const Quantizer &d2, size_t size, size_t dim) {
+float compute_mse(const std::vector<float> &d1, const Quantizer &d2, size_t dim) {
   float mse = 0;
 #pragma omp parallel for reduction(+ : mse)
-  for (size_t i = 0; i < size; i += dim) {
+  for (size_t i = 0; i < d1.size(); i += dim) {
     mse += d2.l2distance(d1.data() + i, i);
   }
-  return mse / static_cast<float>(size);
+  return mse / static_cast<float>(d1.size());
 }
 
 std::pair<std::vector<float>, size_t> read_fvecs(const std::string &filename) {
@@ -40,29 +39,21 @@ std::pair<std::vector<float>, size_t> read_fvecs(const std::string &filename) {
       exit(-1);
     }
 
-    // 计算调整后的维度（向上取整到64的倍数）
-    padded_dim = ((dim + 7) / 8) * 8;
-
-    // 记录第一个向量的调整后维度
+    padded_dim = (dim + 7) / 8 * 8;
     if (first_dim == -1) {
       first_dim = padded_dim;
     } else if (padded_dim != first_dim) {
-      // 如果调整后的维度不一致，报错
       std::cerr << "Error: Inconsistent dimensions in fvecs file" << std::endl;
       exit(-1);
     }
 
-    // 读取原始向量数据
     std::vector<float> vec(dim);
     if (!file.read(reinterpret_cast<char *>(vec.data()), dim * sizeof(float))) {
       std::cerr << "Error: Incomplete vector data" << std::endl;
       exit(-1);
     }
 
-    // 将向量数据添加到结果中
     all_data.insert(all_data.end(), vec.begin(), vec.end());
-
-    // 如果需要，补0到调整后的维度
     if (padded_dim > dim) {
       size_t padding = padded_dim - dim;
       all_data.insert(all_data.end(), padding, 0.0f);
@@ -78,8 +69,8 @@ std::pair<std::vector<float>, size_t> read_fvecs(const std::string &filename) {
 }
 
 template <typename Quantizer>
-std::vector<std::string> run(size_t Dim, const std::vector<float> &data, const std::string &quantizerName) {
-  Quantizer quantizer(Dim);
+std::vector<std::string> run(size_t dim, const std::vector<float> &data, const std::string &quantizer_name) {
+  Quantizer quantizer(dim);
 
   const auto start_time = std::chrono::high_resolution_clock::now();
   quantizer.train(data.data(), data.size());
@@ -90,15 +81,15 @@ std::vector<std::string> run(size_t Dim, const std::vector<float> &data, const s
   double mse_duration = 0.0;
   for (size_t i = 0; i < 10; i++) {
     const auto mse_start_time = std::chrono::high_resolution_clock::now();
-    error                     = compute_mse(data, quantizer, data.size(), Dim);
+    error                     = compute_mse(data, quantizer, dim);
     const auto mse_end_time   = std::chrono::high_resolution_clock::now();
     mse_duration += std::chrono::duration_cast<std::chrono::duration<double>>(mse_end_time - mse_start_time).count();
   }
   mse_duration /= 10;
 
-  double decode_speed = static_cast<double>(data.size()) / Dim / mse_duration;
+  double decode_speed = static_cast<double>(data.size()) / dim / mse_duration;
 
-  std::cout << "Quantizer: " << quantizerName << std::endl;
+  std::cout << "Quantizer: " << quantizer_name << std::endl;
   std::cout << std::left << std::setw(18) << "Training time:" << duration.count() << "s" << std::endl;
   std::cout << std::left << std::setw(18) << "Decode Speed:" << decode_speed << " vector/s" << std::endl;
   std::cout << std::left << std::setw(18) << "Error:" << error << std::endl;
@@ -109,7 +100,7 @@ std::vector<std::string> run(size_t Dim, const std::vector<float> &data, const s
   speed_ss << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << decode_speed;
   error_ss << std::fixed << std::setprecision(std::numeric_limits<float>::max_digits10) << error;
 
-  return {quantizerName, duration_ss.str(), speed_ss.str(), error_ss.str()};
+  return {quantizer_name, duration_ss.str(), speed_ss.str(), error_ss.str()};
 }
 
 void write_to_csv(const std::vector<std::vector<std::string>> &rows, const std::string &filename) {
@@ -150,11 +141,11 @@ int main(int argc, char *argv[]) {
 
   auto  d1   = read_fvecs("../data/" + dataset_name + "/" + dataset_name + "_base.fvecs");
   auto &data = d1.first;
-  auto  Dim  = d1.second;
+  auto  dim  = d1.second;
 
   std::vector<std::vector<std::string>> results;
-  results.push_back(run<UQQuantizer>(Dim, data, "UQ"));
-  results.push_back(run<pouq::Quantizer>(Dim, data, "POUQ"));
+  results.push_back(run<UQQuantizer>(dim, data, "UQ"));
+  results.push_back(run<pouq::Quantizer>(dim, data, "POUQ"));
 
   write_to_csv(results, csv_filename);
 
