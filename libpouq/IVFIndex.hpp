@@ -302,6 +302,6 @@ private:
   }
 };
 
-using IVF      = IVFIndex<Float32Quantizer>;
-using IVFUQ4   = IVFIndex<UQ4Quantizer>;
-using IVFPOUQ = IVFIndex<pouq::POUQ4bitOptimizationQuantizer>;
+using IVF     = IVFIndex<Float32Quantizer>;
+using IVFUQ4  = IVFIndex<UQ4Quantizer>;
+using IVFPOUQ = IVFIndex<POUQ4bitOptimizationQuantizer>;

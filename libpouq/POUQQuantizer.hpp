@@ -5,12 +5,11 @@
 #include <tuple>
 
 #include "Optimizer.hpp"
+#include "Quantizer.hpp"
 #include "Segmenter.hpp"
 
 #include <cassert>
 #include <vector>
-
-namespace pouq {
 
 inline void set(uint8_t *data, size_t i, size_t n) {
   const size_t offset = (i & 3) << 1;
@@ -54,7 +53,7 @@ struct ReconstructParameter {
   __m128 step_size;
 };
 
-class POUQ4bitOptimizationQuantizer {
+class POUQ4bitOptimizationQuantizer : public Quantizer {
 public:
   explicit POUQ4bitOptimizationQuantizer(size_t groups) : dim_(groups) {
     assert(dim_ % 32 == 0);
@@ -239,5 +238,3 @@ private:
     return data_freq_map;
   }
 };
-
-}  // namespace pouq

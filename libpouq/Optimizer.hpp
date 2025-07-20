@@ -5,11 +5,9 @@
 #include <random>
 #include <vector>
 
-namespace pouq {
-
 class Optimizer {
 public:
-  virtual std::pair<float, float> operator()(float                         div,
+  virtual std::pair<float, float> operator()(float                 div,
       float                                                        init_lower_bound,
       float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
@@ -50,8 +48,8 @@ public:
       float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
-        return {init_lower_bound, init_upper_bound};
-      }
+    return {init_lower_bound, init_upper_bound};
+  }
 };
 
 class PSOOptimizer final : public Optimizer {
@@ -83,7 +81,7 @@ class PSOOptimizer final : public Optimizer {
           min_loss(std::numeric_limits<float>::max()) {}
   };
 
-  public:
+public:
   std::pair<float, float> operator()(float                         div,
       float                                                        init_lower_bound,
       float                                                        init_upper_bound,
@@ -230,5 +228,3 @@ public:
     return {vmin, vmax};
   }
 };
-
-}  // namespace pouq

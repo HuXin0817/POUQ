@@ -1,4 +1,5 @@
 #include "../libpouq/POUQQuantizer.hpp"
+#include "../libpouq/QuantizerImpl.hpp"
 #include "../libpouq/UQ4Quantizer.hpp"
 #include "../libpouq/utils.hpp"
 
@@ -98,7 +99,7 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::vector<std::string>> results;
   results.push_back(run<UQ4Quantizer>(dim, data, "UQ"));
-  results.push_back(run<pouq::POUQ4bitOptimizationQuantizer>(dim, data, "POUQ"));
+  results.push_back(run<POUQ4bitOptimizationQuantizer>(dim, data, "POUQ"));
 
   write_to_csv(results, csv_filename);
 

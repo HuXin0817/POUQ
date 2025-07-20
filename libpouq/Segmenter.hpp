@@ -4,18 +4,37 @@
 #include <limits>
 #include <vector>
 
-namespace pouq {
-
 class Segmenter {
 public:
+  virtual ~Segmenter() = default;
+
   virtual std::vector<std::pair<float, float>> operator()(size_t k,
       const std::vector<std::pair<float, size_t>>               &data_freq_map) = 0;
 };
 
-class POUQSegmenter {
+class BlankSegmenter final : public Segmenter {
 public:
   std::vector<std::pair<float, float>> operator()(size_t k,
-      const std::vector<std::pair<float, size_t>>       &data_freq_map) {
+      const std::vector<std::pair<float, size_t>>       &data_freq_map) override {
+    return {{data_freq_map.front().first, data_freq_map.back().first}};
+  }
+};
+
+struct Task {
+  size_t j;
+  size_t left;
+  size_t right;
+  size_t opt_left;
+  size_t opt_right;
+
+  Task(const size_t j, const size_t left, const size_t right, const size_t opt_left, const size_t opt_right)
+      : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {}
+};
+
+class POUQSegmenter final : public Segmenter {
+public:
+  std::vector<std::pair<float, float>> operator()(size_t k,
+      const std::vector<std::pair<float, size_t>>       &data_freq_map) override {
     const size_t size = data_freq_map.size();
     k                 = std::min(size, k);
 
@@ -28,17 +47,6 @@ public:
     std::vector curr_dp(size + 1, std::numeric_limits<double>::max());
     std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
     prev_dp[0] = 0.0;
-
-    struct Task {
-      size_t j;
-      size_t left;
-      size_t right;
-      size_t opt_left;
-      size_t opt_right;
-
-      Task(const size_t j, const size_t left, const size_t right, const size_t opt_left, const size_t opt_right)
-          : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {}
-    };
 
     for (size_t j = 1; j <= k; ++j) {
       std::vector<Task> tasks{{j, j, size, 0, size - 1}};
@@ -99,17 +107,6 @@ public:
 };
 
 class KmeansSegmenter final : public Segmenter {
-
-  struct Task {
-    size_t j;
-    size_t left;
-    size_t right;
-    size_t opt_left;
-    size_t opt_right;
-
-    Task(const size_t j, const size_t left, const size_t right, const size_t opt_left, const size_t opt_right)
-        : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {}
-  };
 
 public:
   std::vector<std::pair<float, float>> operator()(size_t k,
@@ -198,5 +195,3 @@ public:
     return bounds;
   }
 };
-
-}  // namespace pouq
