@@ -5,7 +5,7 @@
 #include "optimizer.hpp"
 #include "quantizer.hpp"
 #include "segmenter.hpp"
-#include "space.hpp"
+#include "utils.hpp"
 
 #include <algorithm>
 #include <cassert>
