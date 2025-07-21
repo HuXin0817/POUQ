@@ -272,7 +272,7 @@ private:
   uint32_t *code         = nullptr;
 };
 
-class POUQ4bitSIMDQuantizer : public Quantizer {
+class POUQ4bitSIMDQuantizer final : public Quantizer {
 
   struct ReconstructParameter {
     __m128 lower_bound;
