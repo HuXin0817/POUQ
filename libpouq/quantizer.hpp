@@ -188,7 +188,7 @@ public:
 template <size_t nbit>
 class LGBQuantizer final : public QuantizerImpl<KmeansSegmenter, CenterCalculator> {
 public:
-  explicit LGBQuantizer(size_t dim) : QuantizerImpl(nbit, 0, dim) {}
+  explicit LGBQuantizer(size_t dim) : QuantizerImpl<KmeansSegmenter, CenterCalculator>(nbit, 0, dim) {}
 };
 
 class UQ4bitSIMDQuantizer final : public Quantizer {

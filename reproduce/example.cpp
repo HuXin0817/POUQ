@@ -118,6 +118,9 @@ int main(int argc, char *argv[]) {
   results.push_back(run<POUQQuantizer<4, POUQSegmenter, EMOptimizer>>(dim, data, "POUQ4bitEMOptimize"));
   results.push_back(run<POUQQuantizer<8, POUQSegmenter, EMOptimizer>>(dim, data, "POUQ8bitEMOptimize"));
 
+  results.push_back(run<LGBQuantizer<4>>(dim, data, "LGB4bit"));
+  results.push_back(run<LGBQuantizer<8>>(dim, data, "LGB8bit"));
+
   write_to_csv(results, csv_filename);
 
   return 0;
