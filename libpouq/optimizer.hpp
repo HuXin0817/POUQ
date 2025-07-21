@@ -230,3 +230,21 @@ public:
     return {vmin, vmax};
   }
 };
+
+class CenterCalculator final : public Optimizer {
+public:
+  std::pair<float, float> operator()(float                         div,
+      float                                                        init_lower_bound,
+      float                                                        init_upper_bound,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
+    size_t count = 0;
+    double sum   = 0.0;
+    for (auto it = data_start; it != data_end; ++it) {
+      sum += static_cast<double>(it->first) * static_cast<double>(it->second);
+      count += it->second;
+    }
+    auto center = sum / count;
+    return {center, center};
+  }
+};

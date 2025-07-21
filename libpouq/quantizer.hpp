@@ -185,6 +185,12 @@ public:
   explicit POUQQuantizer(size_t dim) : QuantizerImpl<Segmenter, Optimizer>(nbit / 2, nbit / 2, dim) {}
 };
 
+template <size_t nbit>
+class LGBQuantizer final : public QuantizerImpl<KmeansSegmenter, CenterCalculator> {
+public:
+  explicit LGBQuantizer(size_t dim) : QuantizerImpl(nbit, 0, dim) {}
+};
+
 class UQ4bitSIMDQuantizer final : public Quantizer {
 public:
   explicit UQ4bitSIMDQuantizer(size_t dim) : Quantizer(dim) {
@@ -288,7 +294,7 @@ class POUQ4bitSIMDQuantizer final : public Quantizer {
   };
 
 public:
-  explicit POUQ4bitSIMDQuantizer(size_t groups) : Quantizer(groups) {
+  explicit POUQ4bitSIMDQuantizer(size_t dim) : Quantizer(dim) {
     bounds_data_   = nullptr;
     combined_data_ = nullptr;
   }
