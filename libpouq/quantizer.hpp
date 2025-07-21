@@ -19,7 +19,16 @@
 
 class Quantizer {
 public:
-  explicit Quantizer(size_t dim) : dim_(dim) { assert(dim_ % 8 == 0); }
+  Quantizer() = default;
+
+  explicit Quantizer(size_t dim) : dim_(dim) { assert(dim % 8 == 0); }
+
+  void set_dim(size_t dim) {
+    assert(dim % 8 == 0);
+    dim_ = dim;
+  }
+
+  size_t dim() const { return dim_; }
 
   virtual ~Quantizer() = default;
 
@@ -28,7 +37,7 @@ public:
   virtual float l2distance(const float *data, size_t data_index) const = 0;
 
 protected:
-  size_t dim_;
+  size_t dim_ = 0;
 };
 
 class Float32Quantizer final : public Quantizer {
@@ -178,9 +187,9 @@ public:
 
 class UQ4bitSIMDQuantizer final : public Quantizer {
 public:
-  explicit UQ4bitSIMDQuantizer(size_t dim) : Quantizer(dim), num_vectors_(dim_ / 8) {
-    lowers_     = static_cast<__m256 *>(_mm_malloc(num_vectors_ * sizeof(__m256), 32));
-    step_sizes_ = static_cast<__m256 *>(_mm_malloc(num_vectors_ * sizeof(__m256), 32));
+  explicit UQ4bitSIMDQuantizer(size_t dim) : Quantizer(dim) {
+    lowers_     = static_cast<__m256 *>(_mm_malloc(dim_ * sizeof(__m256) / 8, 32));
+    step_sizes_ = static_cast<__m256 *>(_mm_malloc(dim_ * sizeof(__m256) / 8, 32));
   }
 
   ~UQ4bitSIMDQuantizer() override {
@@ -207,7 +216,7 @@ public:
       step_sizes[d] = (min_val == max_val) ? 1.0f : (max_val - min_val) / 15.0f;
     }
 
-    for (size_t i = 0; i < num_vectors_; i++) {
+    for (size_t i = 0; i < dim_ / 8; i++) {
       float lower_array[8];
       float step_array[8];
       for (size_t j = 0; j < 8; j++) {
@@ -237,7 +246,7 @@ public:
     offset /= 8;
     __m256 sum_vec = _mm256_setzero_ps();
 
-    for (size_t i = 0; i < num_vectors_; i++) {
+    for (size_t i = 0; i < dim_ / 8; i++) {
       const uint32_t       packed        = code[offset + i];
       const __m256i        packed_vec    = _mm256_set1_epi32(packed);
       static const __m256i shift_amounts = _mm256_setr_epi32(28, 24, 20, 16, 12, 8, 4, 0);
@@ -266,10 +275,9 @@ public:
   }
 
 private:
-  size_t    num_vectors_ = 0;
-  __m256   *lowers_      = nullptr;
-  __m256   *step_sizes_  = nullptr;
-  uint32_t *code         = nullptr;
+  __m256   *lowers_     = nullptr;
+  __m256   *step_sizes_ = nullptr;
+  uint32_t *code        = nullptr;
 };
 
 class POUQ4bitSIMDQuantizer final : public Quantizer {
