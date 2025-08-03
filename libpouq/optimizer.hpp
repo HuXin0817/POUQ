@@ -5,15 +5,7 @@
 #include <random>
 #include <vector>
 
-class Optimizer {
-public:
-  virtual ~Optimizer() = default;
-
-  virtual std::pair<float, float> operator()(float                 div,
-      float                                                        init_lower_bound,
-      float                                                        init_upper_bound,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) = 0;
+class PSOOptimizer final {
 
   static float loss(const float                                    div,
       float                                                        cluster_lower_bound,
@@ -41,9 +33,6 @@ public:
 
     return total_loss * step_size_value * step_size_value;
   }
-};
-
-class PSOOptimizer final : public Optimizer {
 
   static constexpr size_t max_iter          = 128;
   static constexpr size_t grid_side_length  = 8;
@@ -77,7 +66,7 @@ public:
       float                                                        init_lower_bound,
       float                                                        init_upper_bound,
       const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
+      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) {
     const float init_range_width  = init_upper_bound - init_lower_bound;
     const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
 

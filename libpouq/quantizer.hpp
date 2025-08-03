@@ -16,30 +16,7 @@
 #include <tuple>
 #include <vector>
 
-class Quantizer {
-public:
-  Quantizer() = default;
-
-  explicit Quantizer(size_t dim) : dim_(dim) { assert(dim % 8 == 0); }
-
-  void set_dim(size_t dim) {
-    assert(dim % 8 == 0);
-    dim_ = dim;
-  }
-
-  size_t dim() const { return dim_; }
-
-  virtual ~Quantizer() = default;
-
-  virtual void train(const float *data, size_t data_size) = 0;
-
-  virtual float l2distance(const float *data, size_t data_index) const = 0;
-
-protected:
-  size_t dim_ = 0;
-};
-
-class POUQ4bitSIMDQuantizer final : public Quantizer {
+class POUQ4bitSIMDQuantizer final {
 
   struct ReconstructParameter {
     __m128 lower_bound;
@@ -47,12 +24,12 @@ class POUQ4bitSIMDQuantizer final : public Quantizer {
   };
 
 public:
-  explicit POUQ4bitSIMDQuantizer(size_t dim) : Quantizer(dim) {
+  explicit POUQ4bitSIMDQuantizer(size_t dim) : dim_(dim) {
     bounds_data_   = nullptr;
     combined_data_ = nullptr;
   }
 
-  void train(const float *data, size_t size) override {
+  void train(const float *data, size_t size) {
     if (combined_data_) {
       _mm_free(combined_data_);
       combined_data_ = nullptr;
@@ -151,7 +128,7 @@ public:
     }
   }
 
-  float l2distance(const float *data, size_t offset) const override {
+  float l2distance(const float *data, size_t offset) const {
     offset /= 4;
     __m256 sum_vec = _mm256_setzero_ps();
 
@@ -185,7 +162,7 @@ public:
     return _mm_cvtss_f32(sum128);
   }
 
-  ~POUQ4bitSIMDQuantizer() override {
+  ~POUQ4bitSIMDQuantizer() {
     if (combined_data_) {
       _mm_free(combined_data_);
     }
@@ -195,6 +172,7 @@ public:
   }
 
 private:
+  size_t                                  dim_           = 0;
   ReconstructParameter                   *bounds_data_   = nullptr;
   std::tuple<uint8_t, uint8_t, uint16_t> *combined_data_ = nullptr;
 

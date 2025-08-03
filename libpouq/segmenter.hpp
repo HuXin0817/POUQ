@@ -4,14 +4,6 @@
 #include <limits>
 #include <vector>
 
-class Segmenter {
-public:
-  virtual ~Segmenter() = default;
-
-  virtual std::vector<std::pair<float, float>> operator()(size_t k,
-      const std::vector<std::pair<float, size_t>>               &data_freq_map) = 0;
-};
-
 struct Task {
   size_t j;
   size_t left;
@@ -23,10 +15,10 @@ struct Task {
       : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {}
 };
 
-class POUQSegmenter final : public Segmenter {
+class POUQSegmenter final {
 public:
   std::vector<std::pair<float, float>> operator()(size_t k,
-      const std::vector<std::pair<float, size_t>>       &data_freq_map) override {
+      const std::vector<std::pair<float, size_t>>       &data_freq_map) {
     const size_t size = data_freq_map.size();
     k                 = std::min(size, k);
 
