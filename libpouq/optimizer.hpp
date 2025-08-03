@@ -144,8 +144,7 @@ optimize(float div,
     }
   }
 
-  const float opt_upper = global_best_lower + global_best_step_size * div;
-  return {global_best_lower, opt_upper};
+  return {global_best_lower, global_best_lower + global_best_step_size * div};
 }
 
 }  // namespace pouq
