@@ -21,10 +21,11 @@ namespace pouq {
 class Quantizer final {
 
 public:
-  explicit Quantizer(size_t dim) : dim_(dim) {
-    bounds_data_   = nullptr;
-    combined_data_ = nullptr;
-  }
+  Quantizer() = default;
+
+  explicit Quantizer(size_t dim) { init(dim); }
+
+  void init(size_t dim) { dim_ = dim; }
 
   void train(const float *data, size_t size) {
     if (combined_data_) {
