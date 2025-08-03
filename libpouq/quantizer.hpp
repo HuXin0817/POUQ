@@ -18,6 +18,9 @@
 
 namespace pouq {
 
+using CodeUnit = std::tuple<uint8_t, uint8_t, uint16_t>;
+using RecPara = std::tuple<__m128, __m128>;
+
 class Quantizer final {
   public:
   Quantizer() = default;
@@ -43,15 +46,13 @@ class Quantizer final {
     }
 
     int combined_data_size = size / 4;
-    combined_data_ = static_cast<std::tuple<uint8_t, uint8_t, uint16_t>*>(
-        _mm_malloc(combined_data_size * sizeof(std::tuple<uint8_t, uint8_t, uint16_t>), 256));
+    combined_data_ = static_cast<CodeUnit*>(_mm_malloc(combined_data_size * sizeof(CodeUnit), 256));
     if (!combined_data_) {
       throw std::bad_alloc();
     }
 
     int bounds_data_size = dim_ * 64;
-    bounds_data_ = static_cast<std::tuple<__m128, __m128>*>(
-        _mm_malloc(bounds_data_size * sizeof(std::tuple<__m128, __m128>), 256));
+    bounds_data_ = static_cast<RecPara*>(_mm_malloc(bounds_data_size * sizeof(RecPara), 256));
     if (!bounds_data_) {
       _mm_free(combined_data_);
       combined_data_ = nullptr;
@@ -184,8 +185,8 @@ class Quantizer final {
 
   private:
   int dim_ = 0;
-  std::tuple<__m128, __m128>* bounds_data_ = nullptr;
-  std::tuple<uint8_t, uint8_t, uint16_t>* combined_data_ = nullptr;
+  RecPara* bounds_data_ = nullptr;
+  CodeUnit* combined_data_ = nullptr;
 
   std::vector<std::pair<float, int>>
   count_freq(const float* data, int size, int group) const {
