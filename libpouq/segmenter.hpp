@@ -12,10 +12,6 @@ struct Task {
     size_t right;
     size_t opt_left;
     size_t opt_right;
-
-    Task(size_t j, size_t left, size_t right, size_t opt_left, size_t opt_right)
-        : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {
-    }
 };
 
 std::vector<std::pair<float, float>>
@@ -63,8 +59,8 @@ segment(size_t k, const std::vector<std::pair<float, size_t>>& data_freq_map) {
             curr_dp[mid] = min_cost;
             prev_idx[mid][j] = split_pos;
             if (l < r) {
-                tasks.emplace_back(j, mid + 1, r, split_pos, opt_r);
-                tasks.emplace_back(j, l, mid - 1, opt_l, split_pos);
+                tasks.push_back({j, mid + 1, r, split_pos, opt_r});
+                tasks.push_back({j, l, mid - 1, opt_l, split_pos});
             }
         }
 
