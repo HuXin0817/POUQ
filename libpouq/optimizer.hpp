@@ -7,8 +7,8 @@
 
 namespace pouq {
 
-static constexpr size_t max_iter = 128;
-static constexpr size_t grid_side_length = 8;
+static constexpr int max_iter = 128;
+static constexpr int grid_side_length = 8;
 static constexpr float grid_scale_factor = 0.1f;
 static constexpr float init_inertia = 0.9f;
 static constexpr float final_inertia = 0.4f;
@@ -39,8 +39,8 @@ static float
 loss(float div,
      float cluster_lower_bound,
      float step_size_value,
-     const std::vector<std::pair<float, size_t>>::const_iterator& data_begin,
-     const std::vector<std::pair<float, size_t>>::const_iterator& data_end) {
+     const std::vector<std::pair<float, int>>::const_iterator& data_begin,
+     const std::vector<std::pair<float, int>>::const_iterator& data_end) {
   step_size_value = std::max(step_size_value, 1e-8f);
   float total_loss = 0.0f;
 
@@ -67,8 +67,8 @@ std::pair<float, float>
 optimize(float div,
          float init_lower_bound,
          float init_upper_bound,
-         const std::vector<std::pair<float, size_t>>::const_iterator& data_start,
-         const std::vector<std::pair<float, size_t>>::const_iterator& data_end) {
+         const std::vector<std::pair<float, int>>::const_iterator& data_start,
+         const std::vector<std::pair<float, int>>::const_iterator& data_end) {
   const float init_range_width = init_upper_bound - init_lower_bound;
   const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
 
@@ -79,8 +79,8 @@ optimize(float div,
 
   std::vector<Particle> swarm;
   swarm.reserve(grid_side_length * grid_side_length);
-  for (size_t i = 0; i < grid_side_length; i++) {
-    for (size_t j = 0; j < grid_side_length; j++) {
+  for (int i = 0; i < grid_side_length; i++) {
+    for (int j = 0; j < grid_side_length; j++) {
       const float lower_bound =
           init_lower_bound - grid_scale_factor * init_range_width +
           static_cast<float>(i) * 2 * grid_scale_factor * init_range_width / grid_side_length;
@@ -110,7 +110,7 @@ optimize(float div,
     }
   }
 
-  for (size_t iter = 0; iter < max_iter; ++iter) {
+  for (int iter = 0; iter < max_iter; ++iter) {
     const float inertia =
         init_inertia - (init_inertia - final_inertia) * static_cast<float>(iter) / max_iter;
 

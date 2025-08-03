@@ -22,17 +22,17 @@ class Quantizer final {
   public:
   Quantizer() = default;
 
-  explicit Quantizer(size_t dim) {
+  explicit Quantizer(int dim) {
     init(dim);
   }
 
   void
-  init(size_t dim) {
+  init(int dim) {
     dim_ = dim;
   }
 
   void
-  train(const float* data, size_t size) {
+  train(const float* data, int size) {
     if (combined_data_) {
       _mm_free(combined_data_);
       combined_data_ = nullptr;
@@ -42,14 +42,14 @@ class Quantizer final {
       bounds_data_ = nullptr;
     }
 
-    size_t combined_data_size = size / 4;
+    int combined_data_size = size / 4;
     combined_data_ = static_cast<std::tuple<uint8_t, uint8_t, uint16_t>*>(
         _mm_malloc(combined_data_size * sizeof(std::tuple<uint8_t, uint8_t, uint16_t>), 256));
     if (!combined_data_) {
       throw std::bad_alloc();
     }
 
-    size_t bounds_data_size = dim_ * 64;
+    int bounds_data_size = dim_ * 64;
     bounds_data_ = static_cast<std::tuple<__m128, __m128>*>(
         _mm_malloc(bounds_data_size * sizeof(std::tuple<__m128, __m128>), 256));
     if (!bounds_data_) {
@@ -63,29 +63,29 @@ class Quantizer final {
     std::vector<uint8_t> cid(size / 4);
     std::vector<uint16_t> code(size / 8);
 
-    const size_t dim_div_4 = dim_ / 4;
+    const int dim_div_4 = dim_ / 4;
 
 #pragma omp parallel for
-    for (size_t d = 0; d < dim_; d++) {
+    for (int d = 0; d < dim_; d++) {
       const auto data_freq_map = count_freq(data, size, d);
       const auto bounds = segment(4, data_freq_map);
-      const size_t d_times_4 = d * 4;
+      const int d_times_4 = d * 4;
 
-      for (size_t i = 0; i < bounds.size(); i++) {
+      for (int i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
         if (lower < upper) {
           const auto data_start =
               std::lower_bound(data_freq_map.begin(),
                                data_freq_map.end(),
                                lower,
-                               [](const std::pair<float, size_t>& lhs, const float rhs) -> bool {
+                               [](const std::pair<float, int>& lhs, const float rhs) -> bool {
                                  return lhs.first < rhs;
                                });
           const auto data_end =
               std::upper_bound(data_freq_map.begin(),
                                data_freq_map.end(),
                                upper,
-                               [](const float rhs, const std::pair<float, size_t>& lhs) -> bool {
+                               [](const float rhs, const std::pair<float, int>& lhs) -> bool {
                                  return rhs < lhs.first;
                                });
 
@@ -101,30 +101,30 @@ class Quantizer final {
         }
       }
 
-      for (size_t i = d; i < size; i += dim_) {
+      for (int i = d; i < size; i += dim_) {
         const auto it = std::upper_bound(
             bounds.begin(),
             bounds.end(),
             data[i],
             [](float rhs, const std::pair<float, float>& lhs) -> bool { return rhs < lhs.first; });
-        const size_t c = it - bounds.begin() - 1;
+        const int c = it - bounds.begin() - 1;
         const float x = std::clamp(
             (data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
-        const size_t base_index = (i / dim_) * dim_div_4;
+        const int base_index = (i / dim_) * dim_div_4;
         set(&cid[base_index], i % dim_, c);
         set16(&code[base_index / 2], i % dim_, x);
       }
     }
 
-    for (size_t i = 0; i < size / 4; i += 2) {
+    for (int i = 0; i < size / 4; i += 2) {
       combined_data_[i / 2] = std::make_tuple(cid[i], cid[i + 1], code[i / 2]);
     }
 
 #pragma omp parallel for
-    for (size_t g = 0; g < dim_ / 4; g++) {
-      for (size_t j = 0; j < 256; j++) {
+    for (int g = 0; g < dim_ / 4; g++) {
+      for (int j = 0; j < 256; j++) {
         const auto [x0, x1, x2, x3] = get(j);
-        const size_t base_idx = g * 16;
+        const int base_idx = g * 16;
         const __m128 lb = _mm_setr_ps(lower_bound[base_idx + 0 * 4 + x0],
                                       lower_bound[base_idx + 1 * 4 + x1],
                                       lower_bound[base_idx + 2 * 4 + x2],
@@ -139,15 +139,15 @@ class Quantizer final {
   }
 
   float
-  l2distance(const float* data, size_t offset) const {
+  l2distance(const float* data, int offset) const {
     offset /= 4;
     __m256 sum_vec = _mm256_setzero_ps();
 
     static const __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
     static const __m256i mask = _mm256_set1_epi32(3);
 
-    for (size_t i = 0; i < dim_; i += 8) {
-      const size_t idx = i / 4;
+    for (int i = 0; i < dim_; i += 8) {
+      const int idx = i / 4;
       const auto [c1, c2, code] = combined_data_[(offset + idx) / 2];
       const auto [lb1, st1] = bounds_data_[idx * 256 + c1];
       const auto [lb2, st2] = bounds_data_[(idx + 1) * 256 + c2];
@@ -183,24 +183,24 @@ class Quantizer final {
   }
 
   private:
-  size_t dim_ = 0;
+  int dim_ = 0;
   std::tuple<__m128, __m128>* bounds_data_ = nullptr;
   std::tuple<uint8_t, uint8_t, uint16_t>* combined_data_ = nullptr;
 
-  std::vector<std::pair<float, size_t>>
-  count_freq(const float* data, size_t size, size_t group) const {
+  std::vector<std::pair<float, int>>
+  count_freq(const float* data, int size, int group) const {
     std::vector<float> sorted_data;
     sorted_data.reserve(size / dim_);
-    for (size_t i = group; i < size; i += dim_) {
+    for (int i = group; i < size; i += dim_) {
       sorted_data.push_back(data[i]);
     }
     std::sort(sorted_data.begin(), sorted_data.end());
 
     float curr_value = sorted_data[0];
-    size_t count = 1;
-    std::vector<std::pair<float, size_t>> data_freq_map;
+    int count = 1;
+    std::vector<std::pair<float, int>> data_freq_map;
     data_freq_map.reserve(sorted_data.size());
-    for (size_t i = 1; i < sorted_data.size(); i++) {
+    for (int i = 1; i < sorted_data.size(); i++) {
       if (sorted_data[i] == curr_value) {
         count++;
       } else {
@@ -215,14 +215,14 @@ class Quantizer final {
   }
 
   static void
-  set(uint8_t* data, size_t i, size_t n) {
-    const size_t offset = (i & 3) << 1;
+  set(uint8_t* data, int i, int n) {
+    const int offset = (i & 3) << 1;
     i >>= 2;
     data[i] &= ~(3 << offset);
     data[i] |= n << offset;
   }
 
-  static std::tuple<size_t, size_t, size_t, size_t>
+  static std::tuple<int, int, int, int>
   get(uint8_t byte) {
     return {
         byte & 3,
@@ -233,8 +233,8 @@ class Quantizer final {
   }
 
   static void
-  set16(uint16_t* data, size_t i, size_t n) {
-    const size_t offset = (i & 7) << 1;
+  set16(uint16_t* data, int i, int n) {
+    const int offset = (i & 7) << 1;
     i >>= 3;
     data[i] &= ~(3 << offset);
     data[i] |= n << offset;

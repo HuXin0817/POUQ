@@ -7,29 +7,29 @@
 namespace pouq {
 
 struct Task {
-  size_t j;
-  size_t left;
-  size_t right;
-  size_t opt_left;
-  size_t opt_right;
+  int j;
+  int left;
+  int right;
+  int opt_left;
+  int opt_right;
 };
 
 std::vector<std::pair<float, float>>
-segment(size_t k, const std::vector<std::pair<float, size_t>>& data_freq_map) {
-  const size_t size = data_freq_map.size();
+segment(int k, const std::vector<std::pair<float, int>>& data_freq_map) {
+  const int size = data_freq_map.size();
   k = std::min(size, k);
 
   std::vector sum_count(size + 1, 0.0);
-  for (size_t i = 1; i <= size; ++i) {
+  for (int i = 1; i <= size; ++i) {
     sum_count[i] = sum_count[i - 1] + static_cast<double>(data_freq_map[i - 1].second);
   }
 
   std::vector prev_dp(size + 1, std::numeric_limits<double>::max());
   std::vector curr_dp(size + 1, std::numeric_limits<double>::max());
-  std::vector prev_idx(size + 1, std::vector<size_t>(k + 1, 0));
+  std::vector prev_idx(size + 1, std::vector<int>(k + 1, 0));
   prev_dp[0] = 0.0;
 
-  for (size_t j = 1; j <= k; ++j) {
+  for (int j = 1; j <= k; ++j) {
     std::vector<Task> tasks{{j, j, size, 0, size - 1}};
     tasks.reserve(size);
 
@@ -40,12 +40,12 @@ segment(size_t k, const std::vector<std::pair<float, size_t>>& data_freq_map) {
         continue;
       }
 
-      const size_t mid = (l + r) / 2;
-      const size_t start = std::max(j - 1, opt_l);
-      const size_t end = std::min(mid - 1, opt_r);
+      const int mid = (l + r) / 2;
+      const int start = std::max(j - 1, opt_l);
+      const int end = std::min(mid - 1, opt_r);
       double min_cost = std::numeric_limits<double>::max();
-      size_t split_pos = 0;
-      for (size_t m = start; m <= end; ++m) {
+      int split_pos = 0;
+      for (int m = start; m <= end; ++m) {
         const double width = static_cast<double>(data_freq_map[mid - 1].first) -
                              static_cast<double>(data_freq_map[m].first);
         const double count = sum_count[mid] - sum_count[m];
@@ -68,18 +68,18 @@ segment(size_t k, const std::vector<std::pair<float, size_t>>& data_freq_map) {
     std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<double>::max());
   }
 
-  std::vector<size_t> split_pos(k);
-  size_t curr_pos = size;
-  for (size_t j = k; j > 0; --j) {
-    const size_t m = prev_idx[curr_pos][j];
+  std::vector<int> split_pos(k);
+  int curr_pos = size;
+  for (int j = k; j > 0; --j) {
+    const int m = prev_idx[curr_pos][j];
     split_pos[j - 1] = m;
     curr_pos = m;
   }
 
   std::vector<std::pair<float, float>> bounds(k);
-  for (size_t t = 0; t < k; ++t) {
-    const size_t start = split_pos[t];
-    const size_t end = t < k - 1 ? split_pos[t + 1] - 1 : size - 1;
+  for (int t = 0; t < k; ++t) {
+    const int start = split_pos[t];
+    const int end = t < k - 1 ? split_pos[t + 1] - 1 : size - 1;
     bounds[t] = {data_freq_map[start].first, data_freq_map[end].first};
   }
 
