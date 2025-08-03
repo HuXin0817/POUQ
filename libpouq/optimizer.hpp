@@ -12,8 +12,10 @@ static constexpr int particle_count = 64;
 static constexpr float scale_factor = 0.1f;
 static constexpr float init_inertia = 0.9f;
 static constexpr float final_inertia = 0.4f;
-static constexpr float c1 = 1.8f;
-static constexpr float c2 = 1.8f;
+static constexpr float init_c1 = 2.5f;
+static constexpr float final_c1 = 0.5f;
+static constexpr float init_c2 = 0.5f;
+static constexpr float final_c2 = 2.5f;
 
 struct Particle {
   float center;
@@ -104,8 +106,10 @@ optimize(float div,
   }
 
   for (int iter = 0; iter < max_iter; ++iter) {
-    const float inertia =
-        init_inertia - (init_inertia - final_inertia) * static_cast<float>(iter) / max_iter;
+    const float x = static_cast<float>(iter) / max_iter;
+    const float inertia = init_inertia - (init_inertia - final_inertia) * x;
+    const float c1 = init_c1 - (init_c1 - final_c1) * x;
+    const float c2 = init_c2 - (init_c2 - final_c2) * x;
 
     for (auto& particle : swarm) {
       const float r1 = p_dis(gen);
