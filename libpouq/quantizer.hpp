@@ -243,20 +243,6 @@ private:
         data[i] &= ~(3 << offset);
         data[i] |= n << offset;
     }
-
-    static std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t>
-    get16(uint16_t value) {
-        return {
-            value & 3,
-            (value >> 2) & 3,
-            (value >> 4) & 3,
-            (value >> 6) & 3,
-            (value >> 8) & 3,
-            (value >> 10) & 3,
-            (value >> 12) & 3,
-            (value >> 14) & 3,
-        };
-    }
 };
 
 }  // namespace pouq
