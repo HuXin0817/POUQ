@@ -1,68 +1,20 @@
 ---
 Language: Cpp
-SortIncludes: true
-AccessModifierOffset: -2
-AlignAfterOpenBracket: DontAlign
-AlignConsecutiveAssignments: true
-AlignConsecutiveDeclarations: true
-DerivePointerAlignment: false
-PointerAlignment: Right
-ConstructorInitializerIndentWidth: 4
-AlignTrailingComments: true
-AllowAllParametersOfDeclarationOnNextLine: false
-AllowShortBlocksOnASingleLine: true
-AllowShortFunctionsOnASingleLine: true
+BasedOnStyle: Google
+AccessModifierOffset: -4
+AlwaysBreakAfterReturnType: All
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
-AlwaysBreakTemplateDeclarations: true
-BinPackArguments: false
-AlwaysBreakBeforeMultilineStrings: false
-BreakBeforeBinaryOperators: None
-BreakBeforeTernaryOperators: true
-BreakConstructorInitializersBeforeComma: false
+AlignTrailingComments: true
+
+ColumnLimit: 100
+DerivePointerAlignment: false
+IndentWidth: 4
+
+# Appended Options
+SortIncludes: true
+Standard: Latest
 BinPackParameters: false
-ColumnLimit: 120
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
-ExperimentalAutoDetectBinPacking: false
-IndentCaseLabels: true
-MaxEmptyLinesToKeep: 1
-NamespaceIndentation: None
-ObjCSpaceBeforeProtocolList: false
-PenaltyBreakBeforeFirstCallParameter: 19
-PenaltyBreakComment: 200
-PenaltyBreakString: 1000
-PenaltyBreakFirstLessLess: 120
-PenaltyExcessCharacter: 1000000
-PenaltyReturnTypeOnItsOwnLine: 200
-AlwaysBreakAfterDefinitionReturnType: None
-AlwaysBreakAfterReturnType: None
-Cpp11BracedListStyle: true
-Standard: Auto
-IndentWidth: 2
-TabWidth: 4
-UseTab: Never
-BreakBeforeBraces: Custom
-BraceWrapping:
-  AfterClass: false
-  AfterControlStatement: false
-  AfterEnum: false
-  AfterFunction: false
-  AfterNamespace: false
-  AfterObjCDeclaration: false
-  AfterStruct: false
-  AfterUnion: false
-  AfterExternBlock: false
-  BeforeCatch: false
-  BeforeElse: false
-  IndentBraces: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
-SpacesInParentheses: false
-SpacesInAngles: false
-SpaceInEmptyParentheses: false
-SpacesInCStyleCastParentheses: false
-SpaceBeforeAssignmentOperators: true
-SpacesBeforeTrailingComments: 2
-ContinuationIndentWidth: 4
+BinPackArguments: false
+ReflowComments: false
