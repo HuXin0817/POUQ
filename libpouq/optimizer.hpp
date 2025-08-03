@@ -18,21 +18,21 @@ static constexpr float init_c2 = 0.5f;
 static constexpr float final_c2 = 2.5f;
 
 struct Particle {
-  float center;
-  float width;
-  float v_center;
-  float v_width;
-  float best_center;
-  float best_width;
+  float lower;
+  float step_size;
+  float v_lower;
+  float v_step_size;
+  float best_lower;
+  float best_step_size;
   float min_loss;
 
-  Particle(float c_val, float w_val, float vc_val, float vw_val)
-      : center(c_val),
-        width(w_val),
-        v_center(vc_val),
-        v_width(vw_val),
-        best_center(c_val),
-        best_width(w_val),
+  Particle(float l_val, float s_val, float vl_val, float vs_val)
+      : lower(l_val),
+        step_size(s_val),
+        v_lower(vl_val),
+        v_step_size(vs_val),
+        best_lower(l_val),
+        best_step_size(s_val),
         min_loss(std::numeric_limits<float>::max()) {
   }
 };
@@ -72,36 +72,35 @@ optimize(float div,
          const std::vector<std::pair<float, int>>::const_iterator& data_begin,
          const std::vector<std::pair<float, int>>::const_iterator& data_end) {
   const float init_range_width = init_upper_bound - init_lower_bound;
-  const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
+  const float init_step_size = init_range_width / div;
 
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution v_dis(-init_range_width * 0.1f, init_range_width * 0.1f);
   std::uniform_real_distribution p_dis(0.0f, 1.0f);
-  std::uniform_real_distribution center_dis(init_range_center - init_range_width * scale_factor,
-                                            init_range_center + init_range_width * scale_factor);
-  std::uniform_real_distribution width_dis(init_range_width * (1.0f - scale_factor),
-                                           init_range_width * (1.0f + scale_factor));
+  std::uniform_real_distribution lower_dis(init_lower_bound - init_range_width * scale_factor,
+                                           init_lower_bound + init_range_width * scale_factor);
+  std::uniform_real_distribution step_dis(init_step_size * (1.0f - scale_factor),
+                                          init_step_size * (1.0f + scale_factor));
 
   std::vector<Particle> swarm;
   swarm.reserve(particle_count);
   for (int i = 0; i < particle_count; i++) {
-    swarm.emplace_back(center_dis(gen), width_dis(gen), v_dis(gen), v_dis(gen));
+    swarm.emplace_back(lower_dis(gen), step_dis(gen), v_dis(gen), v_dis(gen));
   }
 
-  float global_best_center = init_range_center;
-  float global_best_width = init_range_width;
-  float global_min_loss = loss(div, init_lower_bound, init_range_width / div, data_begin, data_end);
+  float global_best_lower = init_lower_bound;
+  float global_best_step_size = init_step_size;
+  float global_min_loss = loss(div, init_lower_bound, init_step_size, data_begin, data_end);
 
   for (auto& particle : swarm) {
-    const float curr_lower_bound = particle.center - particle.width * 0.5f;
-    const float curr_loss = loss(div, curr_lower_bound, particle.width / div, data_begin, data_end);
+    const float curr_loss = loss(div, particle.lower, particle.step_size, data_begin, data_end);
 
     particle.min_loss = curr_loss;
     if (curr_loss < global_min_loss) {
       global_min_loss = curr_loss;
-      global_best_center = particle.center;
-      global_best_width = particle.width;
+      global_best_lower = particle.lower;
+      global_best_step_size = particle.step_size;
     }
   }
 
@@ -115,41 +114,39 @@ optimize(float div,
       const float r1 = p_dis(gen);
       const float r2 = p_dis(gen);
 
-      particle.v_center = inertia * particle.v_center +
-                          c1 * r1 * (particle.best_center - particle.center) +
-                          c2 * r2 * (global_best_center - particle.center);
+      particle.v_lower = inertia * particle.v_lower +
+                         c1 * r1 * (particle.best_lower - particle.lower) +
+                         c2 * r2 * (global_best_lower - particle.lower);
 
-      particle.v_width = inertia * particle.v_width +
-                         c1 * r1 * (particle.best_width - particle.width) +
-                         c2 * r2 * (global_best_width - particle.width);
+      particle.v_step_size = inertia * particle.v_step_size +
+                             c1 * r1 * (particle.best_step_size - particle.step_size) +
+                             c2 * r2 * (global_best_step_size - particle.step_size);
 
-      particle.center += particle.v_center;
-      particle.width += particle.v_width;
+      particle.lower += particle.v_lower;
+      particle.step_size += particle.v_step_size;
 
-      if (particle.width <= std::numeric_limits<float>::epsilon()) {
-        particle.width = std::numeric_limits<float>::epsilon();
+      if (particle.step_size <= std::numeric_limits<float>::epsilon()) {
+        particle.step_size = std::numeric_limits<float>::epsilon();
       }
 
-      const float curr_lower = particle.center - particle.width * 0.5f;
-      const float curr_loss = loss(div, curr_lower, particle.width / div, data_begin, data_end);
+      const float curr_loss = loss(div, particle.lower, particle.step_size, data_begin, data_end);
 
       if (curr_loss < particle.min_loss) {
         particle.min_loss = curr_loss;
-        particle.best_center = particle.center;
-        particle.best_width = particle.width;
+        particle.best_lower = particle.lower;
+        particle.best_step_size = particle.step_size;
       }
 
       if (curr_loss < global_min_loss) {
         global_min_loss = curr_loss;
-        global_best_center = particle.center;
-        global_best_width = particle.width;
+        global_best_lower = particle.lower;
+        global_best_step_size = particle.step_size;
       }
     }
   }
 
-  const float opt_lower = global_best_center - global_best_width * 0.5f;
-  const float opt_upper = global_best_center + global_best_width * 0.5f;
-  return {opt_lower, opt_upper};
+  const float opt_upper = global_best_lower + global_best_step_size * div;
+  return {global_best_lower, opt_upper};
 }
 
 }  // namespace pouq
