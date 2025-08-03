@@ -20,11 +20,6 @@ namespace pouq {
 
 class Quantizer final {
 
-  struct ReconstructParameter {
-    __m128 lower_bound;
-    __m128 step_size;
-  };
-
 public:
   explicit Quantizer(size_t dim) : dim_(dim) {
     bounds_data_   = nullptr;
@@ -50,7 +45,7 @@ public:
 
     size_t bounds_data_size = dim_ * 64;
     bounds_data_ =
-        static_cast<ReconstructParameter *>(_mm_malloc(bounds_data_size * sizeof(ReconstructParameter), 256));
+        static_cast<std::pair<__m128, __m128> *>(_mm_malloc(bounds_data_size * sizeof(std::pair<__m128, __m128>), 256));
     if (!bounds_data_) {
       _mm_free(combined_data_);
       combined_data_ = nullptr;
@@ -175,7 +170,7 @@ public:
 
 private:
   size_t                                  dim_           = 0;
-  ReconstructParameter                   *bounds_data_   = nullptr;
+  std::pair<__m128, __m128>              *bounds_data_   = nullptr;
   std::tuple<uint8_t, uint8_t, uint16_t> *combined_data_ = nullptr;
 
   std::vector<std::pair<float, size_t>> count_freq(const float *data, size_t size, size_t group) const {
