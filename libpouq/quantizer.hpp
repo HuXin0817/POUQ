@@ -5,7 +5,6 @@
 #include "optimizer.hpp"
 #include "quantizer.hpp"
 #include "segmenter.hpp"
-#include "utils.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -50,7 +49,7 @@ public:
   }
 
   float l2distance(const float *data, size_t data_index) const override {
-    return ::l2distance(data, encode + data_index, dim_);
+    // return ::l2distance(data, encode + data_index, dim_);
   }
 
   ~Float32Quantizer() override { delete[] encode; }
