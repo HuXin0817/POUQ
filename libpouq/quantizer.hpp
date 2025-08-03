@@ -75,7 +75,7 @@ class Quantizer final {
       for (int i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
         if (lower < upper) {
-          const auto data_start =
+          const auto data_begin =
               std::lower_bound(data_freq_map.begin(),
                                data_freq_map.end(),
                                lower,
@@ -90,7 +90,7 @@ class Quantizer final {
                                  return rhs < lhs.first;
                                });
 
-          std::tie(lower, upper) = optimize(3, lower, upper, data_start, data_end);
+          std::tie(lower, upper) = optimize(3, lower, upper, data_begin, data_end);
         }
         lower_bound[d_times_4 + i] = lower;
         if (lower == upper) {
