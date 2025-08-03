@@ -43,17 +43,6 @@ public:
   }
 };
 
-class MinMaxOptimizer final : public Optimizer {
-public:
-  std::pair<float, float> operator()(float                         div,
-      float                                                        init_lower_bound,
-      float                                                        init_upper_bound,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
-    return {init_lower_bound, init_upper_bound};
-  }
-};
-
 class PSOOptimizer final : public Optimizer {
 
   static constexpr size_t max_iter          = 128;
@@ -168,83 +157,5 @@ public:
     const float opt_lower = global_best_center - global_best_width * 0.5f;
     const float opt_upper = global_best_center + global_best_width * 0.5f;
     return {opt_lower, opt_upper};
-  }
-};
-
-class EMOptimizer final : public Optimizer {
-  static float sqr(float x) { return x * x; }
-
-  static constexpr int niter = 2000;
-
-public:
-  std::pair<float, float> operator()(float                         div,
-      float                                                        init_lower_bound,
-      float                                                        init_upper_bound,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
-    float sx   = 0;
-    float n    = 0;
-    auto  vmin = data_start->first;
-    auto  vmax = (data_end - 1)->first;
-    for (auto i = data_start; i != data_end; ++i) {
-      const float cnt = i->second;
-      sx += i->first * cnt;
-      n += cnt;
-    }
-    float b             = vmin;
-    float a             = (vmax - vmin) / div;
-    float last_err      = -1;
-    int   iter_last_err = 0;
-    for (int it = 0; it < niter; it++) {
-      float sn = 0, sn2 = 0, sxn = 0, err1 = 0;
-      for (auto i = data_start; i != data_end; ++i) {
-        const float xi  = i->first;
-        const float cnt = i->second;
-        float       ni  = floor((xi - b) / a + 0.5);
-        if (ni < 0)
-          ni = 0;
-        if (ni >= div)
-          ni = div;
-        err1 += sqr(xi - (ni * a + b)) * cnt;
-        sn += ni * cnt;
-        sn2 += ni * ni * cnt;
-        sxn += ni * xi * cnt;
-      }
-      if (err1 == last_err) {
-        iter_last_err++;
-        if (iter_last_err == 16) {
-          break;
-        }
-      } else {
-        last_err      = err1;
-        iter_last_err = 0;
-      }
-
-      const float det = sqr(sn) - sn2 * n;
-      b               = (sn * sxn - sn2 * sx) / det;
-      a               = (sn * sx - n * sxn) / det;
-    }
-
-    vmin = b;
-    vmax = b + a * div;
-    return {vmin, vmax};
-  }
-};
-
-class CenterCalculator final : public Optimizer {
-public:
-  std::pair<float, float> operator()(float                         div,
-      float                                                        init_lower_bound,
-      float                                                        init_upper_bound,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_start,
-      const std::vector<std::pair<float, size_t>>::const_iterator &data_end) override {
-    size_t count = 0;
-    double sum   = 0.0;
-    for (auto it = data_start; it != data_end; ++it) {
-      sum += static_cast<double>(it->first) * static_cast<double>(it->second);
-      count += it->second;
-    }
-    auto center = sum / count;
-    return {center, center};
   }
 };
