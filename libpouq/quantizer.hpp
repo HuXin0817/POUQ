@@ -90,9 +90,7 @@ class Quantizer final {
                                  return rhs < lhs.first;
                                });
 
-          const auto [opt_lower, opt_upper] = optimize(3, lower, upper, data_start, data_end);
-          lower = opt_lower;
-          upper = opt_upper;
+          std::tie(lower, upper) = optimize(3, lower, upper, data_start, data_end);
         }
         lower_bound[d_times_4 + i] = lower;
         if (lower == upper) {
