@@ -43,7 +43,6 @@ loss(float div,
      float step_size,
      const std::vector<std::pair<float, int>>::const_iterator& data_begin,
      const std::vector<std::pair<float, int>>::const_iterator& data_end) {
-  step_size = std::max(step_size, 1e-8f);
   float total_loss = 0.0f;
 
   for (auto it = data_begin; it != data_end; ++it) {
