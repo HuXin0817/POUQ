@@ -8,8 +8,8 @@
 namespace pouq {
 
 static constexpr int max_iter = 128;
-static constexpr int grid_side_length = 8;
-static constexpr float grid_scale_factor = 0.1f;
+static constexpr int particle_count = 64;
+static constexpr float scale_factor = 0.1f;
 static constexpr float init_inertia = 0.9f;
 static constexpr float final_inertia = 0.4f;
 static constexpr float c1 = 1.8f;
@@ -76,22 +76,15 @@ optimize(float div,
   std::mt19937 gen(rd());
   std::uniform_real_distribution v_dis(-init_range_width * 0.1f, init_range_width * 0.1f);
   std::uniform_real_distribution p_dis(0.0f, 1.0f);
+  std::uniform_real_distribution center_dis(init_range_center - init_range_width * scale_factor,
+                                            init_range_center + init_range_width * scale_factor);
+  std::uniform_real_distribution width_dis(init_range_width * (1.0f - scale_factor),
+                                           init_range_width * (1.0f + scale_factor));
 
   std::vector<Particle> swarm;
-  swarm.reserve(grid_side_length * grid_side_length);
-  for (int i = 0; i < grid_side_length; i++) {
-    for (int j = 0; j < grid_side_length; j++) {
-      const float lower_bound =
-          init_lower_bound - grid_scale_factor * init_range_width +
-          static_cast<float>(i) * 2 * grid_scale_factor * init_range_width / grid_side_length;
-      const float upper_bound =
-          init_upper_bound - grid_scale_factor * init_range_width +
-          static_cast<float>(j) * 2 * grid_scale_factor * init_range_width / grid_side_length;
-      const float particle_center = (lower_bound + upper_bound) / 2.0f;
-      const float particle_width = upper_bound - lower_bound;
-
-      swarm.emplace_back(particle_center, particle_width, v_dis(gen), v_dis(gen));
-    }
+  swarm.reserve(particle_count);
+  for (int i = 0; i < particle_count; i++) {
+    swarm.emplace_back(center_dis(gen), width_dis(gen), v_dis(gen), v_dis(gen));
   }
 
   float global_best_center = init_range_center;
