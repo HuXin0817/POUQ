@@ -37,7 +37,7 @@ int main() {
   }
   std::cout << "Traditional UQ MSE: " << mse_t / N << std::endl;
 
-  pouq::POUQ4bitSIMDQuantizer quantizer(Dim);
+  pouq::Quantizer quantizer(Dim);
   quantizer.train(data.data(), N);
 
   float mse_p = 0.0f;

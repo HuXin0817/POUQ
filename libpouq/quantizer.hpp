@@ -18,7 +18,7 @@
 
 namespace pouq {
 
-class POUQ4bitSIMDQuantizer final {
+class Quantizer final {
 
   struct ReconstructParameter {
     __m128 lower_bound;
@@ -26,7 +26,7 @@ class POUQ4bitSIMDQuantizer final {
   };
 
 public:
-  explicit POUQ4bitSIMDQuantizer(size_t dim) : dim_(dim) {
+  explicit Quantizer(size_t dim) : dim_(dim) {
     bounds_data_   = nullptr;
     combined_data_ = nullptr;
   }
@@ -164,7 +164,7 @@ public:
     return _mm_cvtss_f32(sum128);
   }
 
-  ~POUQ4bitSIMDQuantizer() {
+  ~Quantizer() {
     if (combined_data_) {
       _mm_free(combined_data_);
     }
