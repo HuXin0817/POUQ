@@ -67,7 +67,7 @@ std::pair<float, float>
 optimize(float div,
          float init_lower_bound,
          float init_upper_bound,
-         const std::vector<std::pair<float, int>>::const_iterator& data_start,
+         const std::vector<std::pair<float, int>>::const_iterator& data_begin,
          const std::vector<std::pair<float, int>>::const_iterator& data_end) {
   const float init_range_width = init_upper_bound - init_lower_bound;
   const float init_range_center = (init_lower_bound + init_upper_bound) * 0.5f;
@@ -89,11 +89,11 @@ optimize(float div,
 
   float global_best_center = init_range_center;
   float global_best_width = init_range_width;
-  float global_min_loss = loss(div, init_lower_bound, init_range_width / div, data_start, data_end);
+  float global_min_loss = loss(div, init_lower_bound, init_range_width / div, data_begin, data_end);
 
   for (auto& particle : swarm) {
     const float curr_lower_bound = particle.center - particle.width * 0.5f;
-    const float curr_loss = loss(div, curr_lower_bound, particle.width / div, data_start, data_end);
+    const float curr_loss = loss(div, curr_lower_bound, particle.width / div, data_begin, data_end);
 
     particle.min_loss = curr_loss;
     if (curr_loss < global_min_loss) {
@@ -127,7 +127,7 @@ optimize(float div,
       }
 
       const float curr_lower = particle.center - particle.width * 0.5f;
-      const float curr_loss = loss(div, curr_lower, particle.width / div, data_start, data_end);
+      const float curr_loss = loss(div, curr_lower, particle.width / div, data_begin, data_end);
 
       if (curr_loss < particle.min_loss) {
         particle.min_loss = curr_loss;
