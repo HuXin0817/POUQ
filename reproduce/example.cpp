@@ -16,13 +16,13 @@ main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> uid(0, 255);
+    std::uniform_real_distribution dis(0.0f, 255.0f);
 
     float l = 255.0f, u = 0.0f;
 
 #pragma omp parallel for reduction(min : l) reduction(max : u)
     for (size_t i = 0; i < N; ++i) {
-        data[i] = static_cast<float>(uid(gen));
+        data[i] = dis(gen);
         l = std::min(l, data[i]);
         u = std::max(u, data[i]);
     }
