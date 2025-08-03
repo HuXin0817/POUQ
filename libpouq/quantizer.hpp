@@ -36,26 +36,26 @@ class Quantizer final {
 
   void
   train(const float* data, int size) {
-    if (combined_data_) {
-      _mm_free(combined_data_);
-      combined_data_ = nullptr;
+    if (code_) {
+      _mm_free(code_);
+      code_ = nullptr;
     }
-    if (bounds_data_) {
-      _mm_free(bounds_data_);
-      bounds_data_ = nullptr;
+    if (rec_para_) {
+      _mm_free(rec_para_);
+      rec_para_ = nullptr;
     }
 
     int combined_data_size = size / 4;
-    combined_data_ = static_cast<CodeUnit*>(_mm_malloc(combined_data_size * sizeof(CodeUnit), 256));
-    if (!combined_data_) {
+    code_ = static_cast<CodeUnit*>(_mm_malloc(combined_data_size * sizeof(CodeUnit), 256));
+    if (!code_) {
       throw std::bad_alloc();
     }
 
     int bounds_data_size = dim_ * 64;
-    bounds_data_ = static_cast<RecPara*>(_mm_malloc(bounds_data_size * sizeof(RecPara), 256));
-    if (!bounds_data_) {
-      _mm_free(combined_data_);
-      combined_data_ = nullptr;
+    rec_para_ = static_cast<RecPara*>(_mm_malloc(bounds_data_size * sizeof(RecPara), 256));
+    if (!rec_para_) {
+      _mm_free(code_);
+      code_ = nullptr;
       throw std::bad_alloc();
     }
 
@@ -116,7 +116,7 @@ class Quantizer final {
     }
 
     for (int i = 0; i < size / 4; i += 2) {
-      combined_data_[i / 2] = std::make_tuple(cid[i], cid[i + 1], code[i / 2]);
+      code_[i / 2] = std::make_tuple(cid[i], cid[i + 1], code[i / 2]);
     }
 
 #pragma omp parallel for
@@ -132,7 +132,7 @@ class Quantizer final {
                                       step_size[base_idx + 1 * 4 + x1],
                                       step_size[base_idx + 2 * 4 + x2],
                                       step_size[base_idx + 3 * 4 + x3]);
-        bounds_data_[g * 256 + j] = {lb, st};
+        rec_para_[g * 256 + j] = {lb, st};
       }
     }
   }
@@ -147,9 +147,9 @@ class Quantizer final {
 
     for (int i = 0; i < dim_; i += 8) {
       const int idx = i / 4;
-      const auto [c1, c2, code] = combined_data_[(offset + idx) / 2];
-      const auto [lb1, st1] = bounds_data_[idx * 256 + c1];
-      const auto [lb2, st2] = bounds_data_[(idx + 1) * 256 + c2];
+      const auto [c1, c2, code] = code_[(offset + idx) / 2];
+      const auto [lb1, st1] = rec_para_[idx * 256 + c1];
+      const auto [lb2, st2] = rec_para_[(idx + 1) * 256 + c2];
       const __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       const __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
       const __m256i bytes = _mm256_set1_epi32(code);
@@ -173,18 +173,18 @@ class Quantizer final {
   }
 
   ~Quantizer() {
-    if (combined_data_) {
-      _mm_free(combined_data_);
+    if (code_) {
+      _mm_free(code_);
     }
-    if (bounds_data_) {
-      _mm_free(bounds_data_);
+    if (rec_para_) {
+      _mm_free(rec_para_);
     }
   }
 
   private:
   int dim_ = 0;
-  RecPara* bounds_data_ = nullptr;
-  CodeUnit* combined_data_ = nullptr;
+  RecPara* rec_para_ = nullptr;
+  CodeUnit* code_ = nullptr;
 
   std::vector<std::pair<float, int>>
   count_freq(const float* data, int size, int group) const {
