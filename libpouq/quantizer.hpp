@@ -241,4 +241,4 @@ private:
   }
 };
 
-};  // namespace pouq
+}  // namespace pouq

@@ -147,4 +147,4 @@ std::pair<float, float> optimize(float                           div,
   return {opt_lower, opt_upper};
 }
 
-};  // namespace pouq
+}  // namespace pouq

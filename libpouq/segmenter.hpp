@@ -88,4 +88,4 @@ std::vector<std::pair<float, float>> segment(size_t k, const std::vector<std::pa
   return bounds;
 }
 
-};  // namespace pouq
+}  // namespace pouq
