@@ -24,7 +24,7 @@ struct Particle {
   float best_width;
   float min_loss;
 
-  Particle(const float c_val, const float w_val, const float vc_val, const float vw_val)
+  Particle(float c_val, float w_val, float vc_val, float vw_val)
       : center(c_val),
         width(w_val),
         v_center(vc_val),
@@ -34,7 +34,7 @@ struct Particle {
         min_loss(std::numeric_limits<float>::max()) {}
 };
 
-static float loss(const float                                    div,
+static float loss(float                                          div,
     float                                                        cluster_lower_bound,
     float                                                        step_size_value,
     const std::vector<std::pair<float, size_t>>::const_iterator &data_begin,

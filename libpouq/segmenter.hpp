@@ -13,7 +13,7 @@ struct Task {
   size_t opt_left;
   size_t opt_right;
 
-  Task(const size_t j, const size_t left, const size_t right, const size_t opt_left, const size_t opt_right)
+  Task(size_t j, size_t left, size_t right, size_t opt_left, size_t opt_right)
       : j(j), left(left), right(right), opt_left(opt_left), opt_right(opt_right) {}
 };
 
