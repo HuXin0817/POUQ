@@ -7,8 +7,8 @@
 
 namespace pouq {
 
-static constexpr int max_iter = 128;
-static constexpr int particle_count = 64;
+static constexpr int max_iter = 100;
+static constexpr int particle_count = 50;
 static constexpr float scale_factor = 0.1f;
 static constexpr float init_inertia = 0.9f;
 static constexpr float final_inertia = 0.4f;
