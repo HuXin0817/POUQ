@@ -14,9 +14,9 @@ class Quantizer final {
     const int size = data_freq_map.size();
     k = std::min(size, k);
 
-    std::vector sum_count(size + 1, 0.0);
+    std::vector<int> sum_count(size + 1, 0);
     for (int i = 1; i <= size; ++i) {
-      sum_count[i] = sum_count[i - 1] + static_cast<float>(data_freq_map[i - 1].second);
+      sum_count[i] = sum_count[i - 1] + data_freq_map[i - 1].second;
     }
 
     std::vector prev_dp(size + 1, FLT_MAX);
@@ -51,8 +51,8 @@ class Quantizer final {
         for (int m = start; m <= end; ++m) {
           const float width = static_cast<float>(data_freq_map[mid - 1].first) -
                               static_cast<float>(data_freq_map[m].first);
-          const float count = sum_count[mid] - sum_count[m];
-          const float cost = prev_dp[m] + width * width * count;
+          const int count = sum_count[mid] - sum_count[m];
+          const float cost = prev_dp[m] + width * width * static_cast<float>(count);
           if (cost < min_cost) {
             min_cost = cost;
             split_pos = m;
