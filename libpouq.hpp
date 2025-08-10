@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cfloat>
 #include <memory>
+#include <random>
+#include <vector>
 
 namespace pouq {
 

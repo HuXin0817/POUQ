@@ -1,9 +1,4 @@
-#include <omp.h>
-
-#include <cmath>
 #include <iostream>
-#include <random>
-#include <vector>
 
 #include "libpouq.hpp"
 
