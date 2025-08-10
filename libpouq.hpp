@@ -9,7 +9,7 @@
 
 namespace pouq {
 
-class Quantizer final {
+class Quantizer {
   static std::vector<std::pair<float, float>>
   segment(int k, const std::vector<std::pair<float, int>>& data_freq_map) {
     assert(k > 0);
