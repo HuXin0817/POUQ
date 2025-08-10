@@ -347,7 +347,7 @@ class Quantizer final {
         int c = it - bounds.begin() - 1;
         float x = std::clamp(
             (data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
-        int base_index = i / 4;
+        int base_index = i / dim_ * dim_ / 4;
         set8(&cid[base_index], i % dim_, c);
         set16(&code[base_index / 2], i % dim_, x);
       }
