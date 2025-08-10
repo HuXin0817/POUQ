@@ -1,10 +1,10 @@
 #pragma once
 
-#include <assert.h>
 #include <immintrin.h>
 #include <omp.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cfloat>
 
 namespace pouq {
