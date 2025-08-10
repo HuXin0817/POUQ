@@ -223,7 +223,7 @@ class Quantizer final {
         particle.lower += particle.v_lower;
         particle.step_size += particle.v_step_size;
 
-        particle.step_size = std::max(particle.step_size, FLT_EPSILON);
+        particle.step_size = std::max(std::abs(particle.step_size), FLT_EPSILON);
 
         float curr_loss = loss(div, particle.lower, particle.step_size, data_begin, data_end);
 
