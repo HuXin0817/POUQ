@@ -343,7 +343,7 @@ class Quantizer final {
             bounds.end(),
             data[i],
             [](float lhs, std::pair<float, float>& rhs) -> bool { return lhs < rhs.first; });
-        int c = it - bounds.begin() - 1;
+        int c = static_cast<int>(it - bounds.begin()) - 1;
         float x = std::clamp(
             (data[i] - lower_bound[d * 4 + c]) / step_size[d * 4 + c] + 0.5f, 0.0f, 3.0f);
         set8(&cid[i / dim_ * dim_ / 4], i % dim_, c);
