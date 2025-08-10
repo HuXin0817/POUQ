@@ -359,8 +359,8 @@ class Quantizer {
 
     std::vector<float> step_size(dim_ * 4);
     std::vector<float> lower_bound(dim_ * 4);
-    std::vector<uint8_t> cid(size / 4);
-    std::vector<uint16_t> code(size / 8);
+    std::vector<uint8_t> cid(size);
+    std::vector<uint16_t> code(size);
 
 #pragma omp parallel for
     for (int d = 0; d < dim_; d++) {
@@ -413,13 +413,33 @@ class Quantizer {
         int c = static_cast<int>(it - bounds.begin()) - 1;
         float x = std::clamp(
             (data[i] - lower_bound[d * 4 + c]) / step_size[d * 4 + c] + 0.5f, 0.0f, 3.0f);
-        set8(&cid[i / dim_ * dim_ / 4], i % dim_, c);
-        set16(&code[i / dim_ * dim_ / 8], i % dim_, x);
+        cid[i] = c;
+        code[i] = x;
       }
     }
 
     for (int i = 0; i < size / 4; i += 2) {
-      code_.get()[i / 2] = std::make_tuple(cid[i], cid[i + 1], code[i / 2]);
+      uint8_t c1, c2;
+      set8(&c1, 0, cid[i * 4]);
+      set8(&c1, 1, cid[i * 4 + 1]);
+      set8(&c1, 2, cid[i * 4 + 2]);
+      set8(&c1, 3, cid[i * 4 + 3]);
+      set8(&c2, 0, cid[i * 4 + 4]);
+      set8(&c2, 1, cid[i * 4 + 5]);
+      set8(&c2, 2, cid[i * 4 + 6]);
+      set8(&c2, 3, cid[i * 4 + 7]);
+
+      uint16_t c3;
+      set16(&c3, 0, code[i * 4]);
+      set16(&c3, 1, code[i * 4 + 1]);
+      set16(&c3, 2, code[i * 4 + 2]);
+      set16(&c3, 3, code[i * 4 + 3]);
+      set16(&c3, 4, code[i * 4 + 4]);
+      set16(&c3, 5, code[i * 4 + 5]);
+      set16(&c3, 6, code[i * 4 + 6]);
+      set16(&c3, 7, code[i * 4 + 7]);
+
+      code_.get()[i / 2] = std::make_tuple(c1, c2, c3);
     }
 
 #pragma omp parallel for
