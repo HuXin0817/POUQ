@@ -318,7 +318,7 @@ class Quantizer {
     assert(size > 0);
     assert(size % dim_ == 0);
 
-    code_.reset(static_cast<CodeUnit*>(_mm_malloc(size / 4 * sizeof(CodeUnit), 256)));
+    code_.reset(static_cast<CodeUnit*>(_mm_malloc(size / 8 * sizeof(CodeUnit), 256)));
     if (!code_) {
       return false;
     }
