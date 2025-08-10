@@ -275,32 +275,6 @@ class Quantizer {
     return data_freq_map;
   }
 
-  static void
-  set8(uint8_t* data, int i, int n) {
-    int offset = (i & 3) << 1;
-    i >>= 2;
-    data[i] &= ~(3 << offset);
-    data[i] |= n << offset;
-  }
-
-  static std::tuple<int, int, int, int>
-  get8(uint8_t byte) {
-    return {
-        byte & 3,
-        byte >> 2 & 3,
-        byte >> 4 & 3,
-        byte >> 6 & 3,
-    };
-  }
-
-  static void
-  set16(uint16_t* data, int i, int n) {
-    int offset = (i & 7) << 1;
-    i >>= 3;
-    data[i] &= ~(3 << offset);
-    data[i] |= n << offset;
-  }
-
   using CodeUnit = std::tuple<uint8_t, uint8_t, uint16_t>;
   using RecPara = std::tuple<__m128, __m128>;
 
@@ -420,16 +394,27 @@ class Quantizer {
 
 #pragma omp parallel for
     for (int i = 0; i < size / 4; i += 2) {
-      uint8_t c1 = cid[i * 4] & 3 | (cid[i * 4 + 1] & 3) << 2 | (cid[i * 4 + 2] & 3) << 4 |
-                   (cid[i * 4 + 3] & 3) << 6;
+      uint8_t x0 = (cid[i * 4] & 3) << 0;
+      uint8_t x1 = (cid[i * 4 + 1] & 3) << 2;
+      uint8_t x2 = (cid[i * 4 + 2] & 3) << 4;
+      uint8_t x3 = (cid[i * 4 + 3] & 3) << 6;
+      uint8_t x4 = (cid[i * 4 + 4] & 3) << 0;
+      uint8_t x5 = (cid[i * 4 + 5] & 3) << 2;
+      uint8_t x6 = (cid[i * 4 + 6] & 3) << 4;
+      uint8_t x7 = (cid[i * 4 + 7] & 3) << 6;
 
-      uint8_t c2 = cid[i * 4 + 4] & 3 | (cid[i * 4 + 5] & 3) << 2 | (cid[i * 4 + 6] & 3) << 4 |
-                   (cid[i * 4 + 7] & 3) << 6;
+      uint16_t x8 = (code[i * 4] & 3) << 0;
+      uint16_t x9 = (code[i * 4 + 1] & 3) << 2;
+      uint16_t x10 = (code[i * 4 + 2] & 3) << 4;
+      uint16_t x11 = (code[i * 4 + 3] & 3) << 6;
+      uint16_t x12 = (code[i * 4 + 4] & 3) << 8;
+      uint16_t x13 = (code[i * 4 + 5] & 3) << 10;
+      uint16_t x14 = (code[i * 4 + 6] & 3) << 12;
+      uint16_t x15 = (code[i * 4 + 7] & 3) << 14;
 
-      uint16_t c3 = code[i * 4] & 3 | (code[i * 4 + 1] & 3) << 2 | (code[i * 4 + 2] & 3) << 4 |
-                    (code[i * 4 + 3] & 3) << 6 | (code[i * 4 + 4] & 3) << 8 |
-                    (code[i * 4 + 5] & 3) << 10 | (code[i * 4 + 6] & 3) << 12 |
-                    (code[i * 4 + 7] & 3) << 14;
+      uint8_t c1 = x0 | x1 | x2 | x3;
+      uint8_t c2 = x4 | x5 | x6 | x7;
+      uint16_t c3 = x8 | x9 | x10 | x11 | x12 | x13 | x14 | x15;
 
       code_.get()[i / 2] = std::make_tuple(c1, c2, c3);
     }
@@ -437,15 +422,18 @@ class Quantizer {
 #pragma omp parallel for
     for (int g = 0; g < dim_ / 4; g++) {
       for (int j = 0; j < 256; j++) {
-        auto [x0, x1, x2, x3] = get8(j);
-        float lb0 = lower_bound[g * 16 + 0 * 4 + x0];
-        float lb1 = lower_bound[g * 16 + 1 * 4 + x1];
-        float lb2 = lower_bound[g * 16 + 2 * 4 + x2];
-        float lb3 = lower_bound[g * 16 + 3 * 4 + x3];
-        float st0 = step_size[g * 16 + 0 * 4 + x0];
-        float st1 = step_size[g * 16 + 1 * 4 + x1];
-        float st2 = step_size[g * 16 + 2 * 4 + x2];
-        float st3 = step_size[g * 16 + 3 * 4 + x3];
+        int x0 = g * 16 + 0 * 4 + (j & 3);
+        int x1 = g * 16 + 1 * 4 + (j >> 2 & 3);
+        int x2 = g * 16 + 2 * 4 + (j >> 4 & 3);
+        int x3 = g * 16 + 3 * 4 + (j >> 6 & 3);
+        float lb0 = lower_bound[x0];
+        float lb1 = lower_bound[x1];
+        float lb2 = lower_bound[x2];
+        float lb3 = lower_bound[x3];
+        float st0 = step_size[x0];
+        float st1 = step_size[x1];
+        float st2 = step_size[x2];
+        float st3 = step_size[x3];
         __m128 lb = _mm_setr_ps(lb0, lb1, lb2, lb3);
         __m128 st = _mm_setr_ps(st0, st1, st2, st3);
         rec_para_[g * 256 + j] = {lb, st};
