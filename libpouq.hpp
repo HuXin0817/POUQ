@@ -173,31 +173,32 @@ class Quantizer {
       float best_lower;
       float best_step_size;
       float min_loss;
-
-      Particle(float l_val, float s_val, float vl_val, float vs_val)
-          : lower(l_val), step_size(s_val), v_lower(vl_val), v_step_size(vs_val) {
-        best_lower = lower;
-        best_step_size = step_size;
-        min_loss = FLT_MAX;
-      }
     };
-
-    std::vector<Particle> swarm;
-    swarm.reserve(particle_count);
-    for (int i = 0; i < particle_count; i++) {
-      swarm.emplace_back(lower_dis(gen), step_dis(gen), v_dis(gen), v_dis(gen));
-    }
 
     float global_best_lower = init_lower;
     float global_best_step_size = init_step_size;
     float global_min_loss = loss(div, init_lower, init_step_size, data_begin, data_end);
 
+    std::vector<Particle> swarm(particle_count);
     for (auto& particle : swarm) {
-      float curr_loss = loss(div, particle.lower, particle.step_size, data_begin, data_end);
+      float lower = lower_dis(gen);
+      float step_size = step_dis(gen);
+      float v_lower = v_dis(gen);
+      float v_step_size = v_dis(gen);
+      float min_loss = loss(div, lower, step_size, data_begin, data_end);
 
-      particle.min_loss = curr_loss;
-      if (curr_loss < global_min_loss) {
-        global_min_loss = curr_loss;
+      particle = {
+          .lower = lower,
+          .step_size = step_size,
+          .v_lower = v_lower,
+          .v_step_size = v_step_size,
+          .best_lower = v_lower,
+          .best_step_size = v_step_size,
+          .min_loss = min_loss,
+      };
+
+      if (min_loss < global_min_loss) {
+        global_min_loss = min_loss;
         global_best_lower = particle.lower;
         global_best_step_size = particle.step_size;
       }
