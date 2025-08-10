@@ -295,8 +295,6 @@ class Quantizer final {
     std::vector<uint8_t> cid(size / 4);
     std::vector<uint16_t> code(size / 8);
 
-    int dim_div_4 = dim_ / 4;
-
 #pragma omp parallel for
     for (int d = 0; d < dim_; d++) {
       auto data_freq_map = count_freq(data, size, d);
@@ -349,7 +347,7 @@ class Quantizer final {
         int c = it - bounds.begin() - 1;
         float x = std::clamp(
             (data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
-        int base_index = (i / dim_) * dim_div_4;
+        int base_index = i / 4;
         set8(&cid[base_index], i % dim_, c);
         set16(&code[base_index / 2], i % dim_, x);
       }
