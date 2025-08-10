@@ -297,7 +297,7 @@ class Quantizer {
 
 #pragma omp parallel for
     for (int d = 0; d < dim_; d++) {
-      auto data_freq_map = count_freq(data, size, d);
+      auto data_freq_map = count_freq(data, size, d, dim_);
       auto bounds = segment(4, data_freq_map);
 
       for (int i = 0; i < bounds.size(); i++) {
@@ -418,11 +418,11 @@ class Quantizer {
   std::unique_ptr<RecPara[]> rec_para_ = nullptr;
   std::unique_ptr<CodeUnit[]> code_ = nullptr;
 
-  std::vector<std::pair<float, int>>
-  count_freq(const float* data, int size, int group) const {
+  static std::vector<std::pair<float, int>>
+  count_freq(const float* data, int size, int d, int dim) {
     std::vector<float> sorted_data;
-    sorted_data.reserve(size / dim_);
-    for (int i = group; i < size; i += dim_) {
+    sorted_data.reserve(size / dim);
+    for (int i = d; i < size; i += dim) {
       sorted_data.push_back(data[i]);
     }
     std::sort(sorted_data.begin(), sorted_data.end());
