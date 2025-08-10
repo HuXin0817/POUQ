@@ -307,12 +307,12 @@ class Quantizer final {
               data_freq_map.begin(),
               data_freq_map.end(),
               lower,
-              [](std::pair<float, int>& lhs, float rhs) -> bool { return lhs.first < rhs; });
+              [](const std::pair<float, int>& lhs, float rhs) -> bool { return lhs.first < rhs; });
           auto data_end = std::upper_bound(
               data_freq_map.begin(),
               data_freq_map.end(),
               upper,
-              [](float lhs, std::pair<float, int>& rhs) -> bool { return lhs < rhs.first; });
+              [](float lhs, const std::pair<float, int>& rhs) -> bool { return lhs < rhs.first; });
 
           std::tie(lower, upper) = optimize(3,
                                             lower,
@@ -342,7 +342,7 @@ class Quantizer final {
             bounds.begin(),
             bounds.end(),
             data[i],
-            [](float lhs, std::pair<float, float>& rhs) -> bool { return lhs < rhs.first; });
+            [](float lhs, const std::pair<float, float>& rhs) -> bool { return lhs < rhs.first; });
         int c = static_cast<int>(it - bounds.begin()) - 1;
         float x = std::clamp(
             (data[i] - lower_bound[d * 4 + c]) / step_size[d * 4 + c] + 0.5f, 0.0f, 3.0f);
