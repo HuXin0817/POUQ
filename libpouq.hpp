@@ -418,26 +418,18 @@ class Quantizer {
       }
     }
 
+#pragma omp parallel for
     for (int i = 0; i < size / 4; i += 2) {
-      uint8_t c1, c2;
-      set8(&c1, 0, cid[i * 4]);
-      set8(&c1, 1, cid[i * 4 + 1]);
-      set8(&c1, 2, cid[i * 4 + 2]);
-      set8(&c1, 3, cid[i * 4 + 3]);
-      set8(&c2, 0, cid[i * 4 + 4]);
-      set8(&c2, 1, cid[i * 4 + 5]);
-      set8(&c2, 2, cid[i * 4 + 6]);
-      set8(&c2, 3, cid[i * 4 + 7]);
+      uint8_t c1 = cid[i * 4] & 3 | (cid[i * 4 + 1] & 3) << 2 | (cid[i * 4 + 2] & 3) << 4 |
+                   (cid[i * 4 + 3] & 3) << 6;
 
-      uint16_t c3;
-      set16(&c3, 0, code[i * 4]);
-      set16(&c3, 1, code[i * 4 + 1]);
-      set16(&c3, 2, code[i * 4 + 2]);
-      set16(&c3, 3, code[i * 4 + 3]);
-      set16(&c3, 4, code[i * 4 + 4]);
-      set16(&c3, 5, code[i * 4 + 5]);
-      set16(&c3, 6, code[i * 4 + 6]);
-      set16(&c3, 7, code[i * 4 + 7]);
+      uint8_t c2 = cid[i * 4 + 4] & 3 | (cid[i * 4 + 5] & 3) << 2 | (cid[i * 4 + 6] & 3) << 4 |
+                   (cid[i * 4 + 7] & 3) << 6;
+
+      uint16_t c3 = code[i * 4] & 3 | (code[i * 4 + 1] & 3) << 2 | (code[i * 4 + 2] & 3) << 4 |
+                    (code[i * 4 + 3] & 3) << 6 | (code[i * 4 + 4] & 3) << 8 |
+                    (code[i * 4 + 5] & 3) << 10 | (code[i * 4 + 6] & 3) << 12 |
+                    (code[i * 4 + 7] & 3) << 14;
 
       code_.get()[i / 2] = std::make_tuple(c1, c2, c3);
     }
