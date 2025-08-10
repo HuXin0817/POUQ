@@ -359,14 +359,16 @@ class Quantizer {
     for (int g = 0; g < dim_ / 4; g++) {
       for (int j = 0; j < 256; j++) {
         auto [x0, x1, x2, x3] = get8(j);
-        __m128 lb = _mm_setr_ps(lower_bound[g * 16 + 0 * 4 + x0],
-                                lower_bound[g * 16 + 1 * 4 + x1],
-                                lower_bound[g * 16 + 2 * 4 + x2],
-                                lower_bound[g * 16 + 3 * 4 + x3]);
-        __m128 st = _mm_setr_ps(step_size[g * 16 + 0 * 4 + x0],
-                                step_size[g * 16 + 1 * 4 + x1],
-                                step_size[g * 16 + 2 * 4 + x2],
-                                step_size[g * 16 + 3 * 4 + x3]);
+        float lb0 = lower_bound[g * 16 + 0 * 4 + x0];
+        float lb1 = lower_bound[g * 16 + 1 * 4 + x1];
+        float lb2 = lower_bound[g * 16 + 2 * 4 + x2];
+        float lb3 = lower_bound[g * 16 + 3 * 4 + x3];
+        float st0 = step_size[g * 16 + 0 * 4 + x0];
+        float st1 = step_size[g * 16 + 1 * 4 + x1];
+        float st2 = step_size[g * 16 + 2 * 4 + x2];
+        float st3 = step_size[g * 16 + 3 * 4 + x3];
+        __m128 lb = _mm_setr_ps(lb0, lb1, lb2, lb3);
+        __m128 st = _mm_setr_ps(st0, st1, st2, st3);
         rec_para_[g * 256 + j] = {lb, st};
       }
     }
@@ -382,9 +384,6 @@ class Quantizer {
     offset /= 4;
     __m256 sum_vec = _mm256_setzero_ps();
 
-    static __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
-    static __m256i mask = _mm256_set1_epi32(3);
-
     for (int i = 0; i < dim_; i += 8) {
       int idx = i / 4;
       auto [c1, c2, code] = code_.get()[(offset + idx) / 2];
@@ -393,7 +392,9 @@ class Quantizer {
       __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
       __m256i bytes = _mm256_set1_epi32(code);
+      __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
       __m256i shifted = _mm256_srlv_epi32(bytes, shifts);
+      __m256i mask = _mm256_set1_epi32(3);
       __m256i masked = _mm256_and_si256(shifted, mask);
       __m256 code_vec = _mm256_cvtepi32_ps(masked);
       __m256 reconstructed = _mm256_fmadd_ps(code_vec, st_vec, lb_vec);
