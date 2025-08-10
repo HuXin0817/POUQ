@@ -304,9 +304,16 @@ class Quantizer {
   using CodeUnit = std::tuple<uint8_t, uint8_t, uint16_t>;
   using RecPara = std::tuple<__m128, __m128>;
 
+  struct AlignedDeleter {
+    void
+    operator()(void* ptr) const {
+      _mm_free(ptr);
+    }
+  };
+
   int dim_ = 0;
-  std::unique_ptr<RecPara[]> rec_para_ = nullptr;
-  std::unique_ptr<CodeUnit[]> code_ = nullptr;
+  std::unique_ptr<RecPara[], AlignedDeleter> rec_para_ = nullptr;
+  std::unique_ptr<CodeUnit[], AlignedDeleter> code_ = nullptr;
 
   public:
   Quantizer() = default;
