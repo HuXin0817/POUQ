@@ -4,6 +4,7 @@
 #include <omp.h>
 
 #include <algorithm>
+#include <cfloat>
 
 namespace pouq {
 
@@ -18,8 +19,8 @@ class Quantizer final {
       sum_count[i] = sum_count[i - 1] + static_cast<float>(data_freq_map[i - 1].second);
     }
 
-    std::vector prev_dp(size + 1, std::numeric_limits<float>::max());
-    std::vector curr_dp(size + 1, std::numeric_limits<float>::max());
+    std::vector prev_dp(size + 1, FLT_MAX);
+    std::vector curr_dp(size + 1, FLT_MAX);
     std::vector prev_idx(size + 1, std::vector<int>(k + 1, 0));
     prev_dp[0] = 0.0;
 
@@ -45,7 +46,7 @@ class Quantizer final {
         const int mid = (l + r) / 2;
         const int start = std::max(j - 1, opt_l);
         const int end = std::min(mid - 1, opt_r);
-        float min_cost = std::numeric_limits<float>::max();
+        float min_cost = FLT_MAX;
         int split_pos = 0;
         for (int m = start; m <= end; ++m) {
           const float width = static_cast<float>(data_freq_map[mid - 1].first) -
@@ -67,7 +68,7 @@ class Quantizer final {
       }
 
       std::swap(prev_dp, curr_dp);
-      std::fill(curr_dp.begin(), curr_dp.end(), std::numeric_limits<float>::max());
+      std::fill(curr_dp.begin(), curr_dp.end(), FLT_MAX);
     }
 
     std::vector<int> split_pos(k);
@@ -158,7 +159,7 @@ class Quantizer final {
             v_step_size(vs_val),
             best_lower(l_val),
             best_step_size(s_val),
-            min_loss(std::numeric_limits<float>::max()) {
+            min_loss(FLT_MAX) {
       }
     };
 
