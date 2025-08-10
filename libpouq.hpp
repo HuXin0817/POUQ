@@ -386,7 +386,7 @@ class Quantizer {
         float x = std::clamp(
             (data[i] - lower_bound[d * 4 + c]) / step_size[d * 4 + c] + 0.5f, 0.0f, 3.0f);
         cid[i] = c;
-        code[i] = x;
+        code[i] = static_cast<uint8_t>(x);
       }
     }
 
