@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cfloat>
+#include <memory>
 
 namespace pouq {
 
@@ -278,15 +279,14 @@ class Quantizer {
     assert(size > 0);
     assert(size % dim_ == 0);
 
-    code_ = static_cast<CodeUnit*>(_mm_malloc(size / 4 * sizeof(CodeUnit), 256));
+    code_.reset(static_cast<CodeUnit*>(_mm_malloc(size / 4 * sizeof(CodeUnit), 256)));
     if (!code_) {
       return false;
     }
 
-    rec_para_ = static_cast<RecPara*>(_mm_malloc(dim_ * 64 * sizeof(RecPara), 256));
+    rec_para_.reset(static_cast<RecPara*>(_mm_malloc(dim_ * 64 * sizeof(RecPara), 256)));
     if (!rec_para_) {
-      _mm_free(code_);
-      code_ = nullptr;
+      code_.reset();
       return false;
     }
 
@@ -352,7 +352,7 @@ class Quantizer {
     }
 
     for (int i = 0; i < size / 4; i += 2) {
-      code_[i / 2] = std::make_tuple(cid[i], cid[i + 1], code[i / 2]);
+      code_.get()[i / 2] = std::make_tuple(cid[i], cid[i + 1], code[i / 2]);
     }
 
 #pragma omp parallel for
@@ -387,9 +387,9 @@ class Quantizer {
 
     for (int i = 0; i < dim_; i += 8) {
       int idx = i / 4;
-      auto [c1, c2, code] = code_[(offset + idx) / 2];
-      auto [lb1, st1] = rec_para_[idx * 256 + c1];
-      auto [lb2, st2] = rec_para_[(idx + 1) * 256 + c2];
+      auto [c1, c2, code] = code_.get()[(offset + idx) / 2];
+      auto [lb1, st1] = rec_para_.get()[idx * 256 + c1];
+      auto [lb2, st2] = rec_para_.get()[(idx + 1) * 256 + c2];
       __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
       __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
       __m256i bytes = _mm256_set1_epi32(code);
@@ -412,21 +412,10 @@ class Quantizer {
     return _mm_cvtss_f32(sum128);
   }
 
-  ~Quantizer() {
-    if (code_) {
-      _mm_free(code_);
-      code_ = nullptr;
-    }
-    if (rec_para_) {
-      _mm_free(rec_para_);
-      rec_para_ = nullptr;
-    }
-  }
-
   private:
   int dim_ = 0;
-  RecPara* rec_para_ = nullptr;
-  CodeUnit* code_ = nullptr;
+  std::unique_ptr<RecPara[]> rec_para_ = nullptr;
+  std::unique_ptr<CodeUnit[]> code_ = nullptr;
 
   std::vector<std::pair<float, int>>
   count_freq(const float* data, int size, int group) const {
