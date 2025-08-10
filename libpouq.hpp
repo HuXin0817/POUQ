@@ -13,10 +13,6 @@
 #include <tuple>
 #include <vector>
 
-#include "optimizer.hpp"
-#include "quantizer.hpp"
-#include "segmenter.hpp"
-
 namespace pouq {
 
 struct Task {
@@ -99,16 +95,6 @@ segment(int k, const std::vector<std::pair<float, int>>& data_freq_map) {
   return bounds;
 }
 
-static constexpr int max_iter = 100;
-static constexpr int particle_count = 50;
-static constexpr float scale_factor = 0.1f;
-static constexpr float init_inertia = 0.9f;
-static constexpr float final_inertia = 0.4f;
-static constexpr float init_c1 = 2.5f;
-static constexpr float final_c1 = 0.5f;
-static constexpr float init_c2 = 0.5f;
-static constexpr float final_c2 = 2.5f;
-
 struct Particle {
   float lower;
   float step_size;
@@ -161,7 +147,16 @@ optimize(float div,
          float init_lower,
          float init_upper,
          const std::vector<std::pair<float, int>>::const_iterator& data_begin,
-         const std::vector<std::pair<float, int>>::const_iterator& data_end) {
+         const std::vector<std::pair<float, int>>::const_iterator& data_end,
+         int max_iter,
+         int particle_count,
+         float scale_factor,
+         float init_inertia,
+         float final_inertia,
+         float init_c1,
+         float final_c1,
+         float init_c2,
+         float final_c2) {
   const float init_range_width = init_upper - init_lower;
   const float init_step_size = init_range_width / div;
 
@@ -256,7 +251,17 @@ class Quantizer final {
   }
 
   void
-  train(const float* data, int size) {
+  train(const float* data,
+        int size,
+        int max_iter = 100,
+        int particle_count = 50,
+        float scale_factor = 0.1f,
+        float init_inertia = 0.9f,
+        float final_inertia = 0.4f,
+        float init_c1 = 2.5f,
+        float final_c1 = 0.5f,
+        float init_c2 = 0.5f,
+        float final_c2 = 2.5f) {
     if (code_) {
       _mm_free(code_);
       code_ = nullptr;
@@ -311,7 +316,20 @@ class Quantizer final {
                                  return rhs < lhs.first;
                                });
 
-          std::tie(lower, upper) = optimize(3, lower, upper, data_begin, data_end);
+          std::tie(lower, upper) = optimize(3,
+                                            lower,
+                                            upper,
+                                            data_begin,
+                                            data_end,
+                                            max_iter,
+                                            particle_count,
+                                            scale_factor,
+                                            init_inertia,
+                                            final_inertia,
+                                            init_c1,
+                                            final_c1,
+                                            init_c2,
+                                            final_c2);
         }
         lower_bound[d_times_4 + i] = lower;
         if (lower == upper) {
