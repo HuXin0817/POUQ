@@ -432,7 +432,7 @@ class Quantizer {
   }
 
   float
-  l2distance(const float* data, int offset) {
+  distance(const float* data, int offset) {
     assert(data != nullptr);
     assert(offset % dim_ == 0);
 

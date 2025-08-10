@@ -41,7 +41,7 @@ main() {
   float mse_p = 0.0f;
 #pragma omp parallel for reduction(+ : mse_p)
   for (int i = 0; i < N; i += Dim) {
-    mse_p += quantizer.l2distance(data.data() + i, i);
+    mse_p += quantizer.distance(data.data() + i, i);
   }
   std::cout << "POUQ MSE: " << mse_p / N << std::endl;
 
