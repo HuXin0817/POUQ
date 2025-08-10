@@ -231,12 +231,12 @@ class Quantizer final {
           particle.min_loss = curr_loss;
           particle.best_lower = particle.lower;
           particle.best_step_size = particle.step_size;
-        }
-
-        if (curr_loss < global_min_loss) {
-          global_min_loss = curr_loss;
-          global_best_lower = particle.lower;
-          global_best_step_size = particle.step_size;
+          
+          if (curr_loss < global_min_loss) {
+            global_min_loss = curr_loss;
+            global_best_lower = particle.lower;
+            global_best_step_size = particle.step_size;
+          }
         }
       }
     }
