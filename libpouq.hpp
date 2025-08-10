@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <immintrin.h>
 #include <omp.h>
 
@@ -11,7 +12,10 @@ namespace pouq {
 class Quantizer final {
   static std::vector<std::pair<float, float>>
   segment(int k, const std::vector<std::pair<float, int>>& data_freq_map) {
-    int size = data_freq_map.size();
+    assert(k > 0);
+    assert(!data_freq_map.empty());
+
+    int size = static_cast<int>(data_freq_map.size());
     k = std::min(size, k);
 
     std::vector<int> sum_count(size + 1, 0);
@@ -22,7 +26,7 @@ class Quantizer final {
     std::vector<float> prev_dp(size + 1, FLT_MAX);
     std::vector<float> curr_dp(size + 1, FLT_MAX);
     std::vector<std::vector<int>> prev_idx(size + 1, std::vector<int>(k + 1, 0));
-    prev_dp[0] = 0.0;
+    prev_dp[0] = 0.0f;
 
     struct Task {
       int j;
@@ -95,6 +99,10 @@ class Quantizer final {
        float step_size,
        const std::vector<std::pair<float, int>>::iterator& data_begin,
        const std::vector<std::pair<float, int>>::iterator& data_end) {
+    assert(div > 0.0f);
+    assert(step_size >= FLT_EPSILON);
+    assert(data_begin <= data_end);
+
     float total_loss = 0.0f;
 
     for (auto it = data_begin; it != data_end; ++it) {
@@ -131,6 +139,19 @@ class Quantizer final {
            float final_c1,
            float init_c2,
            float final_c2) {
+    assert(div > 0.0f);
+    assert(init_lower <= init_upper);
+    assert(data_begin <= data_end);
+    assert(max_iter >= 0);
+    assert(particle_count >= 0);
+    assert(scale_factor >= 0.0f);
+    assert(init_inertia >= 0.0f);
+    assert(final_inertia >= 0.0f);
+    assert(init_c1 >= 0.0f);
+    assert(final_c1 >= 0.0f);
+    assert(init_c2 >= 0.0f);
+    assert(final_c2 >= 0.0f);
+
     float init_range_width = init_upper - init_lower;
     float init_step_size = init_range_width / div;
 
@@ -153,13 +174,10 @@ class Quantizer final {
       float min_loss;
 
       Particle(float l_val, float s_val, float vl_val, float vs_val)
-          : lower(l_val),
-            step_size(s_val),
-            v_lower(vl_val),
-            v_step_size(vs_val),
-            best_lower(l_val),
-            best_step_size(s_val),
-            min_loss(FLT_MAX) {
+          : lower(l_val), step_size(s_val), v_lower(vl_val), v_step_size(vs_val) {
+        best_lower = lower;
+        best_step_size = step_size;
+        min_loss = FLT_MAX;
       }
     };
 
@@ -205,9 +223,7 @@ class Quantizer final {
         particle.lower += particle.v_lower;
         particle.step_size += particle.v_step_size;
 
-        if (particle.step_size <= std::numeric_limits<float>::epsilon()) {
-          particle.step_size = std::numeric_limits<float>::epsilon();
-        }
+        particle.step_size = std::max(particle.step_size, FLT_EPSILON);
 
         float curr_loss = loss(div, particle.lower, particle.step_size, data_begin, data_end);
 
@@ -240,6 +256,7 @@ class Quantizer final {
 
   void
   init(int dim) {
+    assert(dim % 8 == 0);
     dim_ = dim;
   }
 
@@ -255,14 +272,11 @@ class Quantizer final {
         float final_c1 = 0.5f,
         float init_c2 = 0.5f,
         float final_c2 = 2.5f) {
-    if (code_) {
-      _mm_free(code_);
-      code_ = nullptr;
-    }
-    if (rec_para_) {
-      _mm_free(rec_para_);
-      rec_para_ = nullptr;
-    }
+    assert(code_ == nullptr);
+    assert(rec_para_ == nullptr);
+    assert(data != nullptr);
+    assert(size > 0);
+    assert(size % dim_ == 0);
 
     int combined_data_size = size / 4;
     code_ = static_cast<CodeUnit*>(_mm_malloc(combined_data_size * sizeof(CodeUnit), 256));
@@ -338,7 +352,7 @@ class Quantizer final {
         float x = std::clamp(
             (data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
         int base_index = (i / dim_) * dim_div_4;
-        set(&cid[base_index], i % dim_, c);
+        set8(&cid[base_index], i % dim_, c);
         set16(&code[base_index / 2], i % dim_, x);
       }
     }
@@ -350,7 +364,7 @@ class Quantizer final {
 #pragma omp parallel for
     for (int g = 0; g < dim_ / 4; g++) {
       for (int j = 0; j < 256; j++) {
-        auto [x0, x1, x2, x3] = get(j);
+        auto [x0, x1, x2, x3] = get8(j);
         int base_idx = g * 16;
         __m128 lb = _mm_setr_ps(lower_bound[base_idx + 0 * 4 + x0],
                                 lower_bound[base_idx + 1 * 4 + x1],
@@ -367,6 +381,9 @@ class Quantizer final {
 
   float
   l2distance(const float* data, int offset) {
+    assert(data != nullptr);
+    assert(offset % dim_ == 0);
+
     offset /= 4;
     __m256 sum_vec = _mm256_setzero_ps();
 
@@ -415,7 +432,7 @@ class Quantizer final {
   CodeUnit* code_ = nullptr;
 
   std::vector<std::pair<float, int>>
-  count_freq(const float* data, int size, int group) {
+  count_freq(const float* data, int size, int group) const {
     std::vector<float> sorted_data;
     sorted_data.reserve(size / dim_);
     for (int i = group; i < size; i += dim_) {
@@ -442,7 +459,7 @@ class Quantizer final {
   }
 
   static void
-  set(uint8_t* data, int i, int n) {
+  set8(uint8_t* data, int i, int n) {
     int offset = (i & 3) << 1;
     i >>= 2;
     data[i] &= ~(3 << offset);
@@ -450,7 +467,7 @@ class Quantizer final {
   }
 
   static std::tuple<int, int, int, int>
-  get(uint8_t byte) {
+  get8(uint8_t byte) {
     return {
         byte & 3,
         byte >> 2 & 3,
