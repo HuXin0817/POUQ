@@ -411,12 +411,10 @@ class Quantizer final {
   }
 
   ~Quantizer() {
-    if (code_) {
-      _mm_free(code_);
-    }
-    if (rec_para_) {
-      _mm_free(rec_para_);
-    }
+    assert(code_ != nullptr);
+    assert(rec_para_ != nullptr);
+    _mm_free(code_);
+    _mm_free(rec_para_);
   }
 
   private:
