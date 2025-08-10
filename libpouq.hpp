@@ -203,7 +203,7 @@ class Quantizer final {
     }
 
     for (int iter = 0; iter < max_iter; ++iter) {
-      float x = static_cast<float>(iter) / max_iter;
+      float x = static_cast<float>(iter) / static_cast<float>(max_iter);
       float inertia = init_inertia - (init_inertia - final_inertia) * x;
       float c1 = init_c1 - (init_c1 - final_c1) * x;
       float c2 = init_c2 - (init_c2 - final_c2) * x;
