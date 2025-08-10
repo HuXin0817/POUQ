@@ -226,11 +226,9 @@ class Quantizer {
 
         particle.lower += particle.v_lower;
         particle.step_size += particle.v_step_size;
-
         particle.step_size = std::max(std::abs(particle.step_size), FLT_EPSILON);
 
         float curr_loss = loss(div, particle.lower, particle.step_size, data_begin, data_end);
-
         if (curr_loss < particle.min_loss) {
           particle.min_loss = curr_loss;
           particle.best_lower = particle.lower;
