@@ -260,7 +260,7 @@ class Quantizer {
     dim_ = dim;
   }
 
-  void
+  bool
   train(const float* data,
         int size,
         int max_iter = 100,
@@ -280,14 +280,14 @@ class Quantizer {
 
     code_ = static_cast<CodeUnit*>(_mm_malloc(size / 4 * sizeof(CodeUnit), 256));
     if (!code_) {
-      throw std::bad_alloc();
+      return false;
     }
 
     rec_para_ = static_cast<RecPara*>(_mm_malloc(dim_ * 64 * sizeof(RecPara), 256));
     if (!rec_para_) {
       _mm_free(code_);
       code_ = nullptr;
-      throw std::bad_alloc();
+      return false;
     }
 
     std::vector<float> step_size(dim_ * 4);
@@ -370,6 +370,8 @@ class Quantizer {
         rec_para_[g * 256 + j] = {lb, st};
       }
     }
+
+    return true;
   }
 
   float
@@ -411,10 +413,14 @@ class Quantizer {
   }
 
   ~Quantizer() {
-    assert(code_ != nullptr);
-    assert(rec_para_ != nullptr);
-    _mm_free(code_);
-    _mm_free(rec_para_);
+    if (code_) {
+      _mm_free(code_);
+      code_ = nullptr;
+    }
+    if (rec_para_) {
+      _mm_free(rec_para_);
+      rec_para_ = nullptr;
+    }
   }
 
   private:
