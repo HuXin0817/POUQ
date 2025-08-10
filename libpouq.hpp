@@ -248,8 +248,65 @@ class Quantizer {
     return {global_best_lower, global_best_lower + global_best_step_size * div};
   }
 
+  static std::vector<std::pair<float, int>>
+  count_freq(const float* data, int size, int d, int dim) {
+    std::vector<float> sorted_data;
+    sorted_data.reserve(size / dim);
+    for (int i = d; i < size; i += dim) {
+      sorted_data.push_back(data[i]);
+    }
+    std::sort(sorted_data.begin(), sorted_data.end());
+
+    float curr_value = sorted_data[0];
+    int count = 1;
+    std::vector<std::pair<float, int>> data_freq_map;
+    data_freq_map.reserve(sorted_data.size());
+    for (int i = 1; i < sorted_data.size(); i++) {
+      if (sorted_data[i] == curr_value) {
+        count++;
+      } else {
+        data_freq_map.emplace_back(curr_value, count);
+        curr_value = sorted_data[i];
+        count = 1;
+      }
+    }
+
+    data_freq_map.emplace_back(curr_value, count);
+    return data_freq_map;
+  }
+
+  static void
+  set8(uint8_t* data, int i, int n) {
+    int offset = (i & 3) << 1;
+    i >>= 2;
+    data[i] &= ~(3 << offset);
+    data[i] |= n << offset;
+  }
+
+  static std::tuple<int, int, int, int>
+  get8(uint8_t byte) {
+    return {
+        byte & 3,
+        byte >> 2 & 3,
+        byte >> 4 & 3,
+        byte >> 6 & 3,
+    };
+  }
+
+  static void
+  set16(uint16_t* data, int i, int n) {
+    int offset = (i & 7) << 1;
+    i >>= 3;
+    data[i] &= ~(3 << offset);
+    data[i] |= n << offset;
+  }
+
   using CodeUnit = std::tuple<uint8_t, uint8_t, uint16_t>;
   using RecPara = std::tuple<__m128, __m128>;
+
+  int dim_ = 0;
+  std::unique_ptr<RecPara[]> rec_para_ = nullptr;
+  std::unique_ptr<CodeUnit[]> code_ = nullptr;
 
   public:
   Quantizer() = default;
@@ -414,64 +471,6 @@ class Quantizer {
     shuf = _mm_movehl_ps(shuf, sum128);
     sum128 = _mm_add_ss(sum128, shuf);
     return _mm_cvtss_f32(sum128);
-  }
-
-  private:
-  int dim_ = 0;
-  std::unique_ptr<RecPara[]> rec_para_ = nullptr;
-  std::unique_ptr<CodeUnit[]> code_ = nullptr;
-
-  static std::vector<std::pair<float, int>>
-  count_freq(const float* data, int size, int d, int dim) {
-    std::vector<float> sorted_data;
-    sorted_data.reserve(size / dim);
-    for (int i = d; i < size; i += dim) {
-      sorted_data.push_back(data[i]);
-    }
-    std::sort(sorted_data.begin(), sorted_data.end());
-
-    float curr_value = sorted_data[0];
-    int count = 1;
-    std::vector<std::pair<float, int>> data_freq_map;
-    data_freq_map.reserve(sorted_data.size());
-    for (int i = 1; i < sorted_data.size(); i++) {
-      if (sorted_data[i] == curr_value) {
-        count++;
-      } else {
-        data_freq_map.emplace_back(curr_value, count);
-        curr_value = sorted_data[i];
-        count = 1;
-      }
-    }
-
-    data_freq_map.emplace_back(curr_value, count);
-    return data_freq_map;
-  }
-
-  static void
-  set8(uint8_t* data, int i, int n) {
-    int offset = (i & 3) << 1;
-    i >>= 2;
-    data[i] &= ~(3 << offset);
-    data[i] |= n << offset;
-  }
-
-  static std::tuple<int, int, int, int>
-  get8(uint8_t byte) {
-    return {
-        byte & 3,
-        byte >> 2 & 3,
-        byte >> 4 & 3,
-        byte >> 6 & 3,
-    };
-  }
-
-  static void
-  set16(uint16_t* data, int i, int n) {
-    int offset = (i & 7) << 1;
-    i >>= 3;
-    data[i] &= ~(3 << offset);
-    data[i] |= n << offset;
   }
 };
 
