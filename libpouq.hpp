@@ -278,14 +278,12 @@ class Quantizer final {
     assert(size > 0);
     assert(size % dim_ == 0);
 
-    int combined_data_size = size / 4;
-    code_ = static_cast<CodeUnit*>(_mm_malloc(combined_data_size * sizeof(CodeUnit), 256));
+    code_ = static_cast<CodeUnit*>(_mm_malloc(size / 4 * sizeof(CodeUnit), 256));
     if (!code_) {
       throw std::bad_alloc();
     }
 
-    int bounds_data_size = dim_ * 64;
-    rec_para_ = static_cast<RecPara*>(_mm_malloc(bounds_data_size * sizeof(RecPara), 256));
+    rec_para_ = static_cast<RecPara*>(_mm_malloc(dim_ * 64 * sizeof(RecPara), 256));
     if (!rec_para_) {
       _mm_free(code_);
       code_ = nullptr;
