@@ -7,7 +7,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
 
 FIND_PACKAGE(OpenMP REQUIRED)
 
-ADD_EXECUTABLE(example reproduce/example.cpp)
+ADD_EXECUTABLE(example example.cpp)
 TARGET_LINK_LIBRARIES(example PRIVATE
         OpenMP::OpenMP_CXX
 )
