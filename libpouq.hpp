@@ -334,7 +334,7 @@ class Quantizer {
     std::vector<float> step_size(dim_ * 4);
     std::vector<float> lower_bound(dim_ * 4);
     std::vector<uint8_t> cid(size);
-    std::vector<uint16_t> code(size);
+    std::vector<uint8_t> code(size);
 
 #pragma omp parallel for
     for (int d = 0; d < dim_; d++) {
@@ -393,26 +393,26 @@ class Quantizer {
     }
 
 #pragma omp parallel for
-    for (int i = 0; i < size / 4; i += 2) {
-      uint8_t x0 = (cid[i * 4] & 3) << 0;
-      uint8_t x1 = (cid[i * 4 + 1] & 3) << 2;
-      uint8_t x2 = (cid[i * 4 + 2] & 3) << 4;
-      uint8_t x3 = (cid[i * 4 + 3] & 3) << 6;
-      uint8_t x4 = (cid[i * 4 + 4] & 3) << 0;
-      uint8_t x5 = (cid[i * 4 + 5] & 3) << 2;
-      uint8_t x6 = (cid[i * 4 + 6] & 3) << 4;
-      uint8_t x7 = (cid[i * 4 + 7] & 3) << 6;
+    for (int i = 0; i < size / 8; i++) {
+      uint8_t x0 = (cid[i * 8] & 3) << 0;
+      uint8_t x1 = (cid[i * 8 + 1] & 3) << 2;
+      uint8_t x2 = (cid[i * 8 + 2] & 3) << 4;
+      uint8_t x3 = (cid[i * 8 + 3] & 3) << 6;
+      uint8_t x4 = (cid[i * 8 + 4] & 3) << 0;
+      uint8_t x5 = (cid[i * 8 + 5] & 3) << 2;
+      uint8_t x6 = (cid[i * 8 + 6] & 3) << 4;
+      uint8_t x7 = (cid[i * 8 + 7] & 3) << 6;
 
-      uint16_t x8 = (code[i * 4] & 3) << 0;
-      uint16_t x9 = (code[i * 4 + 1] & 3) << 2;
-      uint16_t x10 = (code[i * 4 + 2] & 3) << 4;
-      uint16_t x11 = (code[i * 4 + 3] & 3) << 6;
-      uint16_t x12 = (code[i * 4 + 4] & 3) << 8;
-      uint16_t x13 = (code[i * 4 + 5] & 3) << 10;
-      uint16_t x14 = (code[i * 4 + 6] & 3) << 12;
-      uint16_t x15 = (code[i * 4 + 7] & 3) << 14;
+      uint16_t x8 = (code[i * 8] & 3) << 0;
+      uint16_t x9 = (code[i * 8 + 1] & 3) << 2;
+      uint16_t x10 = (code[i * 8 + 2] & 3) << 4;
+      uint16_t x11 = (code[i * 8 + 3] & 3) << 6;
+      uint16_t x12 = (code[i * 8 + 4] & 3) << 8;
+      uint16_t x13 = (code[i * 8 + 5] & 3) << 10;
+      uint16_t x14 = (code[i * 8 + 6] & 3) << 12;
+      uint16_t x15 = (code[i * 8 + 7] & 3) << 14;
 
-      code_.get()[i / 2] = std::make_tuple(
+      code_.get()[i] = std::make_tuple(
           x0 | x1 | x2 | x3, x4 | x5 | x6 | x7, x8 | x9 | x10 | x11 | x12 | x13 | x14 | x15);
     }
 
