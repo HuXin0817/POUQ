@@ -412,11 +412,8 @@ class Quantizer {
       uint16_t x14 = (code[i * 4 + 6] & 3) << 12;
       uint16_t x15 = (code[i * 4 + 7] & 3) << 14;
 
-      uint8_t c1 = x0 | x1 | x2 | x3;
-      uint8_t c2 = x4 | x5 | x6 | x7;
-      uint16_t c3 = x8 | x9 | x10 | x11 | x12 | x13 | x14 | x15;
-
-      code_.get()[i / 2] = std::make_tuple(c1, c2, c3);
+      code_.get()[i / 2] = std::make_tuple(
+          x0 | x1 | x2 | x3, x4 | x5 | x6 | x7, x8 | x9 | x10 | x11 | x12 | x13 | x14 | x15);
     }
 
 #pragma omp parallel for
@@ -426,16 +423,8 @@ class Quantizer {
         int x1 = g * 16 + 1 * 4 + (j >> 2 & 3);
         int x2 = g * 16 + 2 * 4 + (j >> 4 & 3);
         int x3 = g * 16 + 3 * 4 + (j >> 6 & 3);
-        float lb0 = lower_bound[x0];
-        float lb1 = lower_bound[x1];
-        float lb2 = lower_bound[x2];
-        float lb3 = lower_bound[x3];
-        float st0 = step_size[x0];
-        float st1 = step_size[x1];
-        float st2 = step_size[x2];
-        float st3 = step_size[x3];
-        __m128 lb = _mm_setr_ps(lb0, lb1, lb2, lb3);
-        __m128 st = _mm_setr_ps(st0, st1, st2, st3);
+        __m128 lb = _mm_setr_ps(lower_bound[x0], lower_bound[x1], lower_bound[x2], lower_bound[x3]);
+        __m128 st = _mm_setr_ps(step_size[x0], step_size[x1], step_size[x2], step_size[x3]);
         rec_para_[g * 256 + j] = {lb, st};
       }
     }
