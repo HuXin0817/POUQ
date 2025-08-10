@@ -436,36 +436,45 @@ class Quantizer {
     assert(data != nullptr);
     assert(offset % dim_ == 0);
 
-    offset /= 4;
-    __m256 sum_vec = _mm256_setzero_ps();
+    int offset_index = offset / 4;
+    __m256 sum_squares_vec = _mm256_setzero_ps();
 
-    for (int i = 0; i < dim_; i += 8) {
-      int idx = i / 4;
-      auto [c1, c2, code] = code_.get()[(offset + idx) / 2];
-      auto [lb1, st1] = rec_para_.get()[idx * 256 + c1];
-      auto [lb2, st2] = rec_para_.get()[(idx + 1) * 256 + c2];
-      __m256 lb_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lb1), lb2, 1);
-      __m256 st_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(st1), st2, 1);
-      __m256i bytes = _mm256_set1_epi32(code);
-      __m256i shifts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
-      __m256i shifted = _mm256_srlv_epi32(bytes, shifts);
-      __m256i mask = _mm256_set1_epi32(3);
-      __m256i masked = _mm256_and_si256(shifted, mask);
-      __m256 code_vec = _mm256_cvtepi32_ps(masked);
-      __m256 reconstructed = _mm256_fmadd_ps(code_vec, st_vec, lb_vec);
-      __m256 data_vec = _mm256_loadu_ps(data + i);
-      __m256 diff = _mm256_sub_ps(reconstructed, data_vec);
-      sum_vec = _mm256_fmadd_ps(diff, diff, sum_vec);
+    for (int dim = 0; dim < dim_; dim += 8) {
+      int group_idx = dim / 4;
+      auto [code_part1, code_part2, code_value] = code_.get()[(offset_index + group_idx) / 2];
+      auto [lower_bound_part1, step_size_part1] = rec_para_.get()[group_idx * 256 + code_part1];
+      auto [lower_bound_part2, step_size_part2] =
+          rec_para_.get()[(group_idx + 1) * 256 + code_part2];
+
+      __m256 lower_bound_vec =
+          _mm256_insertf128_ps(_mm256_castps128_ps256(lower_bound_part1), lower_bound_part2, 1);
+      __m256 step_size_vec =
+          _mm256_insertf128_ps(_mm256_castps128_ps256(step_size_part1), step_size_part2, 1);
+
+      __m256i code_bytes = _mm256_set1_epi32(code_value);
+      __m256i shift_amounts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
+      __m256i shifted_code = _mm256_srlv_epi32(code_bytes, shift_amounts);
+      __m256i two_bit_mask = _mm256_set1_epi32(3);
+      __m256i masked_code = _mm256_and_si256(shifted_code, two_bit_mask);
+
+      __m256 code_vec = _mm256_cvtepi32_ps(masked_code);
+      __m256 reconstructed_vec = _mm256_fmadd_ps(code_vec, step_size_vec, lower_bound_vec);
+
+      __m256 data_vec = _mm256_loadu_ps(data + dim);
+      __m256 diff_vec = _mm256_sub_ps(reconstructed_vec, data_vec);
+      sum_squares_vec = _mm256_fmadd_ps(diff_vec, diff_vec, sum_squares_vec);
     }
 
-    __m128 low128 = _mm256_castps256_ps128(sum_vec);
-    __m128 high128 = _mm256_extractf128_ps(sum_vec, 1);
-    __m128 sum128 = _mm_add_ps(low128, high128);
-    __m128 shuf = _mm_movehdup_ps(sum128);
-    sum128 = _mm_add_ps(sum128, shuf);
-    shuf = _mm_movehl_ps(shuf, sum128);
-    sum128 = _mm_add_ss(sum128, shuf);
-    return _mm_cvtss_f32(sum128);
+    __m128 sum_low128 = _mm256_castps256_ps128(sum_squares_vec);
+    __m128 sum_high128 = _mm256_extractf128_ps(sum_squares_vec, 1);
+    __m128 total_sum128 = _mm_add_ps(sum_low128, sum_high128);
+
+    __m128 shuffled_sum = _mm_movehdup_ps(total_sum128);
+    total_sum128 = _mm_add_ps(total_sum128, shuffled_sum);
+    shuffled_sum = _mm_movehl_ps(shuffled_sum, total_sum128);
+    total_sum128 = _mm_add_ss(total_sum128, shuffled_sum);
+
+    return _mm_cvtss_f32(total_sum128);
   }
 };
 
