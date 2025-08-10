@@ -19,9 +19,9 @@ class Quantizer final {
       sum_count[i] = sum_count[i - 1] + data_freq_map[i - 1].second;
     }
 
-    std::vector prev_dp(size + 1, FLT_MAX);
-    std::vector curr_dp(size + 1, FLT_MAX);
-    std::vector prev_idx(size + 1, std::vector<int>(k + 1, 0));
+    std::vector<float> prev_dp(size + 1, FLT_MAX);
+    std::vector<float> curr_dp(size + 1, FLT_MAX);
+    std::vector<std::vector<int>> prev_idx(size + 1, std::vector<int>(k + 1, 0));
     prev_dp[0] = 0.0;
 
     struct Task {
