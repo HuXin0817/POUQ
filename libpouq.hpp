@@ -441,21 +441,20 @@ class Quantizer {
 
     for (int dim = 0; dim < dim_; dim += 8) {
       int group_idx = dim / 4;
-      auto [code_part1, code_part2, code_value] = code_.get()[(offset_index + group_idx) / 2];
-      auto [lower_bound_part1, step_size_part1] = rec_para_.get()[group_idx * 256 + code_part1];
-      auto [lower_bound_part2, step_size_part2] =
-          rec_para_.get()[(group_idx + 1) * 256 + code_part2];
+      auto [code1, code2, code_value] = code_.get()[(offset_index + group_idx) / 2];
+      auto [lower_bound1, step_size1] = rec_para_.get()[group_idx * 256 + code1];
+      auto [lower_bound2, step_size2] = rec_para_.get()[(group_idx + 1) * 256 + code2];
 
       __m256 lower_bound_vec =
-          _mm256_insertf128_ps(_mm256_castps128_ps256(lower_bound_part1), lower_bound_part2, 1);
+          _mm256_insertf128_ps(_mm256_castps128_ps256(lower_bound1), lower_bound2, 1);
       __m256 step_size_vec =
-          _mm256_insertf128_ps(_mm256_castps128_ps256(step_size_part1), step_size_part2, 1);
+          _mm256_insertf128_ps(_mm256_castps128_ps256(step_size1), step_size2, 1);
 
       __m256i code_bytes = _mm256_set1_epi32(code_value);
       __m256i shift_amounts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
       __m256i shifted_code = _mm256_srlv_epi32(code_bytes, shift_amounts);
-      __m256i two_bit_mask = _mm256_set1_epi32(3);
-      __m256i masked_code = _mm256_and_si256(shifted_code, two_bit_mask);
+      __m256i mask = _mm256_set1_epi32(3);
+      __m256i masked_code = _mm256_and_si256(shifted_code, mask);
 
       __m256 code_vec = _mm256_cvtepi32_ps(masked_code);
       __m256 reconstructed_vec = _mm256_fmadd_ps(code_vec, step_size_vec, lower_bound_vec);
