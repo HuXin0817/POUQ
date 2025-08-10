@@ -231,7 +231,7 @@ class Quantizer final {
           particle.min_loss = curr_loss;
           particle.best_lower = particle.lower;
           particle.best_step_size = particle.step_size;
-          
+
           if (curr_loss < global_min_loss) {
             global_min_loss = curr_loss;
             global_best_lower = particle.lower;
@@ -342,13 +342,12 @@ class Quantizer final {
             bounds.begin(),
             bounds.end(),
             data[i],
-            [](float rhs, std::pair<float, float>& lhs) -> bool { return rhs < lhs.first; });
+            [](float lhs, std::pair<float, float>& rhs) -> bool { return lhs < rhs.first; });
         int c = it - bounds.begin() - 1;
         float x = std::clamp(
             (data[i] - lower_bound[d * 4 + c]) / step_size[d * 4 + c] + 0.5f, 0.0f, 3.0f);
-        int base_index = i / dim_ * dim_ / 4;
-        set8(&cid[base_index], i % dim_, c);
-        set16(&code[base_index / 2], i % dim_, x);
+        set8(&cid[i / dim_ * dim_ / 4], i % dim_, c);
+        set16(&code[i / dim_ * dim_ / 8], i % dim_, x);
       }
     }
 
@@ -360,15 +359,14 @@ class Quantizer final {
     for (int g = 0; g < dim_ / 4; g++) {
       for (int j = 0; j < 256; j++) {
         auto [x0, x1, x2, x3] = get8(j);
-        int base_idx = g * 16;
-        __m128 lb = _mm_setr_ps(lower_bound[base_idx + 0 * 4 + x0],
-                                lower_bound[base_idx + 1 * 4 + x1],
-                                lower_bound[base_idx + 2 * 4 + x2],
-                                lower_bound[base_idx + 3 * 4 + x3]);
-        __m128 st = _mm_setr_ps(step_size[base_idx + 0 * 4 + x0],
-                                step_size[base_idx + 1 * 4 + x1],
-                                step_size[base_idx + 2 * 4 + x2],
-                                step_size[base_idx + 3 * 4 + x3]);
+        __m128 lb = _mm_setr_ps(lower_bound[g * 16 + 0 * 4 + x0],
+                                lower_bound[g * 16 + 1 * 4 + x1],
+                                lower_bound[g * 16 + 2 * 4 + x2],
+                                lower_bound[g * 16 + 3 * 4 + x3]);
+        __m128 st = _mm_setr_ps(step_size[g * 16 + 0 * 4 + x0],
+                                step_size[g * 16 + 1 * 4 + x1],
+                                step_size[g * 16 + 2 * 4 + x2],
+                                step_size[g * 16 + 3 * 4 + x3]);
         rec_para_[g * 256 + j] = {lb, st};
       }
     }
