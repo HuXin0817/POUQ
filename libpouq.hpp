@@ -299,7 +299,6 @@ class Quantizer final {
     for (int d = 0; d < dim_; d++) {
       auto data_freq_map = count_freq(data, size, d);
       auto bounds = segment(4, data_freq_map);
-      int d_times_4 = d * 4;
 
       for (int i = 0; i < bounds.size(); i++) {
         auto [lower, upper] = bounds[i];
@@ -330,11 +329,11 @@ class Quantizer final {
                                             init_c2,
                                             final_c2);
         }
-        lower_bound[d_times_4 + i] = lower;
+        lower_bound[d * 4 + i] = lower;
         if (lower == upper) {
-          step_size[d_times_4 + i] = 1.0;
+          step_size[d * 4 + i] = 1.0;
         } else {
-          step_size[d_times_4 + i] = (upper - lower) / 3.0f;
+          step_size[d * 4 + i] = (upper - lower) / 3.0f;
         }
       }
 
@@ -346,7 +345,7 @@ class Quantizer final {
             [](float rhs, std::pair<float, float>& lhs) -> bool { return rhs < lhs.first; });
         int c = it - bounds.begin() - 1;
         float x = std::clamp(
-            (data[i] - lower_bound[d_times_4 + c]) / step_size[d_times_4 + c] + 0.5f, 0.0f, 3.0f);
+            (data[i] - lower_bound[d * 4 + c]) / step_size[d * 4 + c] + 0.5f, 0.0f, 3.0f);
         int base_index = i / dim_ * dim_ / 4;
         set8(&cid[base_index], i % dim_, c);
         set16(&code[base_index / 2], i % dim_, x);
