@@ -192,8 +192,8 @@ class Quantizer {
           .step_size = step_size,
           .v_lower = v_lower,
           .v_step_size = v_step_size,
-          .best_lower = v_lower,
-          .best_step_size = v_step_size,
+          .best_lower = lower,
+          .best_step_size = step_size,
           .min_loss = min_loss,
       };
 
