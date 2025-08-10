@@ -109,7 +109,7 @@ class Quantizer {
     float total_loss = 0.0f;
 
     for (auto it = data_begin; it != data_end; ++it) {
-      auto& [data_value, point_count] = *it;
+      auto [data_value, point_count] = *it;
       float real_quantized_code = (data_value - lower) / step_size;
       float quantized_code = 0.0f;
 
