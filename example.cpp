@@ -5,7 +5,7 @@
 #include <random>
 #include <vector>
 
-#include "../libpouq/quantizer.hpp"
+#include "libpouq.hpp"
 
 static constexpr int Dim = 256;
 static constexpr int N = Dim * 1000;
