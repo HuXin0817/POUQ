@@ -423,9 +423,10 @@ class Quantizer {
         int x1 = g * 16 + 1 * 4 + (j >> 2 & 3);
         int x2 = g * 16 + 2 * 4 + (j >> 4 & 3);
         int x3 = g * 16 + 3 * 4 + (j >> 6 & 3);
-        __m128 lb = _mm_setr_ps(lower_bound[x0], lower_bound[x1], lower_bound[x2], lower_bound[x3]);
-        __m128 st = _mm_setr_ps(step_size[x0], step_size[x1], step_size[x2], step_size[x3]);
-        rec_para_[g * 256 + j] = {lb, st};
+        rec_para_[g * 256 + j] = {
+            _mm_setr_ps(lower_bound[x0], lower_bound[x1], lower_bound[x2], lower_bound[x3]),
+            _mm_setr_ps(step_size[x0], step_size[x1], step_size[x2], step_size[x3]),
+        };
       }
     }
 
