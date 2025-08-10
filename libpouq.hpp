@@ -436,12 +436,10 @@ class Quantizer {
     assert(data != nullptr);
     assert(offset % dim_ == 0);
 
-    int offset_index = offset / 4;
     __m256 sum_squares_vec = _mm256_setzero_ps();
-
     for (int dim = 0; dim < dim_; dim += 8) {
       int group_idx = dim / 4;
-      auto [code1, code2, code_value] = code_.get()[(offset_index + group_idx) / 2];
+      auto [code1, code2, code_value] = code_.get()[(offset / 4 + group_idx) / 2];
       auto [lower_bound1, step_size1] = rec_para_.get()[group_idx * 256 + code1];
       auto [lower_bound2, step_size2] = rec_para_.get()[(group_idx + 1) * 256 + code2];
 
