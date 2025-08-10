@@ -99,18 +99,18 @@ class Quantizer {
   static float
   loss(float div,
        float lower,
-       float step_size,
+       float step,
        const std::vector<std::pair<float, int>>::iterator& data_begin,
        const std::vector<std::pair<float, int>>::iterator& data_end) {
     assert(div > 0.0f);
-    assert(step_size >= FLT_EPSILON);
+    assert(step >= FLT_EPSILON);
     assert(data_begin <= data_end);
 
     float total_loss = 0.0f;
 
     for (auto it = data_begin; it != data_end; ++it) {
       auto [data_value, point_count] = *it;
-      float real_quantized_code = (data_value - lower) / step_size;
+      float real_quantized_code = (data_value - lower) / step;
       float quantized_code = 0.0f;
 
       if (data_value > lower) {
@@ -124,7 +124,7 @@ class Quantizer {
       total_loss += code_loss * code_loss * static_cast<float>(point_count);
     }
 
-    return total_loss * step_size * step_size;
+    return total_loss * step * step;
   }
 
   static std::pair<float, float>
@@ -156,7 +156,7 @@ class Quantizer {
     assert(final_c2 >= 0.0f);
 
     float init_range_width = init_upper - init_lower;
-    float init_step_size = init_range_width / div;
+    float init_step = init_range_width / div;
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -164,45 +164,45 @@ class Quantizer {
     std::uniform_real_distribution p_dis(0.0f, 1.0f);
     std::uniform_real_distribution lower_dis(init_lower - init_range_width * scale_factor,
                                              init_lower + init_range_width * scale_factor);
-    std::uniform_real_distribution step_dis(init_step_size * (1.0f - scale_factor),
-                                            init_step_size * (1.0f + scale_factor));
+    std::uniform_real_distribution step_dis(init_step * (1.0f - scale_factor),
+                                            init_step * (1.0f + scale_factor));
 
     struct Particle {
       float lower;
-      float step_size;
+      float step;
       float v_lower;
-      float v_step_size;
+      float v_step;
       float best_lower;
-      float best_step_size;
+      float best_step;
       float min_loss;
     };
 
     float global_best_lower = init_lower;
-    float global_best_step_size = init_step_size;
-    float global_min_loss = loss(div, init_lower, init_step_size, data_begin, data_end);
+    float global_best_step = init_step;
+    float global_min_loss = loss(div, init_lower, init_step, data_begin, data_end);
 
     std::vector<Particle> swarm(particle_count);
     for (auto& particle : swarm) {
       float lower = lower_dis(gen);
-      float step_size = step_dis(gen);
+      float step = step_dis(gen);
       float v_lower = v_dis(gen);
-      float v_step_size = v_dis(gen);
-      float min_loss = loss(div, lower, step_size, data_begin, data_end);
+      float v_step = v_dis(gen);
+      float min_loss = loss(div, lower, step, data_begin, data_end);
 
       particle = {
           .lower = lower,
-          .step_size = step_size,
+          .step = step,
           .v_lower = v_lower,
-          .v_step_size = v_step_size,
+          .v_step = v_step,
           .best_lower = lower,
-          .best_step_size = step_size,
+          .best_step = step,
           .min_loss = min_loss,
       };
 
       if (min_loss < global_min_loss) {
         global_min_loss = min_loss;
         global_best_lower = particle.lower;
-        global_best_step_size = particle.step_size;
+        global_best_step = particle.step;
       }
     }
 
@@ -220,30 +220,30 @@ class Quantizer {
                            c1 * r1 * (particle.best_lower - particle.lower) +
                            c2 * r2 * (global_best_lower - particle.lower);
 
-        particle.v_step_size = inertia * particle.v_step_size +
-                               c1 * r1 * (particle.best_step_size - particle.step_size) +
-                               c2 * r2 * (global_best_step_size - particle.step_size);
+        particle.v_step = inertia * particle.v_step +
+                          c1 * r1 * (particle.best_step - particle.step) +
+                          c2 * r2 * (global_best_step - particle.step);
 
         particle.lower += particle.v_lower;
-        particle.step_size += particle.v_step_size;
-        particle.step_size = std::max(std::abs(particle.step_size), FLT_EPSILON);
+        particle.step += particle.v_step;
+        particle.step = std::max(std::abs(particle.step), FLT_EPSILON);
 
-        float curr_loss = loss(div, particle.lower, particle.step_size, data_begin, data_end);
+        float curr_loss = loss(div, particle.lower, particle.step, data_begin, data_end);
         if (curr_loss < particle.min_loss) {
           particle.min_loss = curr_loss;
           particle.best_lower = particle.lower;
-          particle.best_step_size = particle.step_size;
+          particle.best_step = particle.step;
 
           if (curr_loss < global_min_loss) {
             global_min_loss = curr_loss;
             global_best_lower = particle.lower;
-            global_best_step_size = particle.step_size;
+            global_best_step = particle.step;
           }
         }
       }
     }
 
-    return {global_best_lower, global_best_lower + global_best_step_size * div};
+    return {global_best_lower, global_best_lower + global_best_step * div};
   }
 
   static std::vector<std::pair<float, int>>
@@ -329,8 +329,8 @@ class Quantizer {
       return false;
     }
 
-    std::vector<float> step_size(dim_ * 4);
-    std::vector<float> lower_bound(dim_ * 4);
+    std::vector<float> steps(dim_ * 4);
+    std::vector<float> lowers(dim_ * 4);
     std::vector<uint8_t> cid(size);
     std::vector<uint8_t> code(size);
 
@@ -368,11 +368,11 @@ class Quantizer {
                                             init_c2,
                                             final_c2);
         }
-        lower_bound[d * 4 + i] = lower;
+        lowers[d * 4 + i] = lower;
         if (lower == upper) {
-          step_size[d * 4 + i] = 1.0;
+          steps[d * 4 + i] = 1.0;
         } else {
-          step_size[d * 4 + i] = (upper - lower) / 3.0f;
+          steps[d * 4 + i] = (upper - lower) / 3.0f;
         }
       }
 
@@ -383,8 +383,7 @@ class Quantizer {
             data[i],
             [](float lhs, const std::pair<float, float>& rhs) -> bool { return lhs < rhs.first; });
         int c = static_cast<int>(it - bounds.begin()) - 1;
-        float x = std::clamp(
-            (data[i] - lower_bound[d * 4 + c]) / step_size[d * 4 + c] + 0.5f, 0.0f, 3.0f);
+        float x = std::clamp((data[i] - lowers[d * 4 + c]) / steps[d * 4 + c] + 0.5f, 0.0f, 3.0f);
         cid[i] = c;
         code[i] = static_cast<uint8_t>(x);
       }
@@ -422,8 +421,8 @@ class Quantizer {
         int x2 = g * 16 + 2 * 4 + (j >> 4 & 3);
         int x3 = g * 16 + 3 * 4 + (j >> 6 & 3);
         rec_para_[g * 256 + j] = {
-            _mm_setr_ps(lower_bound[x0], lower_bound[x1], lower_bound[x2], lower_bound[x3]),
-            _mm_setr_ps(step_size[x0], step_size[x1], step_size[x2], step_size[x3]),
+            _mm_setr_ps(lowers[x0], lowers[x1], lowers[x2], lowers[x3]),
+            _mm_setr_ps(steps[x0], steps[x1], steps[x2], steps[x3]),
         };
       }
     }
@@ -440,13 +439,11 @@ class Quantizer {
     for (int dim = 0; dim < dim_; dim += 8) {
       int group_idx = dim / 4;
       auto [code1, code2, code_value] = code_.get()[(offset / 4 + group_idx) / 2];
-      auto [lower_bound1, step_size1] = rec_para_.get()[group_idx * 256 + code1];
-      auto [lower_bound2, step_size2] = rec_para_.get()[(group_idx + 1) * 256 + code2];
+      auto [lower1, step1] = rec_para_.get()[group_idx * 256 + code1];
+      auto [lower2, step2] = rec_para_.get()[(group_idx + 1) * 256 + code2];
 
-      __m256 lower_bound_vec =
-          _mm256_insertf128_ps(_mm256_castps128_ps256(lower_bound1), lower_bound2, 1);
-      __m256 step_size_vec =
-          _mm256_insertf128_ps(_mm256_castps128_ps256(step_size1), step_size2, 1);
+      __m256 lower_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lower1), lower2, 1);
+      __m256 step_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(step1), step2, 1);
 
       __m256i code_bytes = _mm256_set1_epi32(code_value);
       __m256i shift_amounts = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
@@ -455,7 +452,7 @@ class Quantizer {
       __m256i masked_code = _mm256_and_si256(shifted_code, mask);
 
       __m256 code_vec = _mm256_cvtepi32_ps(masked_code);
-      __m256 reconstructed_vec = _mm256_fmadd_ps(code_vec, step_size_vec, lower_bound_vec);
+      __m256 reconstructed_vec = _mm256_fmadd_ps(code_vec, step_vec, lower_vec);
 
       __m256 data_vec = _mm256_loadu_ps(data + dim);
       __m256 diff_vec = _mm256_sub_ps(reconstructed_vec, data_vec);
