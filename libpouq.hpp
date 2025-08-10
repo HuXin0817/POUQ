@@ -312,7 +312,7 @@ class Quantizer final {
               data_freq_map.begin(),
               data_freq_map.end(),
               upper,
-              [](float rhs, std::pair<float, int>& lhs) -> bool { return rhs < lhs.first; });
+              [](float lhs, std::pair<float, int>& rhs) -> bool { return lhs < rhs.first; });
 
           std::tie(lower, upper) = optimize(3,
                                             lower,
