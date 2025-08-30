@@ -525,26 +525,30 @@ class Quantizer {
       auto [lower1, step1] = rec_para_.get()[group_idx * 256 + code1];
       auto [lower2, step2] = rec_para_.get()[(group_idx + 1) * 256 + code2];
 
-      uint8_t codes[8];
-      for (int i = 0; i < 8; i++) {
-        codes[i] = (code_value >> (i * 2)) & 3;
-      }
+      uint32x4_t code_uint1 = vsetq_lane_u32(code_value & 3, vdupq_n_u32(0), 0);
+      code_uint1 = vsetq_lane_u32((code_value >> 2) & 3, code_uint1, 1);
+      code_uint1 = vsetq_lane_u32((code_value >> 4) & 3, code_uint1, 2);
+      code_uint1 = vsetq_lane_u32((code_value >> 6) & 3, code_uint1, 3);
 
-      float32x4_t code_vec1 = {(float)codes[0], (float)codes[1], (float)codes[2], (float)codes[3]};
+      uint32x4_t code_uint2 = vsetq_lane_u32((code_value >> 8) & 3, vdupq_n_u32(0), 0);
+      code_uint2 = vsetq_lane_u32((code_value >> 10) & 3, code_uint2, 1);
+      code_uint2 = vsetq_lane_u32((code_value >> 12) & 3, code_uint2, 2);
+      code_uint2 = vsetq_lane_u32((code_value >> 14) & 3, code_uint2, 3);
+
+      float32x4_t code_vec1 = vcvtq_f32_u32(code_uint1);
       float32x4_t reconstructed_vec1 = vmlaq_f32(lower1, code_vec1, step1);
       float32x4_t data_vec1 = vld1q_f32(data + dim);
       float32x4_t diff_vec1 = vsubq_f32(reconstructed_vec1, data_vec1);
       float32x4_t sq_diff1 = vmulq_f32(diff_vec1, diff_vec1);
 
-      float32x4_t code_vec2 = {(float)codes[4], (float)codes[5], (float)codes[6], (float)codes[7]};
+      float32x4_t code_vec2 = vcvtq_f32_u32(code_uint2);
       float32x4_t reconstructed_vec2 = vmlaq_f32(lower2, code_vec2, step2);
       float32x4_t data_vec2 = vld1q_f32(data + dim + 4);
       float32x4_t diff_vec2 = vsubq_f32(reconstructed_vec2, data_vec2);
       float32x4_t sq_diff2 = vmulq_f32(diff_vec2, diff_vec2);
 
       float32x4_t combined = vaddq_f32(sq_diff1, sq_diff2);
-      sum_squares += vgetq_lane_f32(combined, 0) + vgetq_lane_f32(combined, 1) +
-                     vgetq_lane_f32(combined, 2) + vgetq_lane_f32(combined, 3);
+      sum_squares += vaddvq_f32(combined);
     }
 
     return sum_squares;
