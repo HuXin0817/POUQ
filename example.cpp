@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "libpouq.hpp"
+#include "POUQ/libpouq.hpp"
 
 static constexpr int Dim = 256;
 static constexpr int N = Dim * 1000;
