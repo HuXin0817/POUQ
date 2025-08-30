@@ -1,6 +1,13 @@
 #pragma once
 
+#if defined(__x86_64__) || defined(_M_X64)
+#define POUQ_X86_64 1
 #include <immintrin.h>
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define POUQ_ARM64 1
+#include <arm_neon.h>
+#endif
+
 #include <omp.h>
 
 #include <algorithm>
@@ -273,15 +280,31 @@ class Quantizer {
     return data_freq_map;
   }
 
+#if POUQ_X86_64
   using CodeUnit = std::tuple<uint8_t, uint8_t, uint16_t>;
   using RecPara = std::tuple<__m128, __m128>;
+#elif POUQ_ARM64
+  using CodeUnit = std::tuple<uint8_t, uint8_t, uint16_t>;
+  using RecPara = std::tuple<float32x4_t, float32x4_t>;
+#else
+#error "Unsupported platform"
+#endif
 
+#if POUQ_X86_64
   struct AlignedDeleter {
     void
     operator()(void* ptr) const {
       _mm_free(ptr);
     }
   };
+#elif POUQ_ARM64
+  struct AlignedDeleter {
+    void
+    operator()(void* ptr) const {
+      free(ptr);
+    }
+  };
+#endif
 
   int dim_ = 0;
   std::unique_ptr<RecPara[], AlignedDeleter> rec_para_ = nullptr;
@@ -318,6 +341,7 @@ class Quantizer {
     assert(size > 0);
     assert(size % dim_ == 0);
 
+#if POUQ_X86_64
     code_.reset(static_cast<CodeUnit*>(_mm_malloc(size / 8 * sizeof(CodeUnit), 256)));
     if (!code_) {
       return false;
@@ -328,6 +352,18 @@ class Quantizer {
       code_.reset();
       return false;
     }
+#elif POUQ_ARM64
+    code_.reset(static_cast<CodeUnit*>(aligned_alloc(32, size / 8 * sizeof(CodeUnit))));
+    if (!code_) {
+      return false;
+    }
+
+    rec_para_.reset(static_cast<RecPara*>(aligned_alloc(32, dim_ * 64 * sizeof(RecPara))));
+    if (!rec_para_) {
+      code_.reset();
+      return false;
+    }
+#endif
 
     std::vector<float> steps(dim_ * 4);
     std::vector<float> lowers(dim_ * 4);
@@ -420,10 +456,20 @@ class Quantizer {
         int x1 = g * 16 + 1 * 4 + (j >> 2 & 3);
         int x2 = g * 16 + 2 * 4 + (j >> 4 & 3);
         int x3 = g * 16 + 3 * 4 + (j >> 6 & 3);
+
+#if POUQ_X86_64
         rec_para_[g * 256 + j] = {
             _mm_setr_ps(lowers[x0], lowers[x1], lowers[x2], lowers[x3]),
             _mm_setr_ps(steps[x0], steps[x1], steps[x2], steps[x3]),
         };
+#elif POUQ_ARM64
+        float lower_array[4] = {lowers[x0], lowers[x1], lowers[x2], lowers[x3]};
+        float step_array[4] = {steps[x0], steps[x1], steps[x2], steps[x3]};
+        rec_para_[g * 256 + j] = {
+            vld1q_f32(lower_array),
+            vld1q_f32(step_array),
+        };
+#endif
       }
     }
 
@@ -435,6 +481,7 @@ class Quantizer {
     assert(data != nullptr);
     assert(offset % dim_ == 0);
 
+#if POUQ_X86_64
     __m256 sum_squares_vec = _mm256_setzero_ps();
     for (int dim = 0; dim < dim_; dim += 8) {
       int group_idx = dim / 4;
@@ -469,6 +516,39 @@ class Quantizer {
     total_sum128 = _mm_add_ss(total_sum128, shuffled_sum);
 
     return _mm_cvtss_f32(total_sum128);
+
+#elif POUQ_ARM64
+    float sum_squares = 0.0f;
+    for (int dim = 0; dim < dim_; dim += 8) {
+      int group_idx = dim / 4;
+      auto [code1, code2, code_value] = code_.get()[(offset / 4 + group_idx) / 2];
+      auto [lower1, step1] = rec_para_.get()[group_idx * 256 + code1];
+      auto [lower2, step2] = rec_para_.get()[(group_idx + 1) * 256 + code2];
+
+      uint8_t codes[8];
+      for (int i = 0; i < 8; i++) {
+        codes[i] = (code_value >> (i * 2)) & 3;
+      }
+
+      float32x4_t code_vec1 = {(float)codes[0], (float)codes[1], (float)codes[2], (float)codes[3]};
+      float32x4_t reconstructed_vec1 = vmlaq_f32(lower1, code_vec1, step1);
+      float32x4_t data_vec1 = vld1q_f32(data + dim);
+      float32x4_t diff_vec1 = vsubq_f32(reconstructed_vec1, data_vec1);
+      float32x4_t sq_diff1 = vmulq_f32(diff_vec1, diff_vec1);
+
+      float32x4_t code_vec2 = {(float)codes[4], (float)codes[5], (float)codes[6], (float)codes[7]};
+      float32x4_t reconstructed_vec2 = vmlaq_f32(lower2, code_vec2, step2);
+      float32x4_t data_vec2 = vld1q_f32(data + dim + 4);
+      float32x4_t diff_vec2 = vsubq_f32(reconstructed_vec2, data_vec2);
+      float32x4_t sq_diff2 = vmulq_f32(diff_vec2, diff_vec2);
+
+      float32x4_t combined = vaddq_f32(sq_diff1, sq_diff2);
+      sum_squares += vgetq_lane_f32(combined, 0) + vgetq_lane_f32(combined, 1) +
+                     vgetq_lane_f32(combined, 2) + vgetq_lane_f32(combined, 3);
+    }
+
+    return sum_squares;
+#endif
   }
 };
 
