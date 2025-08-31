@@ -3,7 +3,7 @@
 #include "POUQ/libpouq.hpp"
 
 static constexpr int Dim = 256;
-static constexpr int N = Dim * 1000;
+static constexpr int N = Dim * 1e5;
 
 int
 main() {
@@ -15,25 +15,10 @@ main() {
 
   float l = 255.0f, u = 0.0f;
 
-#pragma omp parallel for reduction(min : l) reduction(max : u)
+#pragma omp parallel for
   for (int i = 0; i < N; ++i) {
     data[i] = dis(gen);
-    l = std::min(l, data[i]);
-    u = std::max(u, data[i]);
   }
-
-  float step_size = (u - l) / 15.0f;
-
-  float mse_t = 0.0f;
-#pragma omp parallel for reduction(+ : mse_t)
-  for (int i = 0; i < N; ++i) {
-    float code = std::round((data[i] - l) / step_size);
-    code = std::clamp(code, 0.0f, 15.0f);
-    float q = code * step_size + l;
-    float dif = q - data[i];
-    mse_t += dif * dif;
-  }
-  std::cout << "Traditional UQ MSE: " << mse_t / N << std::endl;
 
   pouq::Quantizer quantizer(Dim);
   quantizer.train(data.data(), N);
@@ -43,7 +28,7 @@ main() {
   for (int i = 0; i < N; i += Dim) {
     mse_p += quantizer.distance(data.data() + i, i);
   }
-  std::cout << "POUQ MSE: " << mse_p / N << std::endl;
+  std::cout << mse_p / N << std::endl;
 
   return 0;
 }
