@@ -18,17 +18,17 @@ main() {
     data[i] = dis(gen);
   }
 
-  auto res = pouq::train(Dim, data.data(), N);
+  auto res = train(Dim, data.data(), N);
 
   float mse = 0.0f;
 #pragma omp parallel for reduction(+ : mse)
   for (int i = 0; i < N; i += Dim) {
-    mse += pouq::simd::distance(Dim, res.first, res.second, data.data() + i, i);
+    mse += distance(Dim, res.first, res.second, data.data() + i, i);
   }
   std::cout << mse / N << std::endl;
 
-  pouq::_free(res.first);
-  pouq::_free(res.second);
+  _free(res.first);
+  _free(res.second);
   res.first = nullptr;
   res.second = nullptr;
   return 0;

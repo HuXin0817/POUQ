@@ -13,15 +13,21 @@ ENDIF()
 
 IF(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
-    ADD_DEFINITIONS(-DPOUQ_X86_64=1)
+    ADD_DEFINITIONS(-DPOUQ_X86_ARCH=1)
 ELSEIF(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    ADD_DEFINITIONS(-DPOUQ_ARM64=1)
+    ADD_DEFINITIONS(-DPOUQ_ARM_ARCH=1)
 ENDIF()
 
 FIND_PACKAGE(OpenMP REQUIRED)
 
-ADD_EXECUTABLE(example example.cpp)
+ADD_EXECUTABLE(example example.cpp
+        libpouq/simd/distance.cpp
+        libpouq/simd/loss.cpp
+        libpouq/util.cpp
+        libpouq/optimize.cpp
+        libpouq/train.cpp
+        libpouq/segment.cpp)
 TARGET_LINK_LIBRARIES(example PRIVATE
         OpenMP::OpenMP_CXX
 )

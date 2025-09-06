@@ -1,6 +1,8 @@
 #pragma once
 
-namespace pouq {
+#include <cstdlib>
+#include <tuple>
+#include <utility>
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
 #define POUQ_X86_ARCH
@@ -37,16 +39,16 @@ set_rec_para(
 #endif
 }
 
-void*
+inline void*
 _alloc(int size) {
 #ifdef POUQ_X86_ARCH
-  return _mm_malloc(size, 256));
+  return _mm_malloc(size, 256);
 #elif defined(POUQ_ARM_ARCH)
   return aligned_alloc(256, size);
 #endif
 }
 
-void
+inline void
 _free(void* ptr) {
 #ifdef POUQ_X86_ARCH
   _mm_free(ptr);
@@ -54,5 +56,3 @@ _free(void* ptr) {
   free(ptr);
 #endif
 }
-
-}  // namespace pouq
