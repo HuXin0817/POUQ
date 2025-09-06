@@ -3,16 +3,16 @@
 #ifdef POUQ_X86_ARCH
 
 float
-distance_avx2(int dim_, CodeUnit* code_, RecPara* rec_para_, const float* data, int offset) {
+distance_avx2(int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset) {
   assert(data != nullptr);
   assert(offset % dim_ == 0);
 
   __m256 sum_squares_vec = _mm256_setzero_ps();
   for (int dim = 0; dim < dim_; dim += 8) {
     int group_idx = dim / 4;
-    auto [code1, code2, code_value] = code_.get()[(offset / 4 + group_idx) / 2];
-    auto [lower1, step1] = rec_para_.get()[group_idx * 256 + code1];
-    auto [lower2, step2] = rec_para_.get()[(group_idx + 1) * 256 + code2];
+    auto [code1, code2, code_value] = code_[(offset / 4 + group_idx) / 2];
+    auto [lower1, step1] = rec_para_[group_idx * 256 + code1];
+    auto [lower2, step2] = rec_para_[(group_idx + 1) * 256 + code2];
 
     __m256 lower_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lower1), lower2, 1);
     __m256 step_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(step1), step2, 1);
