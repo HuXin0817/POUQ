@@ -1,11 +1,9 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
-PROJECT(POUQ)
+cmake_minimum_required(VERSION 3.12)
+project(POUQ)
 
-SET(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 
-ADD_SUBDIRECTORY(libpouq)
+add_subdirectory(libpouq)
 
-ADD_EXECUTABLE(example example.cpp)
-TARGET_LINK_LIBRARIES(example PRIVATE
-        libpouq
-)
+add_executable(example example.cpp)
+target_link_libraries(example PRIVATE libpouq)

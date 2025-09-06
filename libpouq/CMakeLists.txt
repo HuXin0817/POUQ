@@ -1,26 +1,20 @@
-IF (APPLE)
-    IF (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        SET(OpenMP_CXX_FLAGS "-fopenmp=libomp")
-        SET(OpenMP_CXX_LIB_NAMES "omp")
-        SET(OpenMP_omp_LIBRARY omp)
-    ENDIF ()
-ENDIF ()
+if(APPLE)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(OpenMP_CXX_FLAGS "-fopenmp=libomp")
+    set(OpenMP_CXX_LIB_NAMES "omp")
+    set(OpenMP_omp_LIBRARY omp)
+  endif()
+endif()
 
-IF (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
-ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-ENDIF ()
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
 
-FIND_PACKAGE(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED)
 
-ADD_LIBRARY(libpouq ./simd/distance.cpp
-        ./simd/loss.cpp
-        ./util.cpp
-        ./optimize.cpp
-        ./train.cpp
-        ./segment.cpp)
-TARGET_LINK_LIBRARIES(libpouq PRIVATE
-        OpenMP::OpenMP_CXX
-)
+file(GLOB_RECURSE SOURCES "*.cpp")
 
+add_library(libpouq ${SOURCES})
+target_link_libraries(libpouq PRIVATE OpenMP::OpenMP_CXX)
