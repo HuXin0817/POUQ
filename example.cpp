@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "libpouq/train.hpp"
+#include "libpouq/train.h"
 
 static constexpr int Dim = 256;
 static constexpr int N = Dim * 1e5;
