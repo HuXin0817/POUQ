@@ -128,14 +128,14 @@ train_impl(int dim_,
 
 std::pair<CodeUnit*, RecPara*>
 train(int dim_, const float* data, int size, const Parameter& parameter) {
-  auto code_ = static_cast<CodeUnit*>(_alloc(size / 8 * sizeof(CodeUnit)));
+  auto code_ = static_cast<CodeUnit*>(aligned_alloc(256, size / 8 * sizeof(CodeUnit)));
   if (!code_) {
     return {nullptr, nullptr};
   }
 
-  auto rec_para_ = static_cast<RecPara*>(_alloc(dim_ * 64 * sizeof(RecPara)));
+  auto rec_para_ = static_cast<RecPara*>(aligned_alloc(256, dim_ * 64 * sizeof(RecPara)));
   if (!rec_para_) {
-    _free(code_);
+    free(code_);
     return {nullptr, nullptr};
   }
 

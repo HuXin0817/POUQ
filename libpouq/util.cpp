@@ -37,3 +37,4 @@ count_freq(const std::vector<float>& sorted_data) {
   freq_map.emplace_back(count);
   return {data_map, freq_map};
 }
+

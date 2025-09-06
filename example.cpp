@@ -27,8 +27,8 @@ main() {
   }
   std::cout << mse / N << std::endl;
 
-  _free(res.first);
-  _free(res.second);
+  free(res.first);
+  free(res.second);
   res.first = nullptr;
   res.second = nullptr;
   return 0;

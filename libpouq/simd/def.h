@@ -38,21 +38,3 @@ set_rec_para(
   };
 #endif
 }
-
-inline void*
-_alloc(int size) {
-#ifdef POUQ_X86_ARCH
-  return _mm_malloc(size, 256);
-#elif defined(POUQ_ARM_ARCH)
-  return aligned_alloc(256, size);
-#endif
-}
-
-inline void
-_free(void* ptr) {
-#ifdef POUQ_X86_ARCH
-  _mm_free(ptr);
-#elif defined(POUQ_ARM_ARCH)
-  free(ptr);
-#endif
-}
