@@ -98,12 +98,11 @@ loss_neon(float div,
   for (int i = 0; i < simd_size; i += 4) {
     float32x4_t data_vec = vld1q_f32(&data_map[i]);
     float32x4_t real_quantized_code = vdivq_f32(vsubq_f32(data_vec, lower_vec), step_vec);
-    float32x4_t quantized_code = zero_vec;
     uint32x4_t greater_mask = vcgtq_f32(data_vec, lower_vec);
     float32x4_t rounded_code = vaddq_f32(real_quantized_code, vdupq_n_f32(0.5f));
     int32x4_t rounded_int = vcvtq_s32_f32(rounded_code);
     float32x4_t rounded_float = vcvtq_f32_s32(rounded_int);
-    quantized_code = vbslq_f32(greater_mask, rounded_float, zero_vec);
+    float32x4_t quantized_code = vbslq_f32(greater_mask, rounded_float, zero_vec);
     float32x4_t clamped_code = vminq_f32(quantized_code, div_vec);
     quantized_code = vbslq_f32(greater_mask, clamped_code, zero_vec);
     float32x4_t code_loss = vsubq_f32(real_quantized_code, quantized_code);
