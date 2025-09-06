@@ -16,7 +16,7 @@ struct Task {
   int opt_right;
 };
 
-static std::vector<std::pair<float, float>>
+std::vector<std::pair<float, float>>
 segment(int k, const float* data_map, const int* freq_map, int size, bool do_count_freq) {
   assert(k > 0);
   assert(size > 0);

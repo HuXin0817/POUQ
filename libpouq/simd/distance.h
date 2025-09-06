@@ -6,7 +6,7 @@ namespace pouq::simd {
 
 #ifdef POUQ_X86_ARCH
 
-static float
+float
 distance_avx2(int dim_, CodeUnit* code_, RecPara* rec_para_, const float* data, int offset) {
   assert(data != nullptr);
   assert(offset % dim_ == 0);
@@ -51,7 +51,7 @@ distance_avx2(int dim_, CodeUnit* code_, RecPara* rec_para_, const float* data, 
 
 #if defined(POUQ_ARM_ARCH)
 
-static float
+float
 distance_neon(
     int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset) {
   float32x4_t sum_squares_vec = vdupq_n_f32(0.0f);
@@ -95,7 +95,7 @@ distance_neon(
 
 #endif
 
-static float
+float
 distance(int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset) {
 #ifdef POUQ_X86_ARCH
   return distance_avx2(dim_, code_, rec_para_, data, offset);

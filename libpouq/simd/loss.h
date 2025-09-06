@@ -10,7 +10,7 @@ namespace pouq::simd {
 
 #ifdef POUQ_X86_ARCH
 
-static float
+float
 loss_avx2(float div,
           float lower,
           float step,
@@ -84,7 +84,7 @@ loss_avx2(float div,
 
 #ifdef POUQ_ARM_ARCH
 
-static float
+float
 loss_neon(float div,
           float lower,
           float step,
@@ -150,7 +150,7 @@ loss_neon(float div,
 
 #endif
 
-static float
+float
 loss(float div,
      float lower,
      float step,

@@ -17,7 +17,7 @@ struct Parameter {
   float c2 = 1.5f;
 };
 
-static std::pair<float, float>
+std::pair<float, float>
 optimize(float div,
          float init_lower,
          float init_upper,

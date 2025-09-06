@@ -17,7 +17,7 @@
 
 namespace pouq {
 
-static void
+void
 train_impl(int dim_,
            CodeUnit* code_,
            RecPara* rec_para_,
@@ -134,7 +134,7 @@ train_impl(int dim_,
   }
 }
 
-static std::pair<CodeUnit*, RecPara*>
+std::pair<CodeUnit*, RecPara*>
 train(int dim_,
       const float* data,
       int size,

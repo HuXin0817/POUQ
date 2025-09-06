@@ -37,7 +37,7 @@ set_rec_para(
 #endif
 }
 
-static void*
+void*
 _alloc(int size) {
 #ifdef POUQ_X86_ARCH
   return _mm_malloc(size, 256));
@@ -46,7 +46,7 @@ _alloc(int size) {
 #endif
 }
 
-static void
+void
 _free(void* ptr) {
 #ifdef POUQ_X86_ARCH
   _mm_free(ptr);

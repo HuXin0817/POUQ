@@ -2,8 +2,8 @@
 
 #include "libpouq/train.h"
 
-static constexpr int Dim = 256;
-static constexpr int N = Dim * 1e5;
+constexpr int Dim = 256;
+constexpr int N = Dim * 1e5;
 
 int
 main() {

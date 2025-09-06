@@ -2,7 +2,7 @@
 
 namespace pouq {
 
-static std::vector<float>
+std::vector<float>
 get_sorted_data(const float* data, int size, int d, int dim) {
   std::vector<float> sorted_data;
   sorted_data.reserve(size / dim);
@@ -13,7 +13,7 @@ get_sorted_data(const float* data, int size, int d, int dim) {
   return sorted_data;
 }
 
-static std::pair<std::vector<float>, std::vector<int>>
+std::pair<std::vector<float>, std::vector<int>>
 count_freq(const std::vector<float>& sorted_data) {
   float curr_value = sorted_data[0];
   int count = 1;
