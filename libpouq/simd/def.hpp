@@ -1,6 +1,6 @@
 #pragma once
 
-namespace pouq::simd {
+namespace pouq {
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
 #define POUQ_X86_ARCH
@@ -37,51 +37,22 @@ set_rec_para(
 #endif
 }
 
-template <typename T>
-struct Ptr {
-  Ptr() = default;
-
-  void
-  init(int size) {
-    data_ = static_cast<T*>(_alloc(size));
-  }
-
-  ~Ptr() {
-    if (data_ != nullptr) {
-      _free(data_);
-    }
-  }
-
-  T*
-  get() {
-    return data_;
-  }
-
-  const T*
-  get() const {
-    return data_;
-  }
-
-  private:
-  T* data_ = nullptr;
-
-  static void*
-  _alloc(int size) {
+static void*
+_alloc(int size) {
 #ifdef POUQ_X86_ARCH
-    return _mm_malloc(size, 256));
+  return _mm_malloc(size, 256));
 #elif defined(POUQ_ARM_ARCH)
-    return aligned_alloc(256, size);
+  return aligned_alloc(256, size);
 #endif
-  }
+}
 
-  static void
-  _free(void* ptr) {
+static void
+_free(void* ptr) {
 #ifdef POUQ_X86_ARCH
-    _mm_free(ptr);
+  _mm_free(ptr);
 #elif defined(POUQ_ARM_ARCH)
-    free(ptr);
+  free(ptr);
 #endif
-  }
-};
+}
 
-}  // namespace pouq::simd
+}  // namespace pouq

@@ -17,7 +17,6 @@ struct Parameter {
   float c2 = 1.5f;
 };
 
-template <bool do_count_freq>
 static std::pair<float, float>
 optimize(float div,
          float init_lower,
@@ -25,7 +24,8 @@ optimize(float div,
          const float* data_map,
          const int* freq_map,
          int size,
-         const Parameter& parameter) {
+         const Parameter& parameter,
+         bool do_count_freq) {
   assert(div > 0.0f);
   assert(init_lower <= init_upper);
   assert(size > 0);
@@ -66,7 +66,7 @@ optimize(float div,
   float global_best_lower = init_lower;
   float global_best_step = init_step;
   float global_min_loss =
-      simd::loss<do_count_freq>(div, init_lower, init_step, data_map, freq_map, size);
+      simd::loss(div, init_lower, init_step, data_map, freq_map, size, do_count_freq);
 
   std::vector<Particle> swarm(parameter.particle_count);
   for (auto& particle : swarm) {
@@ -74,7 +74,7 @@ optimize(float div,
     float step = step_dis(gen);
     float v_lower = v_dis(gen);
     float v_step = v_dis(gen);
-    float min_loss = simd::loss<do_count_freq>(div, lower, step, data_map, freq_map, size);
+    float min_loss = simd::loss(div, lower, step, data_map, freq_map, size, do_count_freq);
 
     particle = {
         .lower = lower,
@@ -114,7 +114,7 @@ optimize(float div,
       particle.step = std::max(std::abs(particle.step), FLT_EPSILON);
 
       float curr_loss =
-          simd::loss<do_count_freq>(div, particle.lower, particle.step, data_map, freq_map, size);
+          simd::loss(div, particle.lower, particle.step, data_map, freq_map, size, do_count_freq);
       if (curr_loss < particle.min_loss) {
         particle.min_loss = curr_loss;
         particle.best_lower = particle.lower;

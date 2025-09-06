@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "libpouq/quantizer.hpp"
+#include "libpouq/train.hpp"
 
 static constexpr int Dim = 256;
 static constexpr int N = Dim * 1e5;
@@ -18,15 +18,18 @@ main() {
     data[i] = dis(gen);
   }
 
-  pouq::Quantizer quantizer(Dim);
-  quantizer.train(data.data(), N);
+  auto res = pouq::train(Dim, data.data(), N);
 
   float mse = 0.0f;
 #pragma omp parallel for reduction(+ : mse)
   for (int i = 0; i < N; i += Dim) {
-    mse += quantizer.distance(data.data() + i, i);
+    mse += pouq::simd::distance(Dim, res.first, res.second, data.data() + i, i);
   }
   std::cout << mse / N << std::endl;
 
+  pouq::_free(res.first);
+  pouq::_free(res.second);
+  res.first = nullptr;
+  res.second = nullptr;
   return 0;
 }

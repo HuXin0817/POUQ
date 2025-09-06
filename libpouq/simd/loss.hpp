@@ -10,10 +10,14 @@ namespace pouq::simd {
 
 #ifdef POUQ_X86_ARCH
 
-template <bool do_count_freq>
 static float
-loss_avx2(
-    float div, float lower, float step, const float* data_map, const int* freq_map, int size) {
+loss_avx2(float div,
+          float lower,
+          float step,
+          const float* data_map,
+          const int* freq_map,
+          int size,
+          bool do_count_freq) {
   __m256 lower_vec = _mm256_set1_ps(lower);
   __m256 step_vec = _mm256_set1_ps(step);
   __m256 div_vec = _mm256_set1_ps(div);
@@ -80,10 +84,14 @@ loss_avx2(
 
 #ifdef POUQ_ARM_ARCH
 
-template <bool do_count_freq>
 static float
-loss_neon(
-    float div, float lower, float step, const float* data_map, const int* freq_map, int size) {
+loss_neon(float div,
+          float lower,
+          float step,
+          const float* data_map,
+          const int* freq_map,
+          int size,
+          bool do_count_freq) {
   float32x4_t lower_vec = vdupq_n_f32(lower);
   float32x4_t step_vec = vdupq_n_f32(step);
   float32x4_t div_vec = vdupq_n_f32(div);
@@ -142,9 +150,14 @@ loss_neon(
 
 #endif
 
-template <bool do_count_freq>
 static float
-loss(float div, float lower, float step, const float* data_map, const int* freq_map, int size) {
+loss(float div,
+     float lower,
+     float step,
+     const float* data_map,
+     const int* freq_map,
+     int size,
+     bool do_count_freq) {
   assert(div > 0.0f);
   assert(step >= FLT_EPSILON);
   assert(size > 0);
@@ -154,9 +167,9 @@ loss(float div, float lower, float step, const float* data_map, const int* freq_
   }
 
 #ifdef POUQ_X86_ARCH
-  return loss_avx2<do_count_freq>(div, lower, step, data_map, freq_map, size);
+  return loss_avx2(div, lower, step, data_map, freq_map, size, do_count_freq);
 #elif defined(POUQ_ARM_ARCH)
-  return loss_neon<do_count_freq>(div, lower, step, data_map, freq_map, size);
+  return loss_neon(div, lower, step, data_map, freq_map, size, do_count_freq);
 #endif
 }
 
