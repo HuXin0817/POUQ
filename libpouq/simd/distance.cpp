@@ -3,7 +3,8 @@
 #ifdef POUQ_X86_ARCH
 
 float
-distance_avx2(int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset) {
+distance_avx2(
+    int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset) {
   assert(data != nullptr);
   assert(offset % dim_ == 0);
 
