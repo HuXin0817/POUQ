@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "POUQ/libpouq.hpp"
+#include "libpouq/quantizer.hpp"
 
 static constexpr int Dim = 256;
 static constexpr int N = Dim * 1e5;
