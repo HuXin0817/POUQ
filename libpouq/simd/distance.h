@@ -5,4 +5,4 @@
 #include "def.h"
 
 float
-distance(int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset);
+distance(int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset);

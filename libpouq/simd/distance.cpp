@@ -4,16 +4,16 @@
 
 float
 distance_avx2(
-    int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset) {
+    int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
   assert(data != nullptr);
-  assert(offset % dim_ == 0);
+  assert(offset % dim == 0);
 
   __m256 sum_squares_vec = _mm256_setzero_ps();
-  for (int dim = 0; dim < dim_; dim += 8) {
-    int group_idx = dim / 4;
-    auto [code1, code2, code_value] = code_[(offset / 4 + group_idx) / 2];
-    auto [lower1, step1] = rec_para_[group_idx * 256 + code1];
-    auto [lower2, step2] = rec_para_[(group_idx + 1) * 256 + code2];
+  for (int d = 0; d < dim; d += 8) {
+    int group_idx = d / 4;
+    auto [code1, code2, code_value] = code[(offset / 4 + group_idx) / 2];
+    auto [lower1, step1] = rec_para[group_idx * 256 + code1];
+    auto [lower2, step2] = rec_para[(group_idx + 1) * 256 + code2];
 
     __m256 lower_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lower1), lower2, 1);
     __m256 step_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(step1), step2, 1);
@@ -27,7 +27,7 @@ distance_avx2(
     __m256 code_vec = _mm256_cvtepi32_ps(masked_code);
     __m256 reconstructed_vec = _mm256_fmadd_ps(code_vec, step_vec, lower_vec);
 
-    __m256 data_vec = _mm256_loadu_ps(data + dim);
+    __m256 data_vec = _mm256_loadu_ps(data + d);
     __m256 diff_vec = _mm256_sub_ps(reconstructed_vec, data_vec);
     sum_squares_vec = _mm256_fmadd_ps(diff_vec, diff_vec, sum_squares_vec);
   }
@@ -50,13 +50,13 @@ distance_avx2(
 
 float
 distance_neon(
-    int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset) {
+    int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
   float32x4_t sum_squares_vec = vdupq_n_f32(0.0f);
-  for (int dim = 0; dim < dim_; dim += 8) {
-    int group_idx = dim / 4;
-    auto [code1, code2, code_value] = code_[(offset / 4 + group_idx) / 2];
-    auto [lower1, step1] = rec_para_[group_idx * 256 + code1];
-    auto [lower2, step2] = rec_para_[(group_idx + 1) * 256 + code2];
+  for (int d = 0; d < dim; d += 8) {
+    int group_idx = d / 4;
+    auto [code1, code2, code_value] = code[(offset / 4 + group_idx) / 2];
+    auto [lower1, step1] = rec_para[group_idx * 256 + code1];
+    auto [lower2, step2] = rec_para[(group_idx + 1) * 256 + code2];
 
     uint32_t code_value_uint = code_value;
 
@@ -73,14 +73,14 @@ distance_neon(
     uint32x4_t code_vec1 = vld1q_u32(&codes[0]);
     float32x4_t code_float1 = vcvtq_f32_u32(code_vec1);
     float32x4_t reconstructed_vec1 = vmlaq_f32(lower1, code_float1, step1);
-    float32x4_t data_vec1 = vld1q_f32(data + dim);
+    float32x4_t data_vec1 = vld1q_f32(data + d);
     float32x4_t diff_vec1 = vsubq_f32(reconstructed_vec1, data_vec1);
     sum_squares_vec = vmlaq_f32(sum_squares_vec, diff_vec1, diff_vec1);
 
     uint32x4_t code_vec2 = vld1q_u32(&codes[4]);
     float32x4_t code_float2 = vcvtq_f32_u32(code_vec2);
     float32x4_t reconstructed_vec2 = vmlaq_f32(lower2, code_float2, step2);
-    float32x4_t data_vec2 = vld1q_f32(data + dim + 4);
+    float32x4_t data_vec2 = vld1q_f32(data + d + 4);
     float32x4_t diff_vec2 = vsubq_f32(reconstructed_vec2, data_vec2);
     sum_squares_vec = vmlaq_f32(sum_squares_vec, diff_vec2, diff_vec2);
   }
@@ -93,10 +93,10 @@ distance_neon(
 #endif
 
 float
-distance(int dim_, const CodeUnit* code_, const RecPara* rec_para_, const float* data, int offset) {
+distance(int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
 #ifdef POUQ_X86_ARCH
-  return distance_avx2(dim_, code_, rec_para_, data, offset);
+  return distance_avx2(dim_, code_, rec_para, data, offset);
 #elif defined(POUQ_ARM_ARCH)
-  return distance_neon(dim_, code_, rec_para_, data, offset);
+  return distance_neon(dim, code, rec_para, data, offset);
 #endif
 }
