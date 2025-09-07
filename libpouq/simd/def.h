@@ -39,3 +39,19 @@ set_rec_para(
   };
 #endif
 }
+
+#define do_malloc(ptr, type, size)                            \
+  do {                                                        \
+    ptr = (type*)(aligned_alloc(256, (size) * sizeof(type))); \
+    if (ptr == nullptr) {                                     \
+      goto cleanup;                                           \
+    }                                                         \
+  } while (0)
+
+#define do_free(ptr)      \
+  do {                    \
+    if (ptr != nullptr) { \
+      free(ptr);          \
+      ptr = nullptr;      \
+    }                     \
+  } while (0)
