@@ -41,7 +41,7 @@ segment(int k,
 
   std::vector<float> prev_dp(size + 1, FLT_MAX);
   std::vector<float> curr_dp(size + 1, FLT_MAX);
-  std::vector<std::vector<int>> prev_idx(size + 1, std::vector<int>(k + 1, 0));
+  std::vector<int> prev_idx((size + 1) * (k + 1), 0);
   prev_dp[0] = 0.0f;
 
   for (int j = 1; j <= k; ++j) {
@@ -49,14 +49,14 @@ segment(int k,
     tasks.reserve(size);
 
     while (!tasks.empty()) {
-      auto [j, l, r, opt_l, opt_r] = tasks.back();
+      auto [current_j, l, r, opt_l, opt_r] = tasks.back();
       tasks.pop_back();
       if (l > r) {
         continue;
       }
 
       int mid = (l + r) / 2;
-      int start = std::max(j - 1, opt_l);
+      int start = std::max(current_j - 1, opt_l);
       int end = std::min(mid - 1, opt_r);
       float min_cost = FLT_MAX;
       int split_pos = 0;
@@ -76,10 +76,10 @@ segment(int k,
       }
 
       curr_dp[mid] = min_cost;
-      prev_idx[mid][j] = split_pos;
+      prev_idx[mid * (k + 1) + current_j] = split_pos;
       if (l < r) {
-        tasks.push_back({j, mid + 1, r, split_pos, opt_r});
-        tasks.push_back({j, l, mid - 1, opt_l, split_pos});
+        tasks.push_back({current_j, mid + 1, r, split_pos, opt_r});
+        tasks.push_back({current_j, l, mid - 1, opt_l, split_pos});
       }
     }
 
@@ -87,10 +87,10 @@ segment(int k,
     std::fill(curr_dp.begin(), curr_dp.end(), FLT_MAX);
   }
 
-  std::vector<int> split_pos(k);
+  int split_pos[k];
   int curr_pos = size;
   for (int j = k; j > 0; --j) {
-    int m = prev_idx[curr_pos][j];
+    int m = prev_idx[curr_pos * (k + 1) + j];
     split_pos[j - 1] = m;
     curr_pos = m;
   }
