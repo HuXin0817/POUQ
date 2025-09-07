@@ -53,15 +53,15 @@ optimize(float div,
   float global_best_step = init_step;
   float global_min_loss = loss(div, init_lower, init_step, data_map, freq_map, size, do_count_freq);
 
-  std::vector<Particle> swarm(parameter.particle_count);
-  for (auto& particle : swarm) {
+  Particle swarm[parameter.particle_count];
+  for (int i = 0; i < parameter.particle_count; i++) {
     float lower = lower_dis(gen);
     float step = step_dis(gen);
     float v_lower = v_dis(gen);
     float v_step = v_dis(gen);
     float min_loss = loss(div, lower, step, data_map, freq_map, size, do_count_freq);
 
-    particle = {
+    swarm[i] = {
         .lower = lower,
         .step = step,
         .v_lower = v_lower,
@@ -73,8 +73,8 @@ optimize(float div,
 
     if (min_loss < global_min_loss) {
       global_min_loss = min_loss;
-      global_best_lower = particle.lower;
-      global_best_step = particle.step;
+      global_best_lower = swarm[i].lower;
+      global_best_step = swarm[i].step;
     }
   }
 
@@ -82,33 +82,34 @@ optimize(float div,
     float x = (float)(iter) / (float)(parameter.max_iter);
     float inertia = parameter.init_inertia - (parameter.init_inertia - parameter.final_inertia) * x;
 
-    for (auto& particle : swarm) {
+    for (int i = 0; i < parameter.particle_count; i++) {
       float r1 = p_dis(gen);
       float r2 = p_dis(gen);
+      Particle* particle = swarm + i;
 
-      particle.v_lower = inertia * particle.v_lower +
-                         parameter.c1 * r1 * (particle.best_lower - particle.lower) +
-                         parameter.c2 * r2 * (global_best_lower - particle.lower);
+      particle->v_lower = inertia * particle->v_lower +
+                          parameter.c1 * r1 * (particle->best_lower - particle->lower) +
+                          parameter.c2 * r2 * (global_best_lower - particle->lower);
 
-      particle.v_step = inertia * particle.v_step +
-                        parameter.c1 * r1 * (particle.best_step - particle.step) +
-                        parameter.c2 * r2 * (global_best_step - particle.step);
+      particle->v_step = inertia * particle->v_step +
+                         parameter.c1 * r1 * (particle->best_step - particle->step) +
+                         parameter.c2 * r2 * (global_best_step - particle->step);
 
-      particle.lower += particle.v_lower;
-      particle.step += particle.v_step;
-      particle.step = std::max(std::abs(particle.step), FLT_EPSILON);
+      particle->lower += particle->v_lower;
+      particle->step += particle->v_step;
+      particle->step = std::max(std::abs(particle->step), FLT_EPSILON);
 
       float curr_loss =
-          loss(div, particle.lower, particle.step, data_map, freq_map, size, do_count_freq);
-      if (curr_loss < particle.min_loss) {
-        particle.min_loss = curr_loss;
-        particle.best_lower = particle.lower;
-        particle.best_step = particle.step;
+          loss(div, particle->lower, particle->step, data_map, freq_map, size, do_count_freq);
+      if (curr_loss < particle->min_loss) {
+        particle->min_loss = curr_loss;
+        particle->best_lower = particle->lower;
+        particle->best_step = particle->step;
 
         if (curr_loss < global_min_loss) {
           global_min_loss = curr_loss;
-          global_best_lower = particle.lower;
-          global_best_step = particle.step;
+          global_best_lower = particle->lower;
+          global_best_step = particle->step;
         }
       }
     }
