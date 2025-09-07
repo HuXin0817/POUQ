@@ -15,7 +15,7 @@
 #include "simd/distance.h"
 #include "util.h"
 
-bool
+void
 train_impl(int dim,
            CodeUnit* code,
            RecPara* rec_para,
