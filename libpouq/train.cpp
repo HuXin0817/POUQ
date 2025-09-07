@@ -41,16 +41,12 @@ train_impl(int dim,
     for (int i = 0; i < bounds.size(); i++) {
       auto [lower, upper] = bounds[i];
       if (lower < upper) {
-        auto data_begin = std::lower_bound(data_map.data(),
-                                           data_map.data() + data_map.size(),
-                                           lower,
-                                           [](float lhs, float rhs) -> bool { return lhs < rhs; });
-        auto data_end = std::upper_bound(data_map.data(),
-                                         data_map.data() + data_map.size(),
-                                         upper,
-                                         [](float lhs, float rhs) -> bool { return lhs < rhs; });
+        float* data_begin =
+            std::lower_bound(data_map.data(), data_map.data() + data_map.size(), lower);
+        float* data_end =
+            std::upper_bound(data_map.data(), data_map.data() + data_map.size(), upper);
 
-        auto data_index = data_begin - data_map.data();
+        int data_index = data_begin - data_map.data();
 
         std::tie(lower, upper) = optimize(3,
                                           lower,
