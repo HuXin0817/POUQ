@@ -18,18 +18,16 @@ main() {
     data[i] = dis(gen);
   }
 
-  auto res = train(Dim, data.data(), N);
+  auto [code, para] = train(Dim, data.data(), N);
 
   float mse = 0.0f;
 #pragma omp parallel for reduction(+ : mse)
   for (int i = 0; i < N; i += Dim) {
-    mse += distance(Dim, res.first, res.second, data.data() + i, i);
+    mse += distance(Dim, code, para, data.data() + i, i);
   }
   std::cout << mse / N << std::endl;
 
-  free(res.first);
-  free(res.second);
-  res.first = nullptr;
-  res.second = nullptr;
+  free(code);
+  free(para);
   return 0;
 }
