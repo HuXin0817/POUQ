@@ -4,7 +4,7 @@
 #include <cfloat>
 #include <cmath>
 
-#ifdef POUQ_X86_ARCH
+#if defined(POUQ_X86_ARCH)
 
 float
 loss_avx2(float div,
@@ -78,7 +78,7 @@ loss_avx2(float div,
 
 #endif
 
-#ifdef POUQ_ARM_ARCH
+#if defined(POUQ_ARM_ARCH)
 
 float
 loss_neon(float div,
@@ -161,7 +161,7 @@ loss(float div,
     assert(freq_map != nullptr);
   }
 
-#ifdef POUQ_X86_ARCH
+#if defined(POUQ_X86_ARCH)
   return loss_avx2(div, lower, step, data_map, freq_map, size, do_count_freq);
 #elif defined(POUQ_ARM_ARCH)
   return loss_neon(div, lower, step, data_map, freq_map, size, do_count_freq);

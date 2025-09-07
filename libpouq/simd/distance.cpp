@@ -1,6 +1,6 @@
 #include "distance.h"
 
-#ifdef POUQ_X86_ARCH
+#if defined(POUQ_X86_ARCH)
 
 float
 distance_avx2(
@@ -94,7 +94,7 @@ distance_neon(
 
 float
 distance(int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
-#ifdef POUQ_X86_ARCH
+#if defined(POUQ_X86_ARCH)
   return distance_avx2(dim, code, rec_para, data, offset);
 #elif defined(POUQ_ARM_ARCH)
   return distance_neon(dim, code, rec_para, data, offset);
