@@ -65,7 +65,7 @@ segment(int k,
         float cost = prev_dp[m];
         if (do_count_freq) {
           int count = sum_count[mid] - sum_count[m];
-          cost += width * width * static_cast<float>(count);
+          cost += width * width * (float)(count);
         } else {
           cost += width * width;
         }

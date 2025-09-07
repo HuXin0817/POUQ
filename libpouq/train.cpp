@@ -11,7 +11,7 @@
 #include <tuple>
 #include <vector>
 
-void
+bool
 train_impl(int dim,
            CodeUnit* code,
            RecPara* rec_para,
@@ -22,21 +22,78 @@ train_impl(int dim,
   assert(size > 0);
   assert(size % dim == 0);
 
-  std::vector<float> steps(dim * 4);
-  std::vector<float> lowers(dim * 4);
-  std::vector<uint8_t> cid(size);
-  std::vector<uint8_t> codes(size);
+  float* steps = (float*)aligned_alloc(256, sizeof(float) * dim * 4);
+  if (!steps) {
+    return false;
+  }
 
-  std::vector<float> segment_lower(4 * dim);
-  std::vector<float> segment_upper(4 * dim);
+  float* lowers = (float*)aligned_alloc(256, sizeof(float) * dim * 4);
+  if (!lowers) {
+    free(steps);
+    return false;
+  }
 
-  std::vector<float> train_data_map(size);
-  std::vector<int> train_freq_map(size);
+  uint8_t* cid = (uint8_t*)aligned_alloc(256, sizeof(uint8_t) * size);
+  if (!cid) {
+    free(lowers);
+    free(steps);
+    return false;
+  }
+
+  uint8_t* codes = (uint8_t*)aligned_alloc(256, sizeof(uint8_t) * size);
+  if (!codes) {
+    free(cid);
+    free(lowers);
+    free(steps);
+    return false;
+  }
+
+  float* segment_lower = (float*)aligned_alloc(256, sizeof(float) * dim * 4);
+  if (!segment_lower) {
+    free(codes);
+    free(cid);
+    free(lowers);
+    free(steps);
+    return false;
+  }
+
+  float* segment_upper = (float*)aligned_alloc(256, sizeof(float) * dim * 4);
+  if (!segment_upper) {
+    free(segment_lower);
+    free(codes);
+    free(cid);
+    free(lowers);
+    free(steps);
+    return false;
+  }
+
+  float* train_data_map = (float*)aligned_alloc(256, sizeof(float) * size);
+  if (!train_data_map) {
+    free(segment_upper);
+    free(segment_lower);
+    free(codes);
+    free(cid);
+    free(lowers);
+    free(steps);
+    return false;
+  }
+
+  int* train_freq_map = (int*)aligned_alloc(256, sizeof(int) * size);
+  if (!train_freq_map) {
+    free(train_data_map);
+    free(segment_upper);
+    free(segment_lower);
+    free(codes);
+    free(cid);
+    free(lowers);
+    free(steps);
+    return false;
+  }
 
 #pragma omp parallel for
   for (int d = 0; d < dim; d++) {
-    float* data_map = train_data_map.data() + d * (size / dim);
-    int* freq_map = train_freq_map.data() + d * (size / dim);
+    float* data_map = train_data_map + d * (size / dim);
+    int* freq_map = train_freq_map + d * (size / dim);
     int data_map_size = get_sorted_data(data, size, d, dim, data_map);
 
     bool do_count_freq = data_map_size < size * 8 / dim / 10;
@@ -44,8 +101,8 @@ train_impl(int dim,
       data_map_size = count_freq(data_map, data_map_size, data_map, freq_map);
     }
 
-    float* seg_lower = segment_lower.data() + d * 4;
-    float* seg_upper = segment_upper.data() + d * 4;
+    float* seg_lower = segment_lower + d * 4;
+    float* seg_upper = segment_upper + d * 4;
 
     int segment_size =
         segment(4, data_map, freq_map, data_map_size, do_count_freq, seg_lower, seg_upper);
@@ -78,10 +135,10 @@ train_impl(int dim,
 
     for (int i = d; i < size; i += dim) {
       float* it = std::upper_bound(seg_lower, seg_lower + segment_size, data[i]);
-      int c = static_cast<int>(it - seg_lower) - 1;
+      int c = it - seg_lower - 1;
       float x = std::clamp((data[i] - lowers[d * 4 + c]) / steps[d * 4 + c] + 0.5f, 0.0f, 3.0f);
       cid[i] = c;
-      codes[i] = static_cast<uint8_t>(x);
+      codes[i] = (uint8_t)(x);
     }
   }
 
@@ -127,21 +184,37 @@ train_impl(int dim,
                    steps[x3]);
     }
   }
+
+  free(train_freq_map);
+  free(train_data_map);
+  free(segment_upper);
+  free(segment_lower);
+  free(codes);
+  free(cid);
+  free(lowers);
+  free(steps);
+
+  return true;
 }
 
 std::pair<CodeUnit*, RecPara*>
 train(int dim, const float* data, int size, const Parameter& parameter) {
-  auto code_ = static_cast<CodeUnit*>(aligned_alloc(256, size / 8 * sizeof(CodeUnit)));
+  auto code_ = (CodeUnit*)(aligned_alloc(256, size / 8 * sizeof(CodeUnit)));
   if (!code_) {
     return {nullptr, nullptr};
   }
 
-  auto rec_para = static_cast<RecPara*>(aligned_alloc(256, dim * 64 * sizeof(RecPara)));
+  auto rec_para = (RecPara*)(aligned_alloc(256, dim * 64 * sizeof(RecPara)));
   if (!rec_para) {
     free(code_);
     return {nullptr, nullptr};
   }
 
-  train_impl(dim, code_, rec_para, data, size, parameter);
+  if (!train_impl(dim, code_, rec_para, data, size, parameter)) {
+    free(code_);
+    free(rec_para);
+    return {nullptr, nullptr};
+  }
+
   return {code_, rec_para};
 }

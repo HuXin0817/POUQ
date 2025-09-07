@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <memory>
 #include <random>
+#include <tuple>
 #include <vector>
 
 #include "optimize.h"
@@ -15,7 +16,7 @@
 #include "simd/distance.h"
 #include "util.h"
 
-void
+bool
 train_impl(int dim,
            CodeUnit* code,
            RecPara* rec_para,

@@ -58,7 +58,7 @@ loss_avx2(float div,
 
     float code_loss = real_quantized_code - quantized_code;
     if (do_count_freq) {
-      total_loss += code_loss * code_loss * static_cast<float>(freq_map[i]);
+      total_loss += code_loss * code_loss * (float)(freq_map[i]);
     } else {
       total_loss += code_loss * code_loss;
     }
@@ -130,7 +130,7 @@ loss_neon(float div,
 
     float code_loss = real_quantized_code - quantized_code;
     if (do_count_freq) {
-      total_loss += code_loss * code_loss * static_cast<float>(freq_map[i]);
+      total_loss += code_loss * code_loss * (float)(freq_map[i]);
     } else {
       total_loss += code_loss * code_loss;
     }

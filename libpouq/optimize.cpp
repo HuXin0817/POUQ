@@ -79,7 +79,7 @@ optimize(float div,
   }
 
   for (int iter = 0; iter < parameter.max_iter; ++iter) {
-    float x = static_cast<float>(iter) / static_cast<float>(parameter.max_iter);
+    float x = (float)(iter) / (float)(parameter.max_iter);
     float inertia = parameter.init_inertia - (parameter.init_inertia - parameter.final_inertia) * x;
 
     for (auto& particle : swarm) {
