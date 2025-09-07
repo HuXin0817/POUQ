@@ -14,8 +14,14 @@ struct Task {
   int opt_right;
 };
 
-std::vector<std::pair<float, float>>
-segment(int k, const float* data_map, const int* freq_map, int size, bool do_count_freq) {
+int
+segment(int k,
+        const float* data_map,
+        const int* freq_map,
+        int size,
+        bool do_count_freq,
+        float* lowers,
+        float* uppers) {
   assert(k > 0);
   assert(size > 0);
   assert(data_map != nullptr);
@@ -89,12 +95,12 @@ segment(int k, const float* data_map, const int* freq_map, int size, bool do_cou
     curr_pos = m;
   }
 
-  std::vector<std::pair<float, float>> bounds(k);
   for (int t = 0; t < k; ++t) {
     int start = split_pos[t];
     int end = t < k - 1 ? split_pos[t + 1] - 1 : size - 1;
-    bounds[t] = {data_map[start], data_map[end]};
+    lowers[t] = data_map[start];
+    uppers[t] = data_map[end];
   }
 
-  return bounds;
+  return k;
 }

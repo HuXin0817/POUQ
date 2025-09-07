@@ -10,7 +10,7 @@
 #include <random>
 #include <vector>
 
-void
+bool
 train_impl(int dim,
            CodeUnit* code,
            RecPara* rec_para,
@@ -26,6 +26,17 @@ train_impl(int dim,
   std::vector<uint8_t> cid(size);
   std::vector<uint8_t> codes(size);
 
+  float* segment_lower = static_cast<float*>(aligned_alloc(256, 4 * dim));
+  if (segment_lower == nullptr) {
+    return false;
+  }
+
+  float* segment_upper = static_cast<float*>(aligned_alloc(256, 4 * dim));
+  if (segment_upper == nullptr) {
+    free(segment_lower);
+    return false;
+  }
+
 #pragma omp parallel for
   for (int d = 0; d < dim; d++) {
     std::vector<float> data_map = get_sorted_data(data, size, d, dim);
@@ -36,10 +47,15 @@ train_impl(int dim,
       std::tie(data_map, freq_map) = count_freq(data_map);
     }
 
-    auto bounds = segment(4, data_map.data(), freq_map.data(), data_map.size(), do_count_freq);
+    auto seg_lower = segment_lower + d * 4;
+    auto seg_upper = segment_upper + d * 4;
 
-    for (int i = 0; i < bounds.size(); i++) {
-      auto [lower, upper] = bounds[i];
+    auto segment_size = segment(
+        4, data_map.data(), freq_map.data(), data_map.size(), do_count_freq, seg_lower, seg_upper);
+
+    for (int i = 0; i < segment_size; i++) {
+      float lower = seg_lower[i];
+      float upper = seg_upper[i];
       if (lower < upper) {
         float* data_begin =
             std::lower_bound(data_map.data(), data_map.data() + data_map.size(), lower);
@@ -66,17 +82,16 @@ train_impl(int dim,
     }
 
     for (int i = d; i < size; i += dim) {
-      auto it = std::upper_bound(
-          bounds.begin(),
-          bounds.end(),
-          data[i],
-          [](float lhs, const std::pair<float, float>& rhs) -> bool { return lhs < rhs.first; });
-      int c = static_cast<int>(it - bounds.begin()) - 1;
+      float* it = std::upper_bound(seg_lower, seg_lower + segment_size, data[i]);
+      int c = static_cast<int>(it - seg_lower) - 1;
       float x = std::clamp((data[i] - lowers[d * 4 + c]) / steps[d * 4 + c] + 0.5f, 0.0f, 3.0f);
       cid[i] = c;
       codes[i] = static_cast<uint8_t>(x);
     }
   }
+
+  free(segment_lower);
+  free(segment_upper);
 
 #pragma omp parallel for
   for (int i = 0; i < size / 8; i++) {
@@ -120,6 +135,8 @@ train_impl(int dim,
                    steps[x3]);
     }
   }
+
+  return true;
 }
 
 std::pair<CodeUnit*, RecPara*>
@@ -135,6 +152,11 @@ train(int dim, const float* data, int size, const Parameter& parameter) {
     return {nullptr, nullptr};
   }
 
-  train_impl(dim, code_, rec_para, data, size, parameter);
+  if (!train_impl(dim, code_, rec_para, data, size, parameter)) {
+    free(rec_para);
+    free(code_);
+    return {nullptr, nullptr};
+  }
+
   return {code_, rec_para};
 }

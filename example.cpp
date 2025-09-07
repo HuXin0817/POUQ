@@ -19,6 +19,16 @@ main() {
   }
 
   auto [code, para] = train(Dim, data.data(), N);
+  if (!code || !para) {
+    if (code) {
+      free(code);
+    }
+    if (para) {
+      free(para);
+    }
+    printf("train error\n");
+    return 1;
+  }
 
   float mse = 0.0f;
 #pragma omp parallel for reduction(+ : mse)
