@@ -3,7 +3,7 @@
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -std=c17 -Wall -Wextra -O3 -mavx2 -mfma -fopenmp
+CFLAGS = -std=c2x -Wall -Wextra -O3 -mavx2 -mfma -fopenmp
 LDFLAGS = -lm -fopenmp -lpthread
 
 # Directories

@@ -8,18 +8,18 @@ train_impl(int dim,
            const float* data,
            int size,
            const Parameter parameter) {
-  assert(data != NULL);
+  assert(data != nullptr);
   assert(size > 0);
   assert(size % dim == 0);
 
-  float* steps = NULL;
-  float* lowers = NULL;
-  uint8_t* cid = NULL;
-  uint8_t* codes = NULL;
-  float* segment_lower = NULL;
-  float* segment_upper = NULL;
-  float* train_data_map = NULL;
-  int* train_freq_map = NULL;
+  float* steps = nullptr;
+  float* lowers = nullptr;
+  uint8_t* cid = nullptr;
+  uint8_t* codes = nullptr;
+  float* segment_lower = nullptr;
+  float* segment_upper = nullptr;
+  float* train_data_map = nullptr;
+  int* train_freq_map = nullptr;
   int success = 1;
 
   do_malloc(steps, float, dim * 4);
@@ -170,8 +170,8 @@ cleanup:
 
 Result
 train(int dim, const float* data, int size, const Parameter parameter) {
-  CodeUnit* code_ = NULL;
-  RecPara* rec_para = NULL;
+  CodeUnit* code_ = nullptr;
+  RecPara* rec_para = nullptr;
 
   do_malloc(code_, CodeUnit, size / 8);
   do_malloc(rec_para, RecPara, dim * 64);
@@ -189,7 +189,7 @@ cleanup:
   do_free(rec_para);
 
   Result error_result;
-  error_result.code = NULL;
-  error_result.rec_para = NULL;
+  error_result.code = nullptr;
+  error_result.rec_para = nullptr;
   return error_result;
 }

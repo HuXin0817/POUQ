@@ -18,16 +18,16 @@ typedef struct {
   do {                                                                     \
     int result = posix_memalign((void**)&ptr, 256, (size) * sizeof(type)); \
     if (result != 0) {                                                     \
-      ptr = NULL;                                                          \
+      ptr = nullptr;                                                          \
       goto cleanup;                                                        \
     }                                                                      \
   } while (0)
 
 #define do_free(ptr)   \
   do {                 \
-    if (ptr != NULL) { \
+    if (ptr != nullptr) { \
       free(ptr);       \
-      ptr = NULL;      \
+      ptr = nullptr;      \
     }                  \
   } while (0)
 

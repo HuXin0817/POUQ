@@ -21,9 +21,9 @@ loss(float lower,
      int do_count_freq) {
   assert(step >= FLT_EPSILON);
   assert(size > 0);
-  assert(data_map != NULL);
+  assert(data_map != nullptr);
   if (do_count_freq) {
-    assert(freq_map != NULL);
+    assert(freq_map != nullptr);
   }
 
   __m256 lower_vec = _mm256_set1_ps(lower);
@@ -98,9 +98,9 @@ optimize(float init_lower,
          int do_count_freq) {
   assert(init_lower <= init_upper);
   assert(size > 0);
-  assert(data_map != NULL);
+  assert(data_map != nullptr);
   if (do_count_freq) {
-    assert(freq_map != NULL);
+    assert(freq_map != nullptr);
   }
   assert(parameter.max_iter >= 0);
   assert(parameter.particle_count >= 0);
@@ -110,7 +110,7 @@ optimize(float init_lower,
   assert(parameter.c1 >= 0.0f);
   assert(parameter.c2 >= 0.0f);
 
-  srand((unsigned int)time(NULL));
+  srand((unsigned int)time(nullptr));
 
   float init_range_width = init_upper - init_lower;
   float init_step = init_range_width / DIV;
@@ -126,7 +126,7 @@ optimize(float init_lower,
   float global_best_step = init_step;
   float global_min_loss = loss(init_lower, init_step, data_map, freq_map, size, do_count_freq);
 
-  Particle* swarm = NULL;
+  Particle* swarm = nullptr;
   do_malloc(swarm, Particle, parameter.particle_count);
 
   for (int i = 0; i < parameter.particle_count; i++) {
