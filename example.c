@@ -17,7 +17,7 @@ main() {
 
 #pragma omp parallel for
   for (int i = 0; i < N; ++i) {
-    data[i] = (float)rand() / (float)RAND_MAX * 255.0f;
+    data[i] = rand_float(0.0f, 255.0f);
   }
 
   Parameter param = {100, 50, 0.1f, 0.9f, 0.4f, 1.5f, 1.5f};
