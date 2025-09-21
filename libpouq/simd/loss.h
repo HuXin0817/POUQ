@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cassert>
-#include <cfloat>
-#include <cmath>
+#include <assert.h>
+#include <float.h>
+#include <math.h>
 
 #include "def.h"
 
@@ -13,4 +13,4 @@ loss(float div,
      const float* data_map,
      const int* freq_map,
      int size,
-     bool do_count_freq);
+     int do_count_freq);

@@ -1,7 +1,17 @@
 #include "util.h"
 
-#include <algorithm>
-#include <vector>
+#include <stdlib.h>
+
+static int
+compare_floats(const void* a, const void* b) {
+  float fa = *(const float*)a;
+  float fb = *(const float*)b;
+  if (fa < fb)
+    return -1;
+  if (fa > fb)
+    return 1;
+  return 0;
+}
 
 int
 get_sorted_data(const float* data, int size, int d, int dim, float* sorted_data) {
@@ -9,7 +19,9 @@ get_sorted_data(const float* data, int size, int d, int dim, float* sorted_data)
   for (int i = d; i < size; i += dim) {
     sorted_data[pos++] = data[i];
   }
-  std::sort(sorted_data, sorted_data + pos);
+
+  qsort(sorted_data, pos, sizeof(float), compare_floats);
+
   return pos;
 }
 

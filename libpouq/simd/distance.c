@@ -5,15 +5,22 @@
 float
 distance_avx2(
     int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
-  assert(data != nullptr);
+  assert(data != NULL);
   assert(offset % dim == 0);
 
   __m256 sum_squares_vec = _mm256_setzero_ps();
   for (int d = 0; d < dim; d += 8) {
     int group_idx = d / 4;
-    auto [code1, code2, code_value] = code[(offset / 4 + group_idx) / 2];
-    auto [lower1, step1] = rec_para[group_idx * 256 + code1];
-    auto [lower2, step2] = rec_para[(group_idx + 1) * 256 + code2];
+    CodeUnit code_unit = code[(offset / 4 + group_idx) / 2];
+    uint8_t code1 = code_unit.x1;
+    uint8_t code2 = code_unit.x2;
+    uint16_t code_value = code_unit.code;
+    RecPara rec_para1 = rec_para[group_idx * 256 + code1];
+    __m128 lower1 = rec_para1.lower;
+    __m128 step1 = rec_para1.step_size;
+    RecPara rec_para2 = rec_para[(group_idx + 1) * 256 + code2];
+    __m128 lower2 = rec_para2.lower;
+    __m128 step2 = rec_para2.step_size;
 
     __m256 lower_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(lower1), lower2, 1);
     __m256 step_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(step1), step2, 1);
@@ -54,9 +61,16 @@ distance_neon(
   float32x4_t sum_squares_vec = vdupq_n_f32(0.0f);
   for (int d = 0; d < dim; d += 8) {
     int group_idx = d / 4;
-    auto [code1, code2, code_value] = code[(offset / 4 + group_idx) / 2];
-    auto [lower1, step1] = rec_para[group_idx * 256 + code1];
-    auto [lower2, step2] = rec_para[(group_idx + 1) * 256 + code2];
+    CodeUnit code_unit = code[(offset / 4 + group_idx) / 2];
+    uint8_t code1 = code_unit.x1;
+    uint8_t code2 = code_unit.x2;
+    uint16_t code_value = code_unit.code;
+    RecPara rec_para1 = rec_para[group_idx * 256 + code1];
+    float32x4_t lower1 = rec_para1.lower;
+    float32x4_t step1 = rec_para1.step_size;
+    RecPara rec_para2 = rec_para[(group_idx + 1) * 256 + code2];
+    float32x4_t lower2 = rec_para2.lower;
+    float32x4_t step2 = rec_para2.step_size;
 
     uint32_t code_value_uint = code_value;
 

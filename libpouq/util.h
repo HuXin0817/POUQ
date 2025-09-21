@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 int
 get_sorted_data(const float* data, int size, int d, int dim, float* sorted_data);
 

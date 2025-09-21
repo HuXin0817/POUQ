@@ -2,35 +2,26 @@
 
 #include <omp.h>
 
-#include <algorithm>
-#include <cassert>
-#include <cfloat>
-#include <cstdlib>
-#include <memory>
-#include <random>
-#include <tuple>
-#include <vector>
-
-bool
+int
 train_impl(int dim,
            CodeUnit* code,
            RecPara* rec_para,
            const float* data,
            int size,
-           const Parameter& parameter) {
-  assert(data != nullptr);
+           const Parameter parameter) {
+  assert(data != NULL);
   assert(size > 0);
   assert(size % dim == 0);
 
-  float* steps = nullptr;
-  float* lowers = nullptr;
-  uint8_t* cid = nullptr;
-  uint8_t* codes = nullptr;
-  float* segment_lower = nullptr;
-  float* segment_upper = nullptr;
-  float* train_data_map = nullptr;
-  int* train_freq_map = nullptr;
-  bool success = true;
+  float* steps = NULL;
+  float* lowers = NULL;
+  uint8_t* cid = NULL;
+  uint8_t* codes = NULL;
+  float* segment_lower = NULL;
+  float* segment_upper = NULL;
+  float* train_data_map = NULL;
+  int* train_freq_map = NULL;
+  int success = 1;
 
   do_malloc(steps, float, dim * 4);
   do_malloc(lowers, float, dim * 4);
@@ -41,13 +32,12 @@ train_impl(int dim,
   do_malloc(train_data_map, float, size);
   do_malloc(train_freq_map, int, size);
 
-#pragma omp parallel for
   for (int d = 0; d < dim; d++) {
     float* data_map = train_data_map + d * (size / dim);
     int* freq_map = train_freq_map + d * (size / dim);
     int data_map_size = get_sorted_data(data, size, d, dim, data_map);
 
-    bool do_count_freq = data_map_size < size * 8 / dim / 10;
+    int do_count_freq = data_map_size < size * 8 / dim / 10;
     if (do_count_freq) {
       data_map_size = count_freq(data_map, data_map_size, data_map, freq_map);
     }
@@ -58,7 +48,7 @@ train_impl(int dim,
     int segment_size =
         segment(4, data_map, freq_map, data_map_size, do_count_freq, seg_lower, seg_upper);
     if (segment_size == 0) {
-      success = false;
+      success = 0;
       continue;
     }
 
@@ -66,19 +56,33 @@ train_impl(int dim,
       float lower = seg_lower[i];
       float upper = seg_upper[i];
       if (lower < upper) {
-        float* data_begin = std::lower_bound(data_map, data_map + data_map_size, lower);
-        float* data_end = std::upper_bound(data_map, data_map + data_map_size, upper);
+        float* data_begin = data_map;
+        for (int i = 0; i < data_map_size; i++) {
+          if (data_map[i] >= lower) {
+            data_begin = data_map + i;
+            break;
+          }
+        }
+        float* data_end = data_map + data_map_size;
+        for (int i = 0; i < data_map_size; i++) {
+          if (data_map[i] > upper) {
+            data_end = data_map + i;
+            break;
+          }
+        }
 
         int data_index = data_begin - data_map;
 
-        std::tie(lower, upper) = optimize(3,
-                                          lower,
-                                          upper,
-                                          data_begin,
-                                          freq_map + data_index,
-                                          data_end - data_begin,
-                                          parameter,
-                                          do_count_freq);
+        Bound bound = optimize(3,
+                               lower,
+                               upper,
+                               data_begin,
+                               freq_map + data_index,
+                               data_end - data_begin,
+                               parameter,
+                               do_count_freq);
+        lower = bound.lower;
+        upper = bound.upper;
       }
       lowers[d * 4 + i] = lower;
       if (lower == upper) {
@@ -89,9 +93,24 @@ train_impl(int dim,
     }
 
     for (int i = d; i < size; i += dim) {
-      float* it = std::upper_bound(seg_lower, seg_lower + segment_size, data[i]);
-      int c = it - seg_lower - 1;
-      float x = std::clamp((data[i] - lowers[d * 4 + c]) / steps[d * 4 + c] + 0.5f, 0.0f, 3.0f);
+      int c = 0;
+      for (int j = 0; j < segment_size; j++) {
+        if (data[i] <= seg_lower[j]) {
+          c = j - 1;
+          break;
+        }
+        c = j;
+      }
+      if (c < 0)
+        c = 0;
+      if (c >= segment_size)
+        c = segment_size - 1;
+
+      float x = (data[i] - lowers[d * 4 + c]) / steps[d * 4 + c] + 0.5f;
+      if (x < 0.0f)
+        x = 0.0f;
+      if (x > 3.0f)
+        x = 3.0f;
       cid[i] = c;
       codes[i] = (uint8_t)(x);
     }
@@ -121,8 +140,9 @@ train_impl(int dim,
     uint16_t x14 = (codes[i * 8 + 6] & 3) << 12;
     uint16_t x15 = (codes[i * 8 + 7] & 3) << 14;
 
-    code[i] = std::make_tuple(
-        x0 | x1 | x2 | x3, x4 | x5 | x6 | x7, x8 | x9 | x10 | x11 | x12 | x13 | x14 | x15);
+    code[i].x1 = x0 | x1 | x2 | x3;
+    code[i].x2 = x4 | x5 | x6 | x7;
+    code[i].code = x8 | x9 | x10 | x11 | x12 | x13 | x14 | x15;
   }
 
 #pragma omp parallel for
@@ -154,13 +174,13 @@ cleanup:
   do_free(lowers);
   do_free(steps);
 
-  return true;
+  return success;
 }
 
-std::pair<CodeUnit*, RecPara*>
-train(int dim, const float* data, int size, const Parameter& parameter) {
-  CodeUnit* code_ = nullptr;
-  RecPara* rec_para = nullptr;
+Result
+train(int dim, const float* data, int size, const Parameter parameter) {
+  CodeUnit* code_ = NULL;
+  RecPara* rec_para = NULL;
 
   do_malloc(code_, CodeUnit, size / 8);
   do_malloc(rec_para, RecPara, dim * 64);
@@ -168,11 +188,17 @@ train(int dim, const float* data, int size, const Parameter& parameter) {
     goto cleanup;
   }
 
-  return {code_, rec_para};
+  Result result;
+  result.code = code_;
+  result.rec_para = rec_para;
+  return result;
 
 cleanup:
   do_free(code_);
   do_free(rec_para);
 
-  return {nullptr, nullptr};
+  Result error_result;
+  error_result.code = NULL;
+  error_result.rec_para = NULL;
+  return error_result;
 }

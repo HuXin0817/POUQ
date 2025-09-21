@@ -1,8 +1,7 @@
 #include "loss.h"
 
-#include <cassert>
-#include <cfloat>
-#include <cmath>
+#include <assert.h>
+#include <math.h>
 
 #if defined(POUQ_X86_ARCH)
 
@@ -13,7 +12,7 @@ loss_avx2(float div,
           const float* data_map,
           const int* freq_map,
           int size,
-          bool do_count_freq) {
+          int do_count_freq) {
   __m256 lower_vec = _mm256_set1_ps(lower);
   __m256 step_vec = _mm256_set1_ps(step);
   __m256 div_vec = _mm256_set1_ps(div);
@@ -34,8 +33,8 @@ loss_avx2(float div,
     __m256 code_loss = _mm256_sub_ps(real_quantized_code, quantized_code);
     __m256 loss_squared = _mm256_mul_ps(code_loss, code_loss);
     if (do_count_freq) {
-      __m128i freq_low = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&freq_map[i]));
-      __m128i freq_high = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&freq_map[i + 4]));
+      __m128i freq_low = _mm_loadu_si128((const __m128i*)(&freq_map[i]));
+      __m128i freq_high = _mm_loadu_si128((const __m128i*)(&freq_map[i + 4]));
       __m256 freq_vec = _mm256_cvtepi32_ps(
           _mm256_inserti128_si256(_mm256_castsi128_si256(freq_low), freq_high, 1));
       loss_squared = _mm256_mul_ps(loss_squared, freq_vec);
@@ -50,7 +49,7 @@ loss_avx2(float div,
     float quantized_code = 0.0f;
 
     if (data_value > lower) {
-      quantized_code = std::round(real_quantized_code);
+      quantized_code = roundf(real_quantized_code);
       if (quantized_code > div) {
         quantized_code = div;
       }
@@ -87,7 +86,7 @@ loss_neon(float div,
           const float* data_map,
           const int* freq_map,
           int size,
-          bool do_count_freq) {
+          int do_count_freq) {
   float32x4_t lower_vec = vdupq_n_f32(lower);
   float32x4_t step_vec = vdupq_n_f32(step);
   float32x4_t div_vec = vdupq_n_f32(div);
@@ -122,7 +121,7 @@ loss_neon(float div,
     float quantized_code = 0.0f;
 
     if (data_value > lower) {
-      quantized_code = std::round(real_quantized_code);
+      quantized_code = roundf(real_quantized_code);
       if (quantized_code > div) {
         quantized_code = div;
       }
@@ -152,13 +151,13 @@ loss(float div,
      const float* data_map,
      const int* freq_map,
      int size,
-     bool do_count_freq) {
+     int do_count_freq) {
   assert(div > 0.0f);
   assert(step >= FLT_EPSILON);
   assert(size > 0);
-  assert(data_map != nullptr);
+  assert(data_map != NULL);
   if (do_count_freq) {
-    assert(freq_map != nullptr);
+    assert(freq_map != NULL);
   }
 
 #if defined(POUQ_X86_ARCH)

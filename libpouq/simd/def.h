@@ -1,9 +1,7 @@
 #pragma once
 
-#include <cstdint>
-#include <cstdlib>
-#include <tuple>
-#include <utility>
+#include <stdint.h>
+#include <stdlib.h>
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
 #define POUQ_X86_ARCH
@@ -15,43 +13,44 @@
 #error "Unsupported architecture. POUQ requires x86/x64 or ARM with NEON support."
 #endif
 
-using CodeUnit = std::tuple<uint8_t, uint8_t, uint16_t>;
+typedef struct {
+  uint8_t x1;
+  uint8_t x2;
+  uint16_t code;
+} CodeUnit;
+
 #if defined(POUQ_X86_ARCH)
-using RecPara = std::tuple<__m128, __m128>;
+typedef struct {
+  __m128 lower;
+  __m128 step_size;
+} RecPara;
 #elif defined(POUQ_ARM_ARCH)
-using RecPara = std::tuple<float32x4_t, float32x4_t>;
+typedef struct {
+  float32x4_t lower;
+  float32x4_t step_size;
+} RecPara;
 #endif
 
-inline void
+void
 set_rec_para(
-    RecPara* p, float x0, float x1, float x2, float x3, float x4, float x5, float x6, float x7) {
-#if defined(POUQ_X86_ARCH)
-  *p = {
-      _mm_setr_ps(x0, x1, x2, x3),
-      _mm_setr_ps(x4, x5, x6, x7),
-  };
-#elif defined(POUQ_ARM_ARCH)
-  float lower_vals[4] = {x0, x1, x2, x3};
-  float step_vals[4] = {x4, x5, x6, x7};
-  *p = {
-      vld1q_f32(lower_vals),
-      vld1q_f32(step_vals),
-  };
-#endif
-}
+    RecPara* p, float x0, float x1, float x2, float x3, float x4, float x5, float x6, float x7);
 
-#define do_malloc(ptr, type, size)                            \
-  do {                                                        \
-    ptr = (type*)(aligned_alloc(256, (size) * sizeof(type))); \
-    if (ptr == nullptr) {                                     \
-      goto cleanup;                                           \
-    }                                                         \
+#define do_malloc(ptr, type, size)                                         \
+  do {                                                                     \
+    int result = posix_memalign((void**)&ptr, 256, (size) * sizeof(type)); \
+    if (result != 0) {                                                     \
+      ptr = NULL;                                                          \
+      goto cleanup;                                                        \
+    }                                                                      \
   } while (0)
 
-#define do_free(ptr)      \
-  do {                    \
-    if (ptr != nullptr) { \
-      free(ptr);          \
-      ptr = nullptr;      \
-    }                     \
+#define do_free(ptr)   \
+  do {                 \
+    if (ptr != NULL) { \
+      free(ptr);       \
+      ptr = NULL;      \
+    }                  \
   } while (0)
+
+#define min(A, B) ((A) < (B) ? (A) : (B))
+#define max(A, B) ((A) > (B) ? (A) : (B))
