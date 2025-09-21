@@ -18,8 +18,7 @@ typedef struct {
 } Bound;
 
 Bound
-optimize(float div,
-         float init_lower,
+optimize(float init_lower,
          float init_upper,
          const float* data_map,
          const int* freq_map,

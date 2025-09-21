@@ -73,8 +73,7 @@ train_impl(int dim,
 
         int data_index = data_begin - data_map;
 
-        Bound bound = optimize(3,
-                               lower,
+        Bound bound = optimize(lower,
                                upper,
                                data_begin,
                                freq_map + data_index,

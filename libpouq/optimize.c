@@ -9,6 +9,8 @@
 
 #include "def.h"
 
+#define DIV 3.0f
+
 typedef struct {
   float lower;
   float step;
@@ -20,14 +22,12 @@ typedef struct {
 } Particle;
 
 float
-loss(float div,
-     float lower,
+loss(float lower,
      float step,
      const float* data_map,
      const int* freq_map,
      int size,
      int do_count_freq) {
-  assert(div > 0.0f);
   assert(step >= FLT_EPSILON);
   assert(size > 0);
   assert(data_map != NULL);
@@ -37,7 +37,7 @@ loss(float div,
 
   __m256 lower_vec = _mm256_set1_ps(lower);
   __m256 step_vec = _mm256_set1_ps(step);
-  __m256 div_vec = _mm256_set1_ps(div);
+  __m256 div_vec = _mm256_set1_ps(DIV);
   __m256 zero_vec = _mm256_setzero_ps();
   __m256 total_loss_vec = _mm256_setzero_ps();
 
@@ -72,8 +72,8 @@ loss(float div,
 
     if (data_value > lower) {
       quantized_code = roundf(real_quantized_code);
-      if (quantized_code > div) {
-        quantized_code = div;
+      if (quantized_code > DIV) {
+        quantized_code = DIV;
       }
     }
 
@@ -98,15 +98,13 @@ loss(float div,
 }
 
 Bound
-optimize(float div,
-         float init_lower,
+optimize(float init_lower,
          float init_upper,
          const float* data_map,
          const int* freq_map,
          int size,
          const Parameter parameter,
          int do_count_freq) {
-  assert(div > 0.0f);
   assert(init_lower <= init_upper);
   assert(size > 0);
   assert(data_map != NULL);
@@ -124,7 +122,7 @@ optimize(float div,
   srand((unsigned int)time(NULL));
 
   float init_range_width = init_upper - init_lower;
-  float init_step = init_range_width / div;
+  float init_step = init_range_width / DIV;
 
   float v_min = -init_range_width * 0.1f;
   float v_max = init_range_width * 0.1f;
@@ -135,7 +133,7 @@ optimize(float div,
 
   float global_best_lower = init_lower;
   float global_best_step = init_step;
-  float global_min_loss = loss(div, init_lower, init_step, data_map, freq_map, size, do_count_freq);
+  float global_min_loss = loss(init_lower, init_step, data_map, freq_map, size, do_count_freq);
 
   Particle* swarm = NULL;
   do_malloc(swarm, Particle, parameter.particle_count);
@@ -145,7 +143,7 @@ optimize(float div,
     float step = rand_float(step_min, step_max);
     float v_lower = rand_float(v_min, v_max);
     float v_step = rand_float(v_min, v_max);
-    float min_loss = loss(div, lower, step, data_map, freq_map, size, do_count_freq);
+    float min_loss = loss(lower, step, data_map, freq_map, size, do_count_freq);
 
     swarm[i].lower = lower;
     swarm[i].step = step;
@@ -184,7 +182,7 @@ optimize(float div,
       particle->step = fmaxf(fabsf(particle->step), FLT_EPSILON);
 
       float curr_loss =
-          loss(div, particle->lower, particle->step, data_map, freq_map, size, do_count_freq);
+          loss(particle->lower, particle->step, data_map, freq_map, size, do_count_freq);
       if (curr_loss < particle->min_loss) {
         particle->min_loss = curr_loss;
         particle->best_lower = particle->lower;
@@ -204,6 +202,6 @@ cleanup:
 
   Bound result;
   result.lower = global_best_lower;
-  result.upper = global_best_lower + global_best_step * div;
+  result.upper = global_best_lower + global_best_step * DIV;
   return result;
 }
