@@ -1,8 +1,7 @@
 #include "distance.h"
 
 float
-distance(
-    int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
+distance(int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
   assert(data != NULL);
   assert(offset % dim == 0);
 

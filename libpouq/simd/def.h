@@ -1,9 +1,8 @@
 #pragma once
 
+#include <immintrin.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#include <immintrin.h>
 
 typedef struct {
   uint8_t x1;
@@ -15,10 +14,6 @@ typedef struct {
   __m128 lower;
   __m128 step_size;
 } RecPara;
-
-void
-set_rec_para(
-    RecPara* p, float x0, float x1, float x2, float x3, float x4, float x5, float x6, float x7);
 
 #define do_malloc(ptr, type, size)                                         \
   do {                                                                     \
