@@ -2,8 +2,6 @@
 
 #include <assert.h>
 
-#include "loss.h"
-
 typedef struct {
   int max_iter;
   int particle_count;

@@ -1,15 +1,14 @@
 # POUQ Makefile
 # Supports only x86_64 architecture with AVX2 and FMA optimizations
-# Requires Intel MKL library for high-performance sorting
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -std=c17 -Wall -Wextra -O3 -mavx2 -mfma -fopenmp -DMKL_ILP64 -I$(MKLROOT)/include
-LDFLAGS = -lm -fopenmp -lmkl_intel_ilp64 -lmkl_core -lmkl_sequential -lpthread -L$(MKLROOT)/lib/intel64
+CFLAGS = -std=c17 -Wall -Wextra -O3 -mavx2 -mfma -fopenmp
+LDFLAGS = -lm -fopenmp -lpthread
 
 # Directories
 SRCDIR = libpouq
-SIMDDIR = $(SRCDIR)/simd
+SIMMDIR = $(SRCDIR)/simd
 OBJDIR = build
 LIBDIR = $(OBJDIR)
 
@@ -31,7 +30,7 @@ all: $(EXAMPLE)
 # Create build directories
 $(OBJDIR):
 	mkdir -p $(OBJDIR)/$(SRCDIR)
-	mkdir -p $(OBJDIR)/$(SIMDDIR)
+	mkdir -p $(OBJDIR)/$(SIMMDIR)
 
 # Build library
 $(LIBRARY): $(LIB_OBJECTS) | $(OBJDIR)
@@ -82,6 +81,16 @@ run: $(EXAMPLE)
 debug: CFLAGS = -std=c17 -Wall -Wextra -g -O0 -mavx2 -mfma -fopenmp -DDEBUG
 debug: clean $(EXAMPLE)
 
+# Format source code using clang-format
+FMT_TOOL = clang-format
+FMT_FLAGS = -style=LLVM --verbose
+SRC_FILES = $(LIB_SOURCES) $(EXAMPLE_SOURCES)
+
+fmt:
+	@echo "Formatting source files..."
+	$(FMT_TOOL) $(FMT_FLAGS) $(SRC_FILES)
+	@echo "Formatting complete."
+
 # Help
 help:
 	@echo "POUQ Makefile Targets:"
@@ -92,14 +101,13 @@ help:
 	@echo "  info     - Show build information"
 	@echo "  run      - Build and run example"
 	@echo "  debug    - Build with debug symbols"
+	@echo "  fmt      - Format source code with clang-format"
 	@echo "  help     - Show this help message"
 	@echo ""
 	@echo "Note: POUQ requires x86_64 architecture with AVX2 and FMA support."
-	@echo "      Intel MKL library is required. Set MKLROOT environment variable"
-	@echo "      to MKL installation directory before building."
 
 # Phony targets
-.PHONY: all clean sources install info run debug help
+.PHONY: all clean sources install info run debug fmt help
 
 # Auto-generate dependencies
 -include $(LIB_OBJECTS:.o=.d)
