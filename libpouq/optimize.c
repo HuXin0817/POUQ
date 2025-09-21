@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "simd/def.h"
+#include "def.h"
 
 typedef struct {
   float lower;

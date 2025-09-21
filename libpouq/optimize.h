@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-#include "simd/loss.h"
+#include "loss.h"
 
 typedef struct {
   int max_iter;

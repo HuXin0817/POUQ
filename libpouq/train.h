@@ -2,10 +2,10 @@
 
 #include <omp.h>
 
+#include "def.h"
+#include "distance.h"
 #include "optimize.h"
 #include "segment.h"
-#include "simd/def.h"
-#include "simd/distance.h"
 #include "util.h"
 
 int

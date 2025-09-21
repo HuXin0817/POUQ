@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "simd/def.h"
+#include "def.h"
 
 typedef struct {
   int j;

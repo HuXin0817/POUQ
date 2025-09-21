@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "libpouq/simd/def.h"
+#include "libpouq/def.h"
 #include "libpouq/train.h"
 
 const int Dim = 256;
