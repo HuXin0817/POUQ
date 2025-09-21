@@ -17,4 +17,4 @@ find_package(OpenMP REQUIRED COMPONENTS C)
 file(GLOB_RECURSE SOURCES "*.c")
 
 add_library(libpouq ${SOURCES})
-target_link_libraries(libpouq PRIVATE OpenMP::OpenMP_C)
+target_link_libraries(libpouq PRIVATE OpenMP::OpenMP_C m)
