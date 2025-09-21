@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 
-static int
+int
 compare_floats(const void* a, const void* b) {
   float fa = *(const float*)a;
   float fb = *(const float*)b;
