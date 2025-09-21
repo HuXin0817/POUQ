@@ -14,7 +14,7 @@ int
 segment(const float* data_map,
         const int* freq_map,
         int size,
-        int do_count_freq,
+        bool do_count_freq,
         float* lowers,
         float* uppers) {
   assert(size > 0);

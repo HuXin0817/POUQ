@@ -29,4 +29,4 @@ optimize(float init_lower,
          const int* freq_map,
          int size,
          const Parameter parameter,
-         int do_count_freq);
+         bool do_count_freq);
