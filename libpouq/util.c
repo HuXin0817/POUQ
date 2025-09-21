@@ -6,10 +6,12 @@ int
 compare_floats(const void* a, const void* b) {
   float fa = *(const float*)a;
   float fb = *(const float*)b;
-  if (fa < fb)
+  if (fa < fb) {
     return -1;
-  if (fa > fb)
+  }
+  if (fa > fb) {
     return 1;
+  }
   return 0;
 }
 
