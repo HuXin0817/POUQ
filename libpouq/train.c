@@ -46,7 +46,7 @@ train_impl(int dim,
     float* seg_upper = segment_upper + d * 4;
 
     int segment_size =
-        segment(4, data_map, freq_map, data_map_size, do_count_freq, seg_lower, seg_upper);
+        segment(data_map, freq_map, data_map_size, do_count_freq, seg_lower, seg_upper);
     if (segment_size == 0) {
       success = 0;
       continue;

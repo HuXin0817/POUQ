@@ -16,20 +16,19 @@ typedef struct {
 } Task;
 
 int
-segment(int k,
-        const float* data_map,
+segment(const float* data_map,
         const int* freq_map,
         int size,
         int do_count_freq,
         float* lowers,
         float* uppers) {
-  assert(k > 0);
   assert(size > 0);
   assert(data_map != NULL);
   if (do_count_freq) {
     assert(freq_map != NULL);
   }
 
+  int k = 4;
   k = min(size, k);
 
   int* sum_count = NULL;
@@ -133,8 +132,7 @@ segment(int k,
 
   do_free(tasks);
 
-  int* split_pos = NULL;
-  do_malloc(split_pos, int, k);
+  int split_pos[4];
 
   int curr_pos = size;
   for (int j = k; j > 0; --j) {
@@ -145,7 +143,6 @@ segment(int k,
 
   for (int t = 0; t < k; ++t) {
     int start = split_pos[t];
-
     int end = (t < k - 1) ? (split_pos[t + 1] - 1) : (size - 1);
 
     if (start < 0 || start >= size || end < 0 || end >= size) {
@@ -161,7 +158,6 @@ cleanup:
   do_free(prev_dp);
   do_free(curr_dp);
   do_free(prev_idx);
-  do_free(split_pos);
 
   return k;
 }
