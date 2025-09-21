@@ -1,14 +1,5 @@
 #include "optimize.h"
 
-#include <assert.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <time.h>
-#include <float.h>
-
-#include "def.h"
-
 #define DIV 3.0f
 
 typedef struct {

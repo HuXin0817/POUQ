@@ -1,12 +1,5 @@
 #include "segment.h"
 
-#include <assert.h>
-#include <float.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "def.h"
-
 #define K 4
 
 typedef struct {

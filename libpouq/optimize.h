@@ -1,6 +1,11 @@
 #pragma once
 
 #include <assert.h>
+#include <math.h>
+#include <time.h>
+#include <float.h>
+
+#include "def.h"
 
 typedef struct {
   int max_iter;

@@ -1,6 +1,5 @@
 #include "util.h"
 
-#include <stdlib.h>
 
 int
 compare_floats(const void* a, const void* b) {

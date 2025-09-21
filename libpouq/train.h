@@ -2,8 +2,6 @@
 
 #include <omp.h>
 
-#include "def.h"
-#include "distance.h"
 #include "optimize.h"
 #include "segment.h"
 #include "util.h"

@@ -1,6 +1,5 @@
 #include "train.h"
 
-#include <omp.h>
 
 int
 train_impl(int dim,
