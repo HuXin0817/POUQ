@@ -1,9 +1,7 @@
 #include "distance.h"
 
-#if defined(POUQ_X86_ARCH)
-
 float
-distance_avx2(
+distance(
     int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
   assert(data != NULL);
   assert(offset % dim == 0);
@@ -49,68 +47,4 @@ distance_avx2(
   total_sum128 = _mm_add_ss(total_sum128, shuffled_sum);
 
   return _mm_cvtss_f32(total_sum128);
-}
-
-#endif
-
-#if defined(POUQ_ARM_ARCH)
-
-float
-distance_neon(
-    int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
-  float32x4_t sum_squares_vec = vdupq_n_f32(0.0f);
-  for (int d = 0; d < dim; d += 8) {
-    int group_idx = d / 4;
-    CodeUnit code_unit = code[(offset / 4 + group_idx) / 2];
-    uint8_t code1 = code_unit.x1;
-    uint8_t code2 = code_unit.x2;
-    uint16_t code_value = code_unit.code;
-    RecPara rec_para1 = rec_para[group_idx * 256 + code1];
-    float32x4_t lower1 = rec_para1.lower;
-    float32x4_t step1 = rec_para1.step_size;
-    RecPara rec_para2 = rec_para[(group_idx + 1) * 256 + code2];
-    float32x4_t lower2 = rec_para2.lower;
-    float32x4_t step2 = rec_para2.step_size;
-
-    uint32_t code_value_uint = code_value;
-
-    uint32_t codes[8];
-    codes[0] = (code_value_uint >> 0) & 3;
-    codes[1] = (code_value_uint >> 2) & 3;
-    codes[2] = (code_value_uint >> 4) & 3;
-    codes[3] = (code_value_uint >> 6) & 3;
-    codes[4] = (code_value_uint >> 8) & 3;
-    codes[5] = (code_value_uint >> 10) & 3;
-    codes[6] = (code_value_uint >> 12) & 3;
-    codes[7] = (code_value_uint >> 14) & 3;
-
-    uint32x4_t code_vec1 = vld1q_u32(&codes[0]);
-    float32x4_t code_float1 = vcvtq_f32_u32(code_vec1);
-    float32x4_t reconstructed_vec1 = vmlaq_f32(lower1, code_float1, step1);
-    float32x4_t data_vec1 = vld1q_f32(data + d);
-    float32x4_t diff_vec1 = vsubq_f32(reconstructed_vec1, data_vec1);
-    sum_squares_vec = vmlaq_f32(sum_squares_vec, diff_vec1, diff_vec1);
-
-    uint32x4_t code_vec2 = vld1q_u32(&codes[4]);
-    float32x4_t code_float2 = vcvtq_f32_u32(code_vec2);
-    float32x4_t reconstructed_vec2 = vmlaq_f32(lower2, code_float2, step2);
-    float32x4_t data_vec2 = vld1q_f32(data + d + 4);
-    float32x4_t diff_vec2 = vsubq_f32(reconstructed_vec2, data_vec2);
-    sum_squares_vec = vmlaq_f32(sum_squares_vec, diff_vec2, diff_vec2);
-  }
-
-  float32x2_t sum_low = vadd_f32(vget_low_f32(sum_squares_vec), vget_high_f32(sum_squares_vec));
-  float32x2_t sum_final = vpadd_f32(sum_low, sum_low);
-  return vget_lane_f32(sum_final, 0);
-}
-
-#endif
-
-float
-distance(int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
-#if defined(POUQ_X86_ARCH)
-  return distance_avx2(dim, code, rec_para, data, offset);
-#elif defined(POUQ_ARM_ARCH)
-  return distance_neon(dim, code, rec_para, data, offset);
-#endif
 }

@@ -6,7 +6,7 @@
 #include "libpouq/train.h"
 
 const int Dim = 256;
-const int N = Dim * 100000;
+const int N = Dim * 1000;
 
 int
 main() {

@@ -3,16 +3,22 @@
 #include <assert.h>
 #include <math.h>
 
-#if defined(POUQ_X86_ARCH)
-
 float
-loss_avx2(float div,
+loss(float div,
           float lower,
           float step,
           const float* data_map,
           const int* freq_map,
           int size,
           int do_count_freq) {
+  assert(div > 0.0f);
+  assert(step >= FLT_EPSILON);
+  assert(size > 0);
+  assert(data_map != NULL);
+  if (do_count_freq) {
+    assert(freq_map != NULL);
+  }
+
   __m256 lower_vec = _mm256_set1_ps(lower);
   __m256 step_vec = _mm256_set1_ps(step);
   __m256 div_vec = _mm256_set1_ps(div);
@@ -73,96 +79,4 @@ loss_avx2(float div,
   total_loss += _mm_cvtss_f32(sum_128);
 
   return total_loss * step * step;
-}
-
-#endif
-
-#if defined(POUQ_ARM_ARCH)
-
-float
-loss_neon(float div,
-          float lower,
-          float step,
-          const float* data_map,
-          const int* freq_map,
-          int size,
-          int do_count_freq) {
-  float32x4_t lower_vec = vdupq_n_f32(lower);
-  float32x4_t step_vec = vdupq_n_f32(step);
-  float32x4_t div_vec = vdupq_n_f32(div);
-  float32x4_t zero_vec = vdupq_n_f32(0.0f);
-  float32x4_t total_loss_vec = vdupq_n_f32(0.0f);
-
-  int simd_size = size - size % 4;
-  for (int i = 0; i < simd_size; i += 4) {
-    float32x4_t data_vec = vld1q_f32(&data_map[i]);
-    float32x4_t real_quantized_code = vdivq_f32(vsubq_f32(data_vec, lower_vec), step_vec);
-    uint32x4_t greater_mask = vcgtq_f32(data_vec, lower_vec);
-    float32x4_t rounded_code = vaddq_f32(real_quantized_code, vdupq_n_f32(0.5f));
-    int32x4_t rounded_int = vcvtq_s32_f32(rounded_code);
-    float32x4_t rounded_float = vcvtq_f32_s32(rounded_int);
-    float32x4_t quantized_code = vbslq_f32(greater_mask, rounded_float, zero_vec);
-    float32x4_t clamped_code = vminq_f32(quantized_code, div_vec);
-    quantized_code = vbslq_f32(greater_mask, clamped_code, zero_vec);
-    float32x4_t code_loss = vsubq_f32(real_quantized_code, quantized_code);
-    float32x4_t loss_squared = vmulq_f32(code_loss, code_loss);
-    if (do_count_freq) {
-      int32x4_t freq_vec = vld1q_s32(&freq_map[i]);
-      float32x4_t freq_float = vcvtq_f32_s32(freq_vec);
-      loss_squared = vmulq_f32(loss_squared, freq_float);
-    }
-    total_loss_vec = vaddq_f32(total_loss_vec, loss_squared);
-  }
-
-  float total_loss = 0.0f;
-  for (int i = simd_size; i < size; ++i) {
-    float data_value = data_map[i];
-    float real_quantized_code = (data_value - lower) / step;
-    float quantized_code = 0.0f;
-
-    if (data_value > lower) {
-      quantized_code = roundf(real_quantized_code);
-      if (quantized_code > div) {
-        quantized_code = div;
-      }
-    }
-
-    float code_loss = real_quantized_code - quantized_code;
-    if (do_count_freq) {
-      total_loss += code_loss * code_loss * (float)(freq_map[i]);
-    } else {
-      total_loss += code_loss * code_loss;
-    }
-  }
-
-  float32x2_t sum_low = vadd_f32(vget_low_f32(total_loss_vec), vget_high_f32(total_loss_vec));
-  float32x2_t sum_final = vpadd_f32(sum_low, sum_low);
-  total_loss += vget_lane_f32(sum_final, 0);
-
-  return total_loss * step * step;
-}
-
-#endif
-
-float
-loss(float div,
-     float lower,
-     float step,
-     const float* data_map,
-     const int* freq_map,
-     int size,
-     int do_count_freq) {
-  assert(div > 0.0f);
-  assert(step >= FLT_EPSILON);
-  assert(size > 0);
-  assert(data_map != NULL);
-  if (do_count_freq) {
-    assert(freq_map != NULL);
-  }
-
-#if defined(POUQ_X86_ARCH)
-  return loss_avx2(div, lower, step, data_map, freq_map, size, do_count_freq);
-#elif defined(POUQ_ARM_ARCH)
-  return loss_neon(div, lower, step, data_map, freq_map, size, do_count_freq);
-#endif
 }
