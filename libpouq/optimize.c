@@ -1,7 +1,5 @@
 #include "optimize.h"
 
-#define DIV 3.0f
-
 typedef struct {
   float lower;
   float step;

@@ -1,6 +1,5 @@
 #include "util.h"
 
-
 int
 compare_floats(const void* a, const void* b) {
   float fa = *(const float*)a;

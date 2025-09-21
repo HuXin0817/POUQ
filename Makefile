@@ -13,6 +13,7 @@ LIBDIR = $(OBJDIR)
 
 # Auto-discover source files
 LIB_SOURCES = $(shell find $(SRCDIR) -name "*.c")
+LIB_HEADERS = $(shell find $(SRCDIR) -name "*.h")
 EXAMPLE_SOURCES = example.c
 
 # Object files
@@ -81,12 +82,11 @@ debug: clean $(EXAMPLE)
 
 # Format source code using clang-format
 FMT_TOOL = clang-format
-FMT_FLAGS = -style=LLVM --verbose
 SRC_FILES = $(LIB_SOURCES) $(EXAMPLE_SOURCES)
 
 fmt:
 	@echo "Formatting source files..."
-	$(FMT_TOOL) $(FMT_FLAGS) $(SRC_FILES)
+	$(FMT_TOOL) -i $(SRC_FILES) $(LIB_HEADERS)
 	@echo "Formatting complete."
 
 # Help

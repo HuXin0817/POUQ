@@ -1,6 +1,5 @@
 #include "train.h"
 
-
 int
 train_impl(int dim,
            CodeUnit* code,
@@ -86,7 +85,7 @@ train_impl(int dim,
       if (lower == upper) {
         steps[d * 4 + i] = 1.0;
       } else {
-        steps[d * 4 + i] = (upper - lower) / 3.0f;
+        steps[d * 4 + i] = (upper - lower) / DIV;
       }
     }
 
@@ -105,10 +104,12 @@ train_impl(int dim,
         c = segment_size - 1;
 
       float x = (data[i] - lowers[d * 4 + c]) / steps[d * 4 + c] + 0.5f;
-      if (x < 0.0f)
+      if (x < 0.0f) {
         x = 0.0f;
-      if (x > 3.0f)
-        x = 3.0f;
+      }
+      if (x > DIV) {
+        x = DIV;
+      }
       cid[i] = c;
       codes[i] = (uint8_t)(x);
     }

@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include "libpouq/train.h"
 #include "libpouq/distance.h"
+#include "libpouq/train.h"
 
 const int Dim = 256;
 const int N = Dim * 1000;

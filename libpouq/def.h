@@ -18,20 +18,22 @@ typedef struct {
   do {                                                                     \
     int result = posix_memalign((void**)&ptr, 256, (size) * sizeof(type)); \
     if (result != 0) {                                                     \
-      ptr = nullptr;                                                          \
+      ptr = nullptr;                                                       \
       goto cleanup;                                                        \
     }                                                                      \
   } while (0)
 
-#define do_free(ptr)   \
-  do {                 \
+#define do_free(ptr)      \
+  do {                    \
     if (ptr != nullptr) { \
-      free(ptr);       \
+      free(ptr);          \
       ptr = nullptr;      \
-    }                  \
+    }                     \
   } while (0)
 
 #define min(A, B) ((A) < (B) ? (A) : (B))
 #define max(A, B) ((A) > (B) ? (A) : (B))
 
 #define rand_float(min, max) (min + (float)rand() / (float)RAND_MAX * (max - min))
+
+#define DIV 3.0f
