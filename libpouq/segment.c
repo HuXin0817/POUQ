@@ -157,7 +157,6 @@ segment(int k,
   }
 
 cleanup:
-
   do_free(sum_count);
   do_free(prev_dp);
   do_free(curr_dp);

@@ -19,11 +19,6 @@ typedef struct {
   float min_loss;
 } Particle;
 
-static float
-rand_float(float min, float max) {
-  return min + (float)rand() / (float)RAND_MAX * (max - min);
-}
-
 float
 loss(float div,
      float lower,
@@ -205,7 +200,6 @@ optimize(float div,
   }
 
 cleanup:
-
   do_free(swarm);
 
   Bound result;

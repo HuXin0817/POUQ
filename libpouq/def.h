@@ -34,3 +34,5 @@ typedef struct {
 
 #define min(A, B) ((A) < (B) ? (A) : (B))
 #define max(A, B) ((A) > (B) ? (A) : (B))
+
+#define rand_float(min, max) (min + (float)rand() / (float)RAND_MAX * (max - min))
