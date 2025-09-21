@@ -8,7 +8,6 @@ LDFLAGS = -lm -fopenmp -lpthread
 
 # Directories
 SRCDIR = libpouq
-SIMMDIR = $(SRCDIR)/simd
 OBJDIR = build
 LIBDIR = $(OBJDIR)
 
@@ -30,7 +29,6 @@ all: $(EXAMPLE)
 # Create build directories
 $(OBJDIR):
 	mkdir -p $(OBJDIR)/$(SRCDIR)
-	mkdir -p $(OBJDIR)/$(SIMMDIR)
 
 # Build library
 $(LIBRARY): $(LIB_OBJECTS) | $(OBJDIR)
