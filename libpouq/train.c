@@ -35,7 +35,7 @@ train_impl(int dim,
     int* freq_map = train_freq_map + d * (size / dim);
     int data_map_size = get_sorted_data(data, size, d, dim, data_map);
 
-    int do_count_freq = data_map_size < size * 8 / dim / 10;
+    int do_count_freq = data_map_size < size / dim * 8 / 10;
     if (do_count_freq) {
       data_map_size = count_freq(data_map, data_map_size, data_map, freq_map);
     }
