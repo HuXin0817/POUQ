@@ -10,6 +10,6 @@ int
 segment(const float* data_map,
         const int* freq_map,
         int size,
-        bool do_count_freq,
+        int do_count_freq,
         float* lowers,
         float* uppers);

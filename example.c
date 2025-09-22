@@ -8,10 +8,10 @@ const int N = Dim * 1000;
 
 int
 main() {
-  float* data = nullptr;
+  float* data = NULL;
   do_malloc(data, float, N);
 
-  srand(time(nullptr));
+  srand(time(NULL));
 
 #pragma omp parallel for
   for (int i = 0; i < N; ++i) {

@@ -2,7 +2,7 @@
 
 float
 distance(int dim, const CodeUnit* code, const RecPara* rec_para, const float* data, int offset) {
-  assert(data != nullptr);
+  assert(data != NULL);
   assert(offset % dim == 0);
 
   __m256 sum_squares_vec = _mm256_setzero_ps();

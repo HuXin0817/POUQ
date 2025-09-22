@@ -14,19 +14,19 @@ int
 segment(const float* data_map,
         const int* freq_map,
         int size,
-        bool do_count_freq,
+        int do_count_freq,
         float* lowers,
         float* uppers) {
   assert(size > 0);
-  assert(data_map != nullptr);
+  assert(data_map != NULL);
   if (do_count_freq) {
-    assert(freq_map != nullptr);
+    assert(freq_map != NULL);
   }
 
   int k = K;
   k = min(size, k);
 
-  int* sum_count = nullptr;
+  int* sum_count = NULL;
   if (do_count_freq) {
     do_malloc(sum_count, int, size + 1);
     sum_count[0] = 0;
@@ -35,8 +35,8 @@ segment(const float* data_map,
     }
   }
 
-  float* prev_dp = nullptr;
-  float* curr_dp = nullptr;
+  float* prev_dp = NULL;
+  float* curr_dp = NULL;
   do_malloc(prev_dp, float, size + 1);
   do_malloc(curr_dp, float, size + 1);
 
@@ -45,11 +45,11 @@ segment(const float* data_map,
   }
   prev_dp[0] = 0.0f;
 
-  int* prev_idx = nullptr;
+  int* prev_idx = NULL;
   do_malloc(prev_idx, int, (size + 1) * (k + 1));
   memset(prev_idx, 0, (size + 1) * (k + 1) * sizeof(int));
 
-  Task* tasks = nullptr;
+  Task* tasks = NULL;
   do_malloc(tasks, Task, size);
   int tasks_size = 0;
 

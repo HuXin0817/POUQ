@@ -18,17 +18,17 @@ typedef struct {
   do {                                                                     \
     int result = posix_memalign((void**)&ptr, 256, (size) * sizeof(type)); \
     if (result != 0) {                                                     \
-      ptr = nullptr;                                                       \
+      ptr = NULL;                                                          \
       goto cleanup;                                                        \
     }                                                                      \
   } while (0)
 
-#define do_free(ptr)      \
-  do {                    \
-    if (ptr != nullptr) { \
-      free(ptr);          \
-      ptr = nullptr;      \
-    }                     \
+#define do_free(ptr)   \
+  do {                 \
+    if (ptr != NULL) { \
+      free(ptr);       \
+      ptr = NULL;      \
+    }                  \
   } while (0)
 
 #define min(A, B) ((A) < (B) ? (A) : (B))
