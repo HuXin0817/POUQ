@@ -1,13 +1,22 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #include "libpouq/distance.h"
 #include "libpouq/train.h"
 
 const int Dim = 256;
-const int N = Dim * 1000;
 
 int
-main() {
+main(int argc, char* argv[]) {
+  int N = 1000;
+  if (argc > 1) {
+    N = max(N, atoi(argv[1]));
+  }
+
+  N *= Dim;
+
   float* data = NULL;
   do_malloc(data, float, N);
 

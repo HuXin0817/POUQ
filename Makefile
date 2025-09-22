@@ -74,7 +74,7 @@ info:
 
 # Run example
 run: $(EXAMPLE)
-	./$(EXAMPLE)
+	./$(EXAMPLE) $(ARGS)
 
 # Debug build
 debug: CFLAGS = -std=c17 -Wall -Wextra -g -O0 -mavx2 -mfma -fopenmp -DDEBUG
