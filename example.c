@@ -18,7 +18,16 @@ main() {
     data[i] = rand_float(0.0f, 255.0f);
   }
 
-  Parameter param = {100, 50, 0.1f, 0.9f, 0.4f, 1.5f, 1.5f};
+  Parameter param = {
+      .max_iter = 100,
+      .particle_count = 50,
+      .scale_factor = 0.1f,
+      .init_inertia = 0.9f,
+      .final_inertia = 0.4f,
+      .c1 = 1.5f,
+      .c2 = 1.5f,
+  };
+
   Result result = train(Dim, data, N, param);
   if (!result.code || !result.rec_para) {
     do_free(data);
