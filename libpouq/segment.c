@@ -140,15 +140,10 @@ segment(const float* data_map,
     int start = split_pos[t];
     int end = (t < k - 1) ? (split_pos[t + 1] - 1) : (size - 1);
 
-    if (start < 0 || start >= size || end < 0 || end >= size) {
-      goto cleanup;
-    }
-
     lowers[t] = data_map[start];
     uppers[t] = data_map[end];
   }
 
-cleanup:
   free(sum_count);
   free(prev_dp);
   free(curr_dp);
