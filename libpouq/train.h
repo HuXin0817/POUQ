@@ -6,7 +6,7 @@
 #include "segment.h"
 #include "util.h"
 
-int
+void
 train_impl(int dim,
            CodeUnit* code,
            RecPara* rec_para,

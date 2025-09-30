@@ -1,6 +1,6 @@
 #include "train.h"
 
-int
+void
 train_impl(int dim,
            CodeUnit* code,
            RecPara* rec_para,
@@ -19,7 +19,6 @@ train_impl(int dim,
   float* segment_upper = NULL;
   float* train_data_map = NULL;
   int* train_freq_map = NULL;
-  int success = 1;
 
   do_malloc(steps, dim * 4);
   do_malloc(lowers, dim * 4);
@@ -45,10 +44,6 @@ train_impl(int dim,
 
     int segment_size =
         segment(data_map, freq_map, data_map_size, do_count_freq, seg_lower, seg_upper);
-    if (segment_size == 0) {
-      success = 0;
-      continue;
-    }
 
     for (int i = 0; i < segment_size; i++) {
       float lower = seg_lower[i];
@@ -115,10 +110,6 @@ train_impl(int dim,
     }
   }
 
-  if (!success) {
-    goto cleanup;
-  }
-
 #pragma omp parallel for
   for (int i = 0; i < size / 8; i++) {
     uint8_t x0 = (cid[i * 8] & 3) << 0;
@@ -156,7 +147,6 @@ train_impl(int dim,
     }
   }
 
-cleanup:
   free(train_freq_map);
   free(train_data_map);
   free(segment_upper);
@@ -165,8 +155,6 @@ cleanup:
   free(cid);
   free(lowers);
   free(steps);
-
-  return success;
 }
 
 Result
@@ -176,21 +164,10 @@ train(int dim, const float* data, int size, const Parameter parameter) {
 
   do_malloc(code_, size / 8);
   do_malloc(rec_para, dim * 64);
-  if (!train_impl(dim, code_, rec_para, data, size, parameter)) {
-    goto cleanup;
-  }
+  train_impl(dim, code_, rec_para, data, size, parameter);
 
   Result result;
   result.code = code_;
   result.rec_para = rec_para;
   return result;
-
-cleanup:
-  free(code_);
-  free(rec_para);
-
-  Result error_result;
-  error_result.code = NULL;
-  error_result.rec_para = NULL;
-  return error_result;
 }
