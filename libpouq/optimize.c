@@ -16,7 +16,7 @@ loss(float lower,
      const float* data_map,
      const int* freq_map,
      int size,
-     int do_count_freq) {
+     bool do_count_freq) {
   assert(step >= FLT_EPSILON);
   assert(size > 0);
   assert(data_map != NULL);
@@ -93,7 +93,7 @@ optimize(float init_lower,
          const int* freq_map,
          int size,
          const Parameter parameter,
-         int do_count_freq) {
+         bool do_count_freq) {
   assert(init_lower <= init_upper);
   assert(size > 0);
   assert(data_map != NULL);
