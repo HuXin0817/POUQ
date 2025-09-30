@@ -15,11 +15,11 @@ typedef struct {
   __m128 step_size;
 } RecPara;
 
-#define do_malloc(ptr, size)                                                \
-  do {                                                                      \
-    if (posix_memalign((void**)&ptr, 256, (size) * sizeof(typeof(*ptr)))) { \
-      exit(EXIT_FAILURE);                                                   \
-    }                                                                       \
+#define do_malloc(ptr, size)                                                    \
+  do {                                                                          \
+    if (posix_memalign((void**)&(ptr), 256, (size) * sizeof(typeof(*(ptr))))) { \
+      exit(EXIT_FAILURE);                                                       \
+    }                                                                           \
   } while (0)
 
 #define min(A, B) ((A) < (B) ? (A) : (B))
