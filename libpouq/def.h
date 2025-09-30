@@ -14,26 +14,17 @@ typedef struct {
   __m128 step_size;
 } RecPara;
 
-#define do_malloc(ptr, type, size)                                         \
-  do {                                                                     \
-    int result = posix_memalign((void**)&ptr, 256, (size) * sizeof(type)); \
-    if (result != 0) {                                                     \
-      ptr = NULL;                                                          \
-      goto cleanup;                                                        \
-    }                                                                      \
-  } while (0)
-
-#define do_free(ptr)   \
-  do {                 \
-    if (ptr != NULL) { \
-      free(ptr);       \
-      ptr = NULL;      \
-    }                  \
+#define do_malloc(ptr, size)                                                \
+  do {                                                                      \
+    if (posix_memalign((void**)&ptr, 256, (size) * sizeof(typeof(*ptr)))) { \
+      exit(EXIT_FAILURE);                                                   \
+    }                                                                       \
   } while (0)
 
 #define min(A, B) ((A) < (B) ? (A) : (B))
 #define max(A, B) ((A) > (B) ? (A) : (B))
 
-#define rand_float(min, max) ((float)min + (float)rand() / (float)RAND_MAX * ((float)max - (float)min))
+#define rand_float(min, max) \
+  ((float)min + (float)rand() / (float)RAND_MAX * ((float)max - (float)min))
 
 #define DIV 3.0f

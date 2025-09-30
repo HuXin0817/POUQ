@@ -28,7 +28,7 @@ segment(const float* data_map,
 
   int* sum_count = NULL;
   if (do_count_freq) {
-    do_malloc(sum_count, int, size + 1);
+    do_malloc(sum_count, size + 1);
     sum_count[0] = 0;
     for (int i = 1; i <= size; ++i) {
       sum_count[i] = sum_count[i - 1] + freq_map[i - 1];
@@ -37,8 +37,8 @@ segment(const float* data_map,
 
   float* prev_dp = NULL;
   float* curr_dp = NULL;
-  do_malloc(prev_dp, float, size + 1);
-  do_malloc(curr_dp, float, size + 1);
+  do_malloc(prev_dp, size + 1);
+  do_malloc(curr_dp, size + 1);
 
   for (int i = 0; i <= size; ++i) {
     prev_dp[i] = FLT_MAX;
@@ -46,11 +46,11 @@ segment(const float* data_map,
   prev_dp[0] = 0.0f;
 
   int* prev_idx = NULL;
-  do_malloc(prev_idx, int, (size + 1) * (k + 1));
+  do_malloc(prev_idx, (size + 1) * (k + 1));
   memset(prev_idx, 0, (size + 1) * (k + 1) * sizeof(int));
 
   Task* tasks = NULL;
-  do_malloc(tasks, Task, size);
+  do_malloc(tasks, size);
   int tasks_size = 0;
 
   for (int j = 1; j <= k; ++j) {
@@ -125,7 +125,7 @@ segment(const float* data_map,
     }
   }
 
-  do_free(tasks);
+  free(tasks);
 
   int split_pos[K];
 
@@ -149,10 +149,10 @@ segment(const float* data_map,
   }
 
 cleanup:
-  do_free(sum_count);
-  do_free(prev_dp);
-  do_free(curr_dp);
-  do_free(prev_idx);
+  free(sum_count);
+  free(prev_dp);
+  free(curr_dp);
+  free(prev_idx);
 
   return k;
 }

@@ -125,7 +125,7 @@ optimize(float init_lower,
   float global_min_loss = loss(init_lower, init_step, data_map, freq_map, size, do_count_freq);
 
   Particle* swarm = NULL;
-  do_malloc(swarm, Particle, parameter.particle_count);
+  do_malloc(swarm, parameter.particle_count);
 
   for (int i = 0; i < parameter.particle_count; i++) {
     float lower = rand_float(lower_min, lower_max);
@@ -186,8 +186,7 @@ optimize(float init_lower,
     }
   }
 
-cleanup:
-  do_free(swarm);
+  free(swarm);
 
   Bound result;
   result.lower = global_best_lower;

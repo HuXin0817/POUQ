@@ -18,7 +18,7 @@ main(int argc, char* argv[]) {
   N *= Dim;
 
   float* data = NULL;
-  do_malloc(data, float, N);
+  do_malloc(data, N);
 
   srand(time(NULL));
 
@@ -39,7 +39,7 @@ main(int argc, char* argv[]) {
 
   Result result = train(Dim, data, N, param);
   if (!result.code || !result.rec_para) {
-    do_free(data);
+    free(data);
     printf("train error\n");
     return 1;
   }
@@ -51,9 +51,8 @@ main(int argc, char* argv[]) {
   }
   printf("%f\n", mse / N);
 
-cleanup:
-  do_free(result.code);
-  do_free(result.rec_para);
-  do_free(data);
+  free(result.code);
+  free(result.rec_para);
+  free(data);
   return 0;
 }

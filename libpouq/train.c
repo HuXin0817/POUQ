@@ -21,14 +21,14 @@ train_impl(int dim,
   int* train_freq_map = NULL;
   int success = 1;
 
-  do_malloc(steps, float, dim * 4);
-  do_malloc(lowers, float, dim * 4);
-  do_malloc(cid, uint8_t, size);
-  do_malloc(codes, uint8_t, size);
-  do_malloc(segment_lower, float, dim * 4);
-  do_malloc(segment_upper, float, dim * 4);
-  do_malloc(train_data_map, float, size);
-  do_malloc(train_freq_map, int, size);
+  do_malloc(steps, dim * 4);
+  do_malloc(lowers, dim * 4);
+  do_malloc(cid, size);
+  do_malloc(codes, size);
+  do_malloc(segment_lower, dim * 4);
+  do_malloc(segment_upper, dim * 4);
+  do_malloc(train_data_map, size);
+  do_malloc(train_freq_map, size);
 
   for (int d = 0; d < dim; d++) {
     float* data_map = train_data_map + d * (size / dim);
@@ -157,14 +157,14 @@ train_impl(int dim,
   }
 
 cleanup:
-  do_free(train_freq_map);
-  do_free(train_data_map);
-  do_free(segment_upper);
-  do_free(segment_lower);
-  do_free(codes);
-  do_free(cid);
-  do_free(lowers);
-  do_free(steps);
+  free(train_freq_map);
+  free(train_data_map);
+  free(segment_upper);
+  free(segment_lower);
+  free(codes);
+  free(cid);
+  free(lowers);
+  free(steps);
 
   return success;
 }
@@ -174,8 +174,8 @@ train(int dim, const float* data, int size, const Parameter parameter) {
   CodeUnit* code_ = NULL;
   RecPara* rec_para = NULL;
 
-  do_malloc(code_, CodeUnit, size / 8);
-  do_malloc(rec_para, RecPara, dim * 64);
+  do_malloc(code_, size / 8);
+  do_malloc(rec_para, dim * 64);
   if (!train_impl(dim, code_, rec_para, data, size, parameter)) {
     goto cleanup;
   }
@@ -186,8 +186,8 @@ train(int dim, const float* data, int size, const Parameter parameter) {
   return result;
 
 cleanup:
-  do_free(code_);
-  do_free(rec_para);
+  free(code_);
+  free(rec_para);
 
   Result error_result;
   error_result.code = NULL;
