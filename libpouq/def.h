@@ -25,7 +25,6 @@ typedef struct {
 #define min(A, B) ((A) < (B) ? (A) : (B))
 #define max(A, B) ((A) > (B) ? (A) : (B))
 
-#define rand_float(min, max) \
-  ((float)min + (float)rand() / (float)RAND_MAX * ((float)max - (float)min))
+#define rand_float(l, u) ((float)(l) + (float)rand() / (float)RAND_MAX * ((float)(u) - (float)(l)))
 
 #define DIV 3.0f
