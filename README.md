@@ -4,6 +4,10 @@ POUQ is a high-performance C library for vector quantization that combines advan
 
 ![Demo](POUQ.png)
 
+## Dataset
+
+Moderate-scale datasets are available at https://www.cse.cuhk.edu.hk/systems/hash/gqr/datasets.html/
+
 ## Citation
 
 If you use POUQ in your research, please cite:
