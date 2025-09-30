@@ -60,8 +60,9 @@ loss(float lower,
     float quantized_code = 0.0f;
 
     if (data_value > lower) {
-      quantized_code = roundf(real_quantized_code);
-      if (quantized_code > DIV) {
+      if (real_quantized_code < DIV) {
+        quantized_code = roundf(real_quantized_code);
+      } else {
         quantized_code = DIV;
       }
     }
