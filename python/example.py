@@ -15,11 +15,11 @@ faulthandler.enable()
 def main():
     data = np.random.rand(100, 10)
     quantizer = Quantizer(dim=10)
-    quantizer.train(data=data)
+    quantizer.train(data)
 
-    vec1 = quantizer.decode(1)
-    vec2 = data[1]
-    
+    vec1 = quantizer.decode(0)
+    vec2 = data[0, :]
+
     print(np.linalg.norm(vec1 - vec2))
 
 
