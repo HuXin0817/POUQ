@@ -6,7 +6,6 @@ Example usage of POUQ Python bindings
 import faulthandler
 
 import numpy as np
-
 from pouq import Quantizer
 
 faulthandler.enable()

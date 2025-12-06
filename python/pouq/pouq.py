@@ -157,7 +157,7 @@ class Quantizer:
         self.data: Optional[Result] = None
 
     def __del__(self):
-        if self.data is not None and _lib is not None:
+        if self.data is not None:
             try:
                 if _has_free:
                     _lib.free(self.data.code)
@@ -234,7 +234,7 @@ class Quantizer:
         if self.data is None:
             raise RuntimeError("Quantizer has not been trained. Call train() first.")
 
-        dist = np.zeros(self.dim, dtype=np.float32)
+        dist = np.zeros(self.dim, dtype=np.float32, order="C")
 
         _lib.decode(
             self.dim,
