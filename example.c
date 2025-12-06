@@ -80,7 +80,8 @@ read_fvecs_padded(const char* filename, int* orig_dim, int* new_dim, int* num_ve
   return padded_vecs;
 }
 
-float baseline(const float* data, int size) {
+float
+baseline(const float* data, int size) {
   float minv = data[0];
   float maxv = data[0];
 
