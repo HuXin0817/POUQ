@@ -64,7 +64,7 @@ read_fvecs_padded(const char* filename, int* orig_dim, int* new_dim, int* num_ve
 
     float* dest = padded_vecs + i * *new_dim;
 
-    if (fread(dest, sizeof(float), *orig_dim, fp) != *orig_dim) {
+    if ((int)fread(dest, sizeof(float), *orig_dim, fp) != *orig_dim) {
       perror("Failed to read vector data");
       free(padded_vecs);
       fclose(fp);
@@ -86,8 +86,8 @@ baseline(const float* data, int size) {
   float maxv = data[0];
 
   for (int i = 1; i < size; i++) {
-    minv = min(minv, data[i]);
-    maxv = max(maxv, data[i]);
+    minv = fminf(minv, data[i]);
+    maxv = fmaxf(maxv, data[i]);
   }
 
   float step_size = (maxv - minv) / 15.0f;
