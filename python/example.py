@@ -12,8 +12,8 @@ faulthandler.enable()
 
 
 def main():
-    data = np.random.rand(100, 10)
-    quantizer = Quantizer(dim=10)
+    data = np.random.rand(1000, 16)
+    quantizer = Quantizer(dim=16)
     quantizer.train(data)
 
     vec1 = quantizer.decode(0)
