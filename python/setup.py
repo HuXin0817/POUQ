@@ -3,8 +3,8 @@
 Setup script for POUQ Python bindings
 """
 
-from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext
+from setuptools import setup
+from setuptools.command.build_py import build_py
 import os
 import sys
 import subprocess
@@ -14,13 +14,13 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIBPOUQ_DIR = os.path.join(PROJECT_ROOT, "libpouq")
 
 
-class CustomBuildExt(build_ext):
-    """Custom build extension to compile C library as shared library"""
+class CustomBuildPy(build_py):
+    """Custom build_py to compile C library as shared library"""
     
-    def build_extensions(self):
-        # First, compile the C library as a shared library
+    def run(self):
+        # Build the shared library before building Python packages
         self.build_shared_lib()
-        super().build_extensions()
+        super().run()
     
     def build_shared_lib(self):
         """Build libpouq as a shared library"""
@@ -33,6 +33,7 @@ class CustomBuildExt(build_ext):
             lib_ext = ".so"
         
         lib_name = f"libpouq{lib_ext}"
+        # Use build_lib to ensure library is in the right place
         build_dir = os.path.join(self.build_lib, "pouq")
         os.makedirs(build_dir, exist_ok=True)
         lib_path = os.path.join(build_dir, lib_name)
@@ -64,7 +65,8 @@ class CustomBuildExt(build_ext):
         include_dirs = [LIBPOUQ_DIR]
         
         # Build command - compile objects first, then link
-        obj_dir = os.path.join(self.build_temp, "obj")
+        # Use a temporary directory for object files (in build_lib)
+        obj_dir = os.path.join(self.build_lib, "pouq_obj")
         os.makedirs(obj_dir, exist_ok=True)
         
         obj_files = []
@@ -74,6 +76,7 @@ class CustomBuildExt(build_ext):
             compile_cmd = [cc] + cflags + ["-c", c_file, "-o", obj_file]
             for inc_dir in include_dirs:
                 compile_cmd.extend(["-I", inc_dir])
+            print(f"Compiling {os.path.basename(c_file)}...")
             subprocess.check_call(compile_cmd)
         
         # Link command
@@ -97,8 +100,7 @@ setup(
     author="POUQ Contributors",
     package_dir={"": "."},
     packages=["pouq"],
-    ext_modules=[Extension("_pouq", [])],  # Dummy extension, we build manually
-    cmdclass={"build_ext": CustomBuildExt},
+    cmdclass={"build_py": CustomBuildPy},
     python_requires=">=3.6",
     install_requires=["numpy>=1.16.0"],
 )
