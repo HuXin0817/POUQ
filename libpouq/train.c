@@ -11,23 +11,14 @@ train_impl(int dim,
   assert(size > 0);
   assert(size % dim == 0);
 
-  float* steps = NULL;
-  float* lowers = NULL;
-  uint8_t* cid = NULL;
-  uint8_t* codes = NULL;
-  float* segment_lower = NULL;
-  float* segment_upper = NULL;
-  float* train_data_map = NULL;
-  int* train_freq_map = NULL;
-
-  do_malloc(steps, dim * 4);
-  do_malloc(lowers, dim * 4);
-  do_malloc(cid, size);
-  do_malloc(codes, size);
-  do_malloc(segment_lower, dim * 4);
-  do_malloc(segment_upper, dim * 4);
-  do_malloc(train_data_map, size);
-  do_malloc(train_freq_map, size);
+  float* steps = malloc(dim * 4 * sizeof(float));
+  float* lowers = malloc(dim * 4 * sizeof(float));
+  uint8_t* cid = malloc(size * sizeof(uint8_t));
+  uint8_t* codes = malloc(size * sizeof(uint8_t));
+  float* segment_lower = malloc(dim * 4 * sizeof(float));
+  float* segment_upper = malloc(dim * 4 * sizeof(float));
+  float* train_data_map = malloc(size * sizeof(float));
+  int* train_freq_map = malloc(size * sizeof(int));
 
   for (int d = 0; d < dim; d++) {
     float* data_map = train_data_map + d * (size / dim);
@@ -80,7 +71,7 @@ train_impl(int dim,
       if (lower == upper) {
         steps[d * 4 + i] = 1.0;
       } else {
-        steps[d * 4 + i] = (upper - lower) / DIV;
+        steps[d * 4 + i] = (upper - lower) / 3.0f;
       }
     }
 
@@ -102,8 +93,8 @@ train_impl(int dim,
       if (x < 0.0f) {
         x = 0.0f;
       }
-      if (x > DIV) {
-        x = DIV;
+      if (x > 3.0f) {
+        x = 3.0f;
       }
       cid[i] = c;
       codes[i] = (uint8_t)(x);
@@ -159,11 +150,9 @@ train_impl(int dim,
 
 Result
 train(int dim, const float* data, int size, const Parameter parameter) {
-  CodeUnit* code_ = NULL;
-  RecPara* rec_para = NULL;
+  CodeUnit* code_ = malloc(size / 8 * sizeof(CodeUnit));
+  RecPara* rec_para = malloc(dim * 64 * sizeof(RecPara));
 
-  do_malloc(code_, size / 8);
-  do_malloc(rec_para, dim * 64);
   train_impl(dim, code_, rec_para, data, size, parameter);
 
   Result result;

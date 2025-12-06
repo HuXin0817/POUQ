@@ -28,29 +28,25 @@ segment(const float* data_map,
 
   int* sum_count = NULL;
   if (do_count_freq) {
-    do_malloc(sum_count, size + 1);
+    sum_count = malloc((size + 1) * sizeof(int));
     sum_count[0] = 0;
     for (int i = 1; i <= size; ++i) {
       sum_count[i] = sum_count[i - 1] + freq_map[i - 1];
     }
   }
 
-  float* prev_dp = NULL;
-  float* curr_dp = NULL;
-  do_malloc(prev_dp, size + 1);
-  do_malloc(curr_dp, size + 1);
+  float* prev_dp = malloc((size + 1) * sizeof(float));
+  float* curr_dp = malloc((size + 1) * sizeof(float));
 
   for (int i = 0; i <= size; ++i) {
     prev_dp[i] = FLT_MAX;
   }
   prev_dp[0] = 0.0f;
 
-  int* prev_idx = NULL;
-  do_malloc(prev_idx, (size + 1) * (k + 1));
+  int* prev_idx = malloc((size + 1) * (k + 1) * sizeof(int));
   memset(prev_idx, 0, (size + 1) * (k + 1) * sizeof(int));
 
-  Task* tasks = NULL;
-  do_malloc(tasks, size);
+  Task* tasks = malloc(size * sizeof(Task));
   int tasks_size = 0;
 
   for (int j = 1; j <= k; ++j) {

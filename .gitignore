@@ -15,12 +15,7 @@ python/*.egg-info/
 __pycache__
 
 # dataset
-data/deep1M/
-data/gist/
-data/imagenet/
-data/msong/
-data/sift/
-data/word2vec/
+data/
 
 # result
 result/

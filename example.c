@@ -80,6 +80,26 @@ read_fvecs_padded(const char* filename, int* orig_dim, int* new_dim, int* num_ve
   return padded_vecs;
 }
 
+float baseline(const float* data, int size) {
+  float minv = data[0];
+  float maxv = data[0];
+
+  for (int i = 1; i < size; i++) {
+    minv = min(minv, data[i]);
+    maxv = max(maxv, data[i]);
+  }
+
+  float step_size = (maxv - minv) / 15.0f;
+  float ret = 0.0f;
+  for (int i = 0; i < size; i++) {
+    int v = (data[i] - minv) / step_size + 0.5f;
+    float dif = (step_size * v) + minv - data[i];
+    ret += dif * dif;
+  }
+
+  return ret / size;
+}
+
 int
 main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -87,11 +107,14 @@ main(int argc, char* argv[]) {
     return 1;
   }
 
+  srand((unsigned int)time(NULL));
   const char* filename = argv[1];
 
   int real_dim, dim = 0, size = 0;
   float* data = read_fvecs_padded(filename, &real_dim, &dim, &size);
   size *= dim;
+
+  printf("Baseline: %f\n", baseline(data, size));
 
   Parameter param = {
       .max_iter = 100,
@@ -104,18 +127,13 @@ main(int argc, char* argv[]) {
   };
 
   Result result = train(dim, data, size, param);
-  if (!result.code || !result.rec_para) {
-    free(data);
-    fprintf(stderr, "Train error\n");
-    return 1;
-  }
 
   float mse = 0.0f;
 #pragma omp parallel for reduction(+ : mse)
   for (int i = 0; i < size; i += dim) {
     mse += distance(dim, result.code, result.rec_para, data + i, i);
   }
-  printf("%f\n", mse / size);
+  printf("Ours: %f\n", mse / size);
 
   free(result.code);
   free(result.rec_para);

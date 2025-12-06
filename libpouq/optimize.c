@@ -33,10 +33,10 @@ loss(float lower,
     float quantized_code = 0.0f;
 
     if (data_value > lower) {
-      if (real_quantized_code < DIV) {
+      if (real_quantized_code < 3.0f) {
         quantized_code = roundf(real_quantized_code);
       } else {
-        quantized_code = DIV;
+        quantized_code = 3.0f;
       }
     }
 
@@ -49,6 +49,10 @@ loss(float lower,
   }
 
   return total_loss * step * step;
+}
+
+float rand_float(float l, float u) {
+  return l + (float)rand() / (float)RAND_MAX * (u - l);
 }
 
 Bound
@@ -76,7 +80,7 @@ optimize(float init_lower,
   srand((unsigned int)time(NULL));
 
   float init_range_width = init_upper - init_lower;
-  float init_step = init_range_width / DIV;
+  float init_step = init_range_width / 3.0f;
 
   float v_min = -init_range_width * 0.1f;
   float v_max = init_range_width * 0.1f;
@@ -89,8 +93,7 @@ optimize(float init_lower,
   float global_best_step = init_step;
   float global_min_loss = loss(init_lower, init_step, data_map, freq_map, size, do_count_freq);
 
-  Particle* swarm = NULL;
-  do_malloc(swarm, parameter.particle_count);
+  Particle* swarm = malloc(parameter.particle_count * sizeof(Particle));
 
   for (int i = 0; i < parameter.particle_count; i++) {
     float lower = rand_float(lower_min, lower_max);
@@ -155,6 +158,6 @@ optimize(float init_lower,
 
   Bound result;
   result.lower = global_best_lower;
-  result.upper = global_best_lower + global_best_step * DIV;
+  result.upper = global_best_lower + global_best_step * 3.0f;
   return result;
 }
