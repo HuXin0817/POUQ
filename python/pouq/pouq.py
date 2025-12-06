@@ -148,7 +148,8 @@ if _lib is not None:
     ]
     _lib.decode.restype = None
 else:
-    raise RuntimeError("POUQ library is not loaded. Please build the library first.")
+    raise RuntimeError(
+        "POUQ library is not loaded. Please build the library first.")
 
 
 class Quantizer:
@@ -210,7 +211,8 @@ class Quantizer:
         data: np.ndarray,
     ) -> float:
         if self.data is None:
-            raise RuntimeError("Quantizer has not been trained. Call train() first.")
+            raise RuntimeError(
+                "Quantizer has not been trained. Call train() first.")
 
         if not isinstance(data, np.ndarray):
             data = np.array(data, dtype=np.float32)
@@ -234,7 +236,8 @@ class Quantizer:
         i: int = 0,
     ) -> np.ndarray:
         if self.data is None:
-            raise RuntimeError("Quantizer has not been trained. Call train() first.")
+            raise RuntimeError(
+                "Quantizer has not been trained. Call train() first.")
 
         dist = np.zeros(self.dim, dtype=np.float32, order="C")
 
