@@ -75,8 +75,10 @@ class RecPara(ctypes.Structure):
     """C RecPara structure (contains __m128 which we'll handle as 4 floats)"""
 
     _fields_ = [
-        ("lower", ctypes.c_float * 4),  # __m128 as 4 floats
-        ("step_size", ctypes.c_float * 4),  # __m128 as 4 floats
+        # __m128 as 4 floats (16 bytes, naturally aligned)
+        ("lower", ctypes.c_float * 4),
+        # __m128 as 4 floats (16 bytes, naturally aligned)
+        ("step_size", ctypes.c_float * 4),
     ]
 
 
@@ -145,21 +147,28 @@ if _lib is not None:
         ctypes.c_int,  # offset
     ]
     _lib.decode.restype = None
+else:
+    raise RuntimeError(
+        "POUQ library is not loaded. Please build the library first.")
 
 
 class Quantizer:
     def __init__(self, dim: int):
         self.dim = dim
         self.data: Optional[Result] = None
-    
+
     def __del__(self):
-        if self.data is not None:
-            if _has_free:
-                _lib.free(self.data.code)
-                _lib.free(self.data.rec_para)
-            else:
-                _ctypes_free(self.data.code)
-                _ctypes_free(self.data.rec_para)
+        if self.data is not None and _lib is not None:
+            try:
+                if _has_free:
+                    _lib.free(self.data.code)
+                    _lib.free(self.data.rec_para)
+                else:
+                    _ctypes_free(self.data.code)
+                    _ctypes_free(self.data.rec_para)
+            except (AttributeError, OSError):
+                # Library may have been unloaded or free function not available
+                pass
 
     def train(
         self,
@@ -196,13 +205,21 @@ class Quantizer:
 
     def distance(
         self,
+        i: int,
         data: np.ndarray,
-        i: int = 0,
     ) -> float:
+        if self.data is None:
+            raise RuntimeError(
+                "Quantizer has not been trained. Call train() first.")
+
         if not isinstance(data, np.ndarray):
             data = np.array(data, dtype=np.float32)
         else:
             data = data.astype(np.float32)
+
+        # Ensure data is a 1D array with correct dimension
+        if data.ndim != 1 or data.shape[0] != self.dim:
+            raise ValueError(f"Data must be 1D array with shape [{self.dim}]")
 
         return _lib.distance(
             self.dim,
@@ -215,7 +232,11 @@ class Quantizer:
     def decode(
         self,
         i: int = 0,
-    ) -> np.ndarray[np.float32]:
+    ) -> np.ndarray:
+        if self.data is None:
+            raise RuntimeError(
+                "Quantizer has not been trained. Call train() first.")
+
         dist = np.zeros(self.dim, dtype=np.float32)
 
         _lib.decode(
