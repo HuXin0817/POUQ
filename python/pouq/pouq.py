@@ -153,6 +153,8 @@ else:
 
 class Quantizer:
     def __init__(self, dim: int):
+        assert dim % 8 == 0, "Dimension must be a multiple of 8"
+
         self.dim = dim
         self.data: Optional[Result] = None
 
