@@ -7,8 +7,9 @@ This module provides a Python interface to the POUQ C library.
 import ctypes
 import os
 import platform
-import numpy as np
 from typing import Optional
+
+import numpy as np
 
 
 def _find_library():
@@ -62,6 +63,7 @@ except Exception as e:
 # Define C structures
 class CodeUnit(ctypes.Structure):
     """C CodeUnit structure"""
+
     _fields_ = [
         ("x1", ctypes.c_uint8),
         ("x2", ctypes.c_uint8),
@@ -71,6 +73,7 @@ class CodeUnit(ctypes.Structure):
 
 class RecPara(ctypes.Structure):
     """C RecPara structure (contains __m128 which we'll handle as 4 floats)"""
+
     _fields_ = [
         ("lower", ctypes.c_float * 4),  # __m128 as 4 floats
         ("step_size", ctypes.c_float * 4),  # __m128 as 4 floats
@@ -79,6 +82,7 @@ class RecPara(ctypes.Structure):
 
 class Parameter(ctypes.Structure):
     """C Parameter structure"""
+
     _fields_ = [
         ("max_iter", ctypes.c_int),
         ("particle_count", ctypes.c_int),
@@ -92,6 +96,7 @@ class Parameter(ctypes.Structure):
 
 class Result(ctypes.Structure):
     """C Result structure"""
+
     _fields_ = [
         ("code", ctypes.POINTER(CodeUnit)),
         ("rec_para", ctypes.POINTER(RecPara)),
@@ -145,16 +150,22 @@ if _lib is not None:
 class Quantizer:
     def __init__(self, dim: int):
         self.dim = dim
-        self._data: Optional[Result] = None
+        self.data: Optional[Result] = None
+    
+    def __del__(self):
+        if self.data is not None:
+            if _has_free:
+                _lib.free(self.data.code)
+                _lib.free(self.data.rec_para)
+            else:
+                _ctypes_free(self.data.code)
+                _ctypes_free(self.data.rec_para)
 
     def train(
         self,
         data: np.ndarray,
         parameter: Optional[Parameter] = None,
     ):
-        if _lib is None:
-            raise RuntimeError("POUQ library not loaded")
-
         if not isinstance(data, np.ndarray):
             data = np.array(data, dtype=np.float32)
         else:
@@ -162,7 +173,8 @@ class Quantizer:
 
         if data.ndim != 2 or data.shape[1] != self.dim:
             raise ValueError(
-                f"Data must be 2D array with shape [n_samples, {self.dim}]")
+                f"Data must be 2D array with shape [n_samples, {self.dim}]"
+            )
 
         size = data.shape[0] * self.dim  # Total number of floats
         data_flat = data.flatten()
@@ -180,7 +192,7 @@ class Quantizer:
                 c2=2.0,
             )
 
-        self._data = _lib.train(self.dim, data_ptr, size, parameter)
+        self.data = _lib.train(self.dim, data_ptr, size, parameter)
 
     def distance(
         self,
@@ -192,14 +204,12 @@ class Quantizer:
         else:
             data = data.astype(np.float32)
 
-        data_ptr = data.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-
         return _lib.distance(
             self.dim,
-            self._data.code,
-            self._data.rec_para,
-            data_ptr,
-            i*self.dim,
+            self.data.code,
+            self.data.rec_para,
+            data.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            i * self.dim,
         )
 
     def decode(
@@ -207,12 +217,13 @@ class Quantizer:
         i: int = 0,
     ) -> np.ndarray[np.float32]:
         dist = np.zeros(self.dim, dtype=np.float32)
-        dist_ptr = dist.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
 
         _lib.decode(
             self.dim,
-            self._data.code,
-            self._data.rec_para,
-            dist_ptr,
-            i*self.dim,
+            self.data.code,
+            self.data.rec_para,
+            dist.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            i * self.dim,
         )
+
+        return dist

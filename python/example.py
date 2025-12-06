@@ -3,16 +3,24 @@
 Example usage of POUQ Python bindings
 """
 
+import faulthandler
+
 import numpy as np
+
 from pouq import Quantizer
+
+faulthandler.enable()
 
 
 def main():
-    data = np.random.rand(10, 10)
+    data = np.random.rand(100, 10)
     quantizer = Quantizer(dim=10)
     quantizer.train(data=data)
-    print(quantizer.decode(1).tolist())
-    print(data[1].tolist())
+
+    vec1 = quantizer.decode(1)
+    vec2 = data[1]
+    
+    print(np.linalg.norm(vec1 - vec2))
 
 
 if __name__ == "__main__":
