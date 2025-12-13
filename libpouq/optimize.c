@@ -152,8 +152,8 @@ optimize(float init_lower,
 
   free(swarm);
 
-  Bound result;
-  result.lower = global_best_lower;
-  result.upper = global_best_lower + global_best_step * 3.0f;
-  return result;
+  return (Bound){
+    .lower = global_best_lower,
+    .upper = global_best_lower + global_best_step * 3.0f,
+  };
 }
