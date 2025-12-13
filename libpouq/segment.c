@@ -21,8 +21,7 @@ segment(const float* data_map,
     assert(freq_map != NULL);
   }
 
-  int k = 4;
-  k = min(size, k);
+  int k = min(size, 4);
 
   int* sum_count = NULL;
   if (do_count_freq) {
@@ -91,7 +90,6 @@ segment(const float* data_map,
       }
 
       curr_dp[mid] = min_cost;
-
       prev_idx[mid * (k + 1) + current_j] = split_pos;
 
       if (l < r) {
