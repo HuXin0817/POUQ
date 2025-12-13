@@ -5,8 +5,7 @@
 #include <math.h>
 
 #include "def.h"
-
-float rand_float(float a, float b);
+#include "util.h"
 
 typedef struct {
   int max_iter;
