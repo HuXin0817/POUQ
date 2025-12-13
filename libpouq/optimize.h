@@ -7,6 +7,8 @@
 
 #include "def.h"
 
+float rand_float(float a, float b);
+
 typedef struct {
   int max_iter;
   int particle_count;

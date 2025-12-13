@@ -18,10 +18,13 @@ main() {
 
   srand(time(NULL));
 
-#pragma omp parallel for
   for (int i = 0; i < N; ++i) {
-    data[i] = rand_float(0.0f, 255.0f);
+    data[i] = rand_float(0.0f, 1.0f);
+    if (i < 5) {
+      printf("%f ", data[i]);
+    }
   }
+  printf("\n");
 
   float lower[Dim], upper[Dim];
   for (int i = 0; i < Dim; i++) {
@@ -71,7 +74,7 @@ main() {
   for (int i = 0; i < N; i += Dim) {
     mse += distance(Dim, result.code, result.rec_para, data + i, i);
   }
-  printf("Ours: %f\n", mse / N);
+  printf("Ours:     %f\n", mse / N);
 
   free(result.code);
   free(result.rec_para);

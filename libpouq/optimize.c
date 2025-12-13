@@ -51,9 +51,8 @@ loss(float lower,
   return total_loss * step * step;
 }
 
-float
-rand_float(float l, float u) {
-  return l + (float)rand() / (float)RAND_MAX * (u - l);
+float rand_float(float a, float b) {
+    return a + (b - a) * ((float)rand() / (RAND_MAX + 1.0));
 }
 
 Bound
