@@ -1,5 +1,7 @@
 #include "train.h"
 
+#include <stdlib.h>
+
 void
 train_impl(int dim,
            CodeUnit* code,
@@ -15,29 +17,25 @@ train_impl(int dim,
   float* lowers = malloc(dim * 4 * sizeof(float));
   uint8_t* cid = malloc(size * sizeof(uint8_t));
   uint8_t* codes = malloc(size * sizeof(uint8_t));
-  float* segment_lower = malloc(dim * 4 * sizeof(float));
-  float* segment_upper = malloc(dim * 4 * sizeof(float));
-  float* train_data_map = malloc(size * sizeof(float));
-  int* train_freq_map = malloc(size * sizeof(int));
 
 #pragma omp parallel for
   for (int d = 0; d < dim; d++) {
-    float* data_map = train_data_map + d * (size / dim);
-    int* freq_map = train_freq_map + d * (size / dim);
+    float* data_map = malloc(size / dim * sizeof(float));
+    int* freq_map = NULL;
     int data_map_size = get_sorted_data(data, size, d, dim, data_map);
 
     bool do_count_freq = data_map_size < size / dim * 8 / 10;
     if (do_count_freq) {
+      freq_map = malloc(size / dim * sizeof(int));
       data_map_size = count_freq(data_map, data_map_size, data_map, freq_map);
     }
 
-    float* seg_lower = segment_lower + d * 4;
-    float* seg_upper = segment_upper + d * 4;
+    float seg_lower[4];
+    float seg_upper[4];
 
-    int segment_size =
-        segment(data_map, freq_map, data_map_size, do_count_freq, seg_lower, seg_upper);
+    int seg_size = segment(data_map, freq_map, data_map_size, do_count_freq, seg_lower, seg_upper);
 
-    for (int i = 0; i < segment_size; i++) {
+    for (int i = 0; i < seg_size; i++) {
       float lower = seg_lower[i];
       float upper = seg_upper[i];
       if (lower < upper) {
@@ -76,19 +74,26 @@ train_impl(int dim,
       }
     }
 
+    free(data_map);
+    if (do_count_freq) {
+      free(freq_map);
+    }
+
     for (int i = d; i < size; i += dim) {
       int c = 0;
-      for (int j = 0; j < segment_size; j++) {
+      for (int j = 0; j < seg_size; j++) {
         if (data[i] <= seg_lower[j]) {
           c = j - 1;
           break;
         }
         c = j;
       }
-      if (c < 0)
+      if (c < 0) {
         c = 0;
-      if (c >= segment_size)
-        c = segment_size - 1;
+      }
+      if (c >= seg_size) {
+        c = seg_size - 1;
+      }
 
       float x = (data[i] - lowers[d * 4 + c]) / steps[d * 4 + c] + 0.5f;
       if (x < 0.0f) {
@@ -139,10 +144,6 @@ train_impl(int dim,
     }
   }
 
-  free(train_freq_map);
-  free(train_data_map);
-  free(segment_upper);
-  free(segment_lower);
   free(codes);
   free(cid);
   free(lowers);
