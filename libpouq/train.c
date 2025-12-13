@@ -16,8 +16,6 @@ train_impl(int dim,
 
   float* steps = malloc(dim * 4 * sizeof(float));
   float* lowers = malloc(dim * 4 * sizeof(float));
-  uint8_t* cid = malloc(size * sizeof(uint8_t));
-  uint8_t* codes = malloc(size * sizeof(uint8_t));
 
 #pragma omp parallel for
   for (int d = 0; d < dim; d++) {
@@ -130,34 +128,16 @@ train_impl(int dim,
       if (x > 3.0f) {
         x = 3.0f;
       }
-      cid[i] = c;
-      codes[i] = (uint8_t)(x);
+#pragma omp critical
+      {
+        if (i / 4 % 2 == 0) {
+          code[i / 8].x1 |= c << (2 * (i % 4));
+        } else {
+          code[i / 8].x2 |= c << (2 * (i % 4));
+        }
+        code[i / 8].code |= (uint16_t)(x) << (2 * (i % 8));
+      }
     }
-  }
-
-#pragma omp parallel for
-  for (int i = 0; i < size / 8; i++) {
-    uint8_t x0 = (cid[i * 8] & 3) << 0;
-    uint8_t x1 = (cid[i * 8 + 1] & 3) << 2;
-    uint8_t x2 = (cid[i * 8 + 2] & 3) << 4;
-    uint8_t x3 = (cid[i * 8 + 3] & 3) << 6;
-    uint8_t x4 = (cid[i * 8 + 4] & 3) << 0;
-    uint8_t x5 = (cid[i * 8 + 5] & 3) << 2;
-    uint8_t x6 = (cid[i * 8 + 6] & 3) << 4;
-    uint8_t x7 = (cid[i * 8 + 7] & 3) << 6;
-
-    uint16_t x8 = (codes[i * 8] & 3) << 0;
-    uint16_t x9 = (codes[i * 8 + 1] & 3) << 2;
-    uint16_t x10 = (codes[i * 8 + 2] & 3) << 4;
-    uint16_t x11 = (codes[i * 8 + 3] & 3) << 6;
-    uint16_t x12 = (codes[i * 8 + 4] & 3) << 8;
-    uint16_t x13 = (codes[i * 8 + 5] & 3) << 10;
-    uint16_t x14 = (codes[i * 8 + 6] & 3) << 12;
-    uint16_t x15 = (codes[i * 8 + 7] & 3) << 14;
-
-    code[i].x1 = x0 | x1 | x2 | x3;
-    code[i].x2 = x4 | x5 | x6 | x7;
-    code[i].code = x8 | x9 | x10 | x11 | x12 | x13 | x14 | x15;
   }
 
 #pragma omp parallel for
@@ -172,8 +152,6 @@ train_impl(int dim,
     }
   }
 
-  free(codes);
-  free(cid);
   free(lowers);
   free(steps);
 }
