@@ -96,13 +96,15 @@ optimize(float init_lower,
     float v_step = rand_float(v_min, v_max);
     float min_loss = loss(lower, step, data_map, freq_map, size, do_count_freq);
 
-    swarm[i].lower = lower;
-    swarm[i].step = step;
-    swarm[i].v_lower = v_lower;
-    swarm[i].v_step = v_step;
-    swarm[i].best_lower = lower;
-    swarm[i].best_step = step;
-    swarm[i].min_loss = min_loss;
+    swarm[i] = (Particle){
+        .lower = lower,
+        .step = step,
+        .v_lower = v_lower,
+        .v_step = v_step,
+        .best_lower = lower,
+        .best_step = step,
+        .min_loss = min_loss,
+    };
 
     if (min_loss < global_min_loss) {
       global_min_loss = min_loss;
