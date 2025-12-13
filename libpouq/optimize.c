@@ -77,8 +77,6 @@ optimize(float init_lower,
   assert(parameter.c1 >= 0.0f);
   assert(parameter.c2 >= 0.0f);
 
-  srand((unsigned int)time(NULL));
-
   float init_range_width = init_upper - init_lower;
   float init_step = init_range_width / 3.0f;
 

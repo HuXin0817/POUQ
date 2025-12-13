@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
-#include <time.h>
 
 #include "def.h"
 
