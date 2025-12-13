@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include "def.h"
 
 float
 rand_float(float a, float b);

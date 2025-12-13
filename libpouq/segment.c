@@ -112,9 +112,7 @@ segment(const float* data_map,
       }
     }
 
-    float* temp_dp = prev_dp;
-    prev_dp = curr_dp;
-    curr_dp = temp_dp;
+    swp(prev_dp, curr_dp);
 
     for (int i = 0; i <= size; ++i) {
       curr_dp[i] = FLT_MAX;

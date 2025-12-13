@@ -8,9 +8,7 @@ rand_float(float a, float b) {
 int
 partition(float* arr, int low, int high) {
   int pivot_idx = low + rand() % (high - low + 1);
-  float tmp = arr[high];
-  arr[high] = arr[pivot_idx];
-  arr[pivot_idx] = tmp;
+  swp(arr[high], arr[pivot_idx]);
 
   float pivot = arr[high];
   int i = low - 1;
@@ -18,15 +16,11 @@ partition(float* arr, int low, int high) {
   for (int j = low; j <= high - 1; j++) {
     if (arr[j] <= pivot) {
       i++;
-      tmp = arr[i];
-      arr[i] = arr[j];
-      arr[j] = tmp;
+      swp(arr[i], arr[j]);
     }
   }
-  tmp = arr[i + 1];
-  arr[i + 1] = arr[high];
-  arr[high] = tmp;
-  return (i + 1);
+  swp(arr[i + 1], arr[high]);
+  return i + 1;
 }
 
 void
