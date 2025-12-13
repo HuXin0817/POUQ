@@ -7,7 +7,7 @@ rand_float(float a, float b) {
 
 int
 partition(float* arr, int low, int high) {
-  int pivot_idx = low + rand() % (high - low + 1);
+  int pivot_idx = low + (high - low) / 2;
   swap(arr[high], arr[pivot_idx]);
 
   float pivot = arr[high];
