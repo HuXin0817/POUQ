@@ -50,10 +50,6 @@ get_sorted_data(const float* data, int size, int d, int dim, float* sorted_data)
 
 int
 count_unique(const float* arr, int len) {
-  if (len == 0) {
-    return 0;
-  }
-
   int count = 1;
   for (int i = 1; i < len; i++) {
     if (arr[i] != arr[i - 1]) {
