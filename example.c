@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include "libpouq/distance.h"
+#include "libpouq/optimize.h"
 #include "libpouq/train.h"
 #include "libpouq/util.h"
 
@@ -53,15 +54,8 @@ main() {
 
   printf("Baseline: %.15f\n", baseline_mse / N);
 
-  Parameter param = {
-      .max_iter = 100,
-      .particle_count = 50,
-      .scale_factor = 0.1f,
-      .init_inertia = 0.9f,
-      .final_inertia = 0.4f,
-      .c1 = 1.5f,
-      .c2 = 1.5f,
-  };
+  Parameter param;
+  set_default_parameter(&param);
 
   Result result = train(Dim, data, N, param);
   if (!result.code || !result.rec_para) {

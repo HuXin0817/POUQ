@@ -1,5 +1,18 @@
 #include "optimize.h"
 
+void
+set_default_parameter(Parameter* param) {
+  *param = (Parameter){
+      .max_iter = 100,
+      .particle_count = 50,
+      .scale_factor = 0.1f,
+      .init_inertia = 0.9f,
+      .final_inertia = 0.4f,
+      .c1 = 1.5f,
+      .c2 = 1.5f,
+  };
+}
+
 typedef struct {
   float lower;
   float step;
@@ -153,7 +166,7 @@ optimize(float init_lower,
   free(swarm);
 
   return (Bound){
-    .lower = global_best_lower,
-    .upper = global_best_lower + global_best_step * 3.0f,
+      .lower = global_best_lower,
+      .upper = global_best_lower + global_best_step * 3.0f,
   };
 }

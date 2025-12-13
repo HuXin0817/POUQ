@@ -17,6 +17,9 @@ typedef struct {
   float c2;
 } Parameter;
 
+void
+set_default_parameter(Parameter* param);
+
 typedef struct {
   float lower;
   float upper;
