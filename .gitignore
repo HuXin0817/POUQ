@@ -4,21 +4,13 @@
 
 # build
 build/
-cmake-build-debug/
-cmake-build-release/
-cmake-build-debug-clang-18/
-cmake-build-release-clang-18/
 
 # python
-python/build/
-python/*.egg-info/
+*.egg-info/
 __pycache__
 
 # dataset
 data/
-
-# result
-result/
 
 # MacOS
 .DS_Store
