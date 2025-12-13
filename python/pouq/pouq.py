@@ -156,7 +156,8 @@ class Quantizer:
     def __init__(self, dim: int):
         assert dim % 8 == 0, "Dimension must be a multiple of 8"
 
-        self.dim = dim
+        self.dim: int = dim
+        self.n_samples: int = 0
         self.data: Optional[Result] = None
 
     def __del__(self):
@@ -174,14 +175,9 @@ class Quantizer:
 
     def train(
         self,
-        data: np.ndarray,
+        data: np.ndarray[np.float32],
         parameter: Optional[Parameter] = None,
     ):
-        if not isinstance(data, np.ndarray):
-            data = np.array(data, dtype=np.float32)
-        else:
-            data = data.astype(np.float32)
-
         if data.ndim != 2 or data.shape[1] != self.dim:
             raise ValueError(
                 f"Data must be 2D array with shape [n_samples, {self.dim}]"
@@ -203,21 +199,20 @@ class Quantizer:
                 c2=2.0,
             )
 
+        self.n_samples = data.shape[0]
         self.data = _lib.train(self.dim, data_ptr, size, parameter)
 
     def distance(
         self,
         i: int,
-        data: np.ndarray,
+        data: np.ndarray[np.float32],
     ) -> float:
         if self.data is None:
             raise RuntimeError(
                 "Quantizer has not been trained. Call train() first.")
 
-        if not isinstance(data, np.ndarray):
-            data = np.array(data, dtype=np.float32)
-        else:
-            data = data.astype(np.float32)
+        if i >= self.n_samples:
+            raise RuntimeError(f"Index i should less than {self.n_samples}")
 
         # Ensure data is a 1D array with correct dimension
         if data.ndim != 1 or data.shape[0] != self.dim:
@@ -234,10 +229,13 @@ class Quantizer:
     def decode(
         self,
         i: int = 0,
-    ) -> np.ndarray:
+    ) -> np.ndarray[np.float32]:
         if self.data is None:
             raise RuntimeError(
                 "Quantizer has not been trained. Call train() first.")
+
+        if i >= self.n_samples:
+            raise RuntimeError(f"Index i should less than {self.n_samples}")
 
         dist = np.zeros(self.dim, dtype=np.float32, order="C")
 
