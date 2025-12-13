@@ -201,7 +201,7 @@ class Quantizer:
             init_inertia=init_inertia,
             final_inertia=final_inertia,
             c1=c1,
-            c2=c1,
+            c2=c2,
         )
 
         self.n_samples = data.shape[0]
