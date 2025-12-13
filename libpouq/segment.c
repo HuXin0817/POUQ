@@ -104,7 +104,6 @@ segment(const float* data_map,
             .opt_left = split_pos,
             .opt_right = opt_r,
         };
-        tasks_size++;
         tasks[tasks_size++] = (Task){
             .j = current_j,
             .left = l,
@@ -112,7 +111,6 @@ segment(const float* data_map,
             .opt_left = opt_l,
             .opt_right = split_pos,
         };
-        tasks_size++;
       }
     }
 
