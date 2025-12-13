@@ -57,8 +57,7 @@ segment(const float* data_map,
     };
 
     while (tasks_size) {
-      Task current_task = tasks[tasks_size - 1];
-      tasks_size--;
+      Task current_task = tasks[--tasks_size];
 
       int current_j = current_task.j;
       int l = current_task.left;
