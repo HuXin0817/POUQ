@@ -32,7 +32,6 @@ train_impl(int dim,
 
     float seg_lower[4];
     float seg_upper[4];
-
     int seg_size = segment(data_map, freq_map, data_map_size, do_count_freq, seg_lower, seg_upper);
 
     for (int i = 0; i < seg_size; i++) {
@@ -54,12 +53,10 @@ train_impl(int dim,
           }
         }
 
-        int data_index = data_begin - data_map;
-
         Bound bound = optimize(lower,
                                upper,
                                data_begin,
-                               freq_map + data_index,
+                               freq_map + (data_begin - data_map),
                                data_end - data_begin,
                                parameter,
                                do_count_freq);
