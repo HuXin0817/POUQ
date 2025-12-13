@@ -39,17 +39,37 @@ train_impl(int dim,
       float upper = seg_upper[i];
       if (lower < upper) {
         float* data_begin = data_map;
-        for (int i = 0; i < data_map_size; i++) {
-          if (data_map[i] >= lower) {
-            data_begin = data_map + i;
-            break;
+        {
+          int low = 0;
+          int high = (int)data_map_size - 1;
+          int found_index = -1;
+          while (low <= high) {
+            int mid = low + ((high - low) >> 1);
+            if (data_map[mid] >= lower) {
+              found_index = mid;
+              high = mid - 1;
+            } else {
+              low = mid + 1;
+            }
+          }
+          if (found_index != -1) {
+            data_begin = data_map + found_index;
           }
         }
         float* data_end = data_map + data_map_size;
-        for (int i = 0; i < data_map_size; i++) {
-          if (data_map[i] > upper) {
-            data_end = data_map + i;
-            break;
+        {
+          int low = 0;
+          int high = data_map_size;
+          while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (data_map[mid] > upper) {
+              high = mid;
+            } else {
+              low = mid + 1;
+            }
+          }
+          if (low < data_map_size) {
+            data_end = data_map + low;
           }
         }
 
@@ -78,12 +98,22 @@ train_impl(int dim,
 
     for (int i = d; i < size; i += dim) {
       int c = 0;
-      for (int j = 0; j < seg_size; j++) {
-        if (data[i] <= seg_lower[j]) {
-          c = j - 1;
-          break;
+      int low = 0;
+      int high = seg_size - 1;
+      int first_ge_idx = seg_size;
+      while (low <= high) {
+        int mid = low + (high - low) / 2;
+        if (seg_lower[mid] >= data[i]) {
+          first_ge_idx = mid;
+          high = mid - 1;
+        } else {
+          low = mid + 1;
         }
-        c = j;
+      }
+      if (first_ge_idx < seg_size) {
+        c = first_ge_idx - 1;
+      } else {
+        c = seg_size - 1;
       }
       if (c < 0) {
         c = 0;
