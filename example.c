@@ -18,13 +18,14 @@ main() {
 
   srand(time(NULL));
 
+  printf("Data:     [");
   for (int i = 0; i < N; ++i) {
     data[i] = rand_float(0.0f, 1.0f);
     if (i < 5) {
-      printf("%f ", data[i]);
+      printf("%f, ", data[i]);
     }
   }
-  printf("\n");
+  printf("...]\n");
 
   float lower[Dim], upper[Dim];
   for (int i = 0; i < Dim; i++) {
@@ -50,7 +51,7 @@ main() {
     baseline_mse += (data[i] - decode) * (data[i] - decode);
   }
 
-  printf("Baseline: %f\n", baseline_mse / N);
+  printf("Baseline: %.15f\n", baseline_mse / N);
 
   Parameter param = {
       .max_iter = 100,
@@ -74,7 +75,7 @@ main() {
   for (int i = 0; i < N; i += Dim) {
     mse += distance(Dim, result.code, result.rec_para, data + i, i);
   }
-  printf("Ours:     %f\n", mse / N);
+  printf("Ours:     %.15f\n", mse / N);
 
   free(result.code);
   free(result.rec_para);
