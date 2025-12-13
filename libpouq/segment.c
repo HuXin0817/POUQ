@@ -48,12 +48,13 @@ segment(const float* data_map,
   int tasks_size = 0;
 
   for (int j = 1; j <= k; ++j) {
-    tasks[0].j = j;
-    tasks[0].left = j;
-    tasks[0].right = size;
-    tasks[0].opt_left = 0;
-    tasks[0].opt_right = size - 1;
-    tasks_size = 1;
+    tasks[tasks_size++] = (Task){
+        .j = j,
+        .left = j,
+        .right = size,
+        .opt_left = 0,
+        .opt_right = size - 1,
+    };
 
     while (tasks_size) {
       Task current_task = tasks[tasks_size - 1];
