@@ -20,6 +20,7 @@ train_impl(int dim,
   float* train_data_map = malloc(size * sizeof(float));
   int* train_freq_map = malloc(size * sizeof(int));
 
+#pragma omp parallel for
   for (int d = 0; d < dim; d++) {
     float* data_map = train_data_map + d * (size / dim);
     int* freq_map = train_freq_map + d * (size / dim);
