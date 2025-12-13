@@ -141,14 +141,14 @@ train_impl(int dim,
   }
 
 #pragma omp parallel for
-  for (int g = 0; g < dim / 4; g++) {
+  for (int d = 0; d < dim / 4; d++) {
     for (int j = 0; j < 256; j++) {
-      int x0 = g * 16 + 0 * 4 + (j & 3);
-      int x1 = g * 16 + 1 * 4 + (j >> 2 & 3);
-      int x2 = g * 16 + 2 * 4 + (j >> 4 & 3);
-      int x3 = g * 16 + 3 * 4 + (j >> 6 & 3);
-      rec_para[g * 256 + j].lower = _mm_setr_ps(lowers[x0], lowers[x1], lowers[x2], lowers[x3]);
-      rec_para[g * 256 + j].step_size = _mm_setr_ps(steps[x0], steps[x1], steps[x2], steps[x3]);
+      int x0 = d * 16 + 0 * 4 + (j & 3);
+      int x1 = d * 16 + 1 * 4 + (j >> 2 & 3);
+      int x2 = d * 16 + 2 * 4 + (j >> 4 & 3);
+      int x3 = d * 16 + 3 * 4 + (j >> 6 & 3);
+      rec_para[d * 256 + j].lower = _mm_setr_ps(lowers[x0], lowers[x1], lowers[x2], lowers[x3]);
+      rec_para[d * 256 + j].step_size = _mm_setr_ps(steps[x0], steps[x1], steps[x2], steps[x3]);
     }
   }
 
