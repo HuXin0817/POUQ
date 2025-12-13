@@ -8,10 +8,12 @@ import numpy as np
 
 from pouq import Quantizer
 
+n_samples = 1000
+dim = 16
 
 def main():
-    data = np.random.rand(1000, 16)
-    quantizer = Quantizer(dim=16)
+    data = np.random.rand(n_samples, dim).astype(np.float32)
+    quantizer = Quantizer(dim=dim)
     quantizer.train(data)
 
     vec1 = quantizer.decode(0)
