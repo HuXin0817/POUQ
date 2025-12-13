@@ -176,7 +176,14 @@ class Quantizer:
     def train(
         self,
         data: np.ndarray[np.float32],
-        parameter: Optional[Parameter] = None,
+        *,
+        max_iter=100,
+        particle_count=30,
+        scale_factor=0.1,
+        init_inertia=0.9,
+        final_inertia=0.4,
+        c1=2.0,
+        c2=2.0,
     ):
         if data.ndim != 2 or data.shape[1] != self.dim:
             raise ValueError(
@@ -187,17 +194,15 @@ class Quantizer:
         data_flat = data.flatten()
         data_ptr = data_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
 
-        if parameter is None:
-            # Default parameters
-            parameter = Parameter(
-                max_iter=100,
-                particle_count=30,
-                scale_factor=0.1,
-                init_inertia=0.9,
-                final_inertia=0.4,
-                c1=2.0,
-                c2=2.0,
-            )
+        parameter = Parameter(
+            max_iter=max_iter,
+            particle_count=particle_count,
+            scale_factor=scale_factor,
+            init_inertia=init_inertia,
+            final_inertia=final_inertia,
+            c1=c1,
+            c2=c1,
+        )
 
         self.n_samples = data.shape[0]
         self.data = _lib.train(self.dim, data_ptr, size, parameter)
