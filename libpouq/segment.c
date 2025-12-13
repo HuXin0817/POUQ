@@ -1,7 +1,5 @@
 #include "segment.h"
 
-#define K 4
-
 typedef struct {
   int j;
   int left;
@@ -23,7 +21,7 @@ segment(const float* data_map,
     assert(freq_map != NULL);
   }
 
-  int k = K;
+  int k = 4;
   k = min(size, k);
 
   int* sum_count = NULL;
@@ -125,7 +123,7 @@ segment(const float* data_map,
 
   free(tasks);
 
-  int split_pos[K];
+  int split_pos[4];
 
   int curr_pos = size;
   for (int j = k; j > 0; --j) {
