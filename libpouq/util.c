@@ -1,16 +1,34 @@
 #include "util.h"
 
-int
-compare_floats(const void* a, const void* b) {
-  float fa = *(const float*)a;
-  float fb = *(const float*)b;
-  if (fa < fb) {
-    return -1;
-  }
-  if (fa > fb) {
-    return 1;
-  }
-  return 0;
+int partition(float arr[], int low, int high) {
+    int pivot_idx = low + rand() % (high - low + 1);
+      float tmp = arr[high];
+      arr[high] = arr[pivot_idx];
+      arr[pivot_idx] = tmp;
+    
+    float pivot = arr[high];  
+    int i = low - 1;        
+
+    for (int j = low; j <= high - 1; j++) {
+        if (arr[j] <= pivot) {
+            i++;  
+             tmp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = tmp;
+        }
+    }
+       tmp = arr[i + 1];
+      arr[i + 1] = arr[high];
+      arr[high] = tmp;
+    return (i + 1);
+}
+
+void sort(float* arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        sort(arr, low, pi - 1);
+        sort(arr, pi + 1, high);
+    }
 }
 
 int
@@ -19,10 +37,22 @@ get_sorted_data(const float* data, int size, int d, int dim, float* sorted_data)
   for (int i = d; i < size; i += dim) {
     sorted_data[pos++] = data[i];
   }
-
-  qsort(sorted_data, pos, sizeof(float), compare_floats);
-
+  sort(sorted_data, 0, pos);
   return pos;
+}
+
+int count_unique(const float *arr, int len) {
+    if (len == 0) {
+        return 0;
+    }
+
+    int count = 1; 
+    for (int i = 1; i < len; i++) {
+        if (arr[i] != arr[i - 1]) {
+            count++;
+        }
+    }
+    return count;
 }
 
 int
