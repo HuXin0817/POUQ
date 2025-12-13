@@ -10,6 +10,7 @@ train_impl(int dim,
            int size,
            const Parameter parameter) {
   assert(data != NULL);
+  assert(dim % 8 == 0);
   assert(size > 0);
   assert(size % dim == 0);
 
