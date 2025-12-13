@@ -97,17 +97,21 @@ segment(const float* data_map,
       prev_idx[mid * (k + 1) + current_j] = split_pos;
 
       if (l < r) {
-        tasks[tasks_size].j = current_j;
-        tasks[tasks_size].left = mid + 1;
-        tasks[tasks_size].right = r;
-        tasks[tasks_size].opt_left = split_pos;
-        tasks[tasks_size].opt_right = opt_r;
+        tasks[tasks_size++] = (Task){
+            .j = current_j,
+            .left = mid + 1,
+            .right = r,
+            .opt_left = split_pos,
+            .opt_right = opt_r,
+        };
         tasks_size++;
-        tasks[tasks_size].j = current_j;
-        tasks[tasks_size].left = l;
-        tasks[tasks_size].right = mid - 1;
-        tasks[tasks_size].opt_left = opt_l;
-        tasks[tasks_size].opt_right = split_pos;
+        tasks[tasks_size++] = (Task){
+            .j = current_j,
+            .left = l,
+            .right = mid - 1,
+            .opt_left = opt_l,
+            .opt_right = split_pos,
+        };
         tasks_size++;
       }
     }
