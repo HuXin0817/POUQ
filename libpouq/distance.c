@@ -59,6 +59,25 @@ decode(int dim, const CodeUnit* code, const RecPara* rec_para, float* dist, int 
   }
 }
 
+__m256
+cal_reconstructed_vec_sq4(int d, const uint32_t* code, const SQ4RecPara* rec_para, int offset) {
+  uint32_t code_value = code[(offset + d) / 8];
+
+  SQ4RecPara para = rec_para[d / 8];
+  __m256 lower_vec = para.lower;
+  __m256 step_vec = para.step_size;
+
+  __m256i code_int = _mm256_set1_epi32(code_value);
+  __m256i shift_amounts = _mm256_setr_epi32(0, 4, 8, 12, 16, 20, 24, 28);
+  __m256i shifted_code = _mm256_srlv_epi32(code_int, shift_amounts);
+  __m256i mask = _mm256_set1_epi32(0xF);
+  __m256i masked_code = _mm256_and_si256(shifted_code, mask);
+
+  __m256 code_vec = _mm256_cvtepi32_ps(masked_code);
+
+  return _mm256_fmadd_ps(code_vec, step_vec, lower_vec);
+}
+
 float
 distance_sq4(
     int dim, const uint32_t* code, const SQ4RecPara* rec_para, const float* data, int offset) {
@@ -67,21 +86,7 @@ distance_sq4(
 
   __m256 sum_squares_vec = _mm256_setzero_ps();
   for (int d = 0; d < dim; d += 8) {
-    uint32_t code_value = code[(offset + d) / 8];
-
-    SQ4RecPara para = rec_para[d / 8];
-    __m256 lower_vec = para.lower;
-    __m256 step_vec = para.step_size;
-
-    __m256i code_int = _mm256_set1_epi32(code_value);
-    __m256i shift_amounts = _mm256_setr_epi32(0, 4, 8, 12, 16, 20, 24, 28);
-    __m256i shifted_code = _mm256_srlv_epi32(code_int, shift_amounts);
-    __m256i mask = _mm256_set1_epi32(0xF);
-    __m256i masked_code = _mm256_and_si256(shifted_code, mask);
-
-    __m256 code_vec = _mm256_cvtepi32_ps(masked_code);
-
-    __m256 reconstructed_vec = _mm256_fmadd_ps(code_vec, step_vec, lower_vec);
+    __m256 reconstructed_vec = cal_reconstructed_vec_sq4(d, code, rec_para, offset);
 
     __m256 data_vec = _mm256_loadu_ps(data + d);
     __m256 diff_vec = _mm256_sub_ps(reconstructed_vec, data_vec);
@@ -98,4 +103,15 @@ distance_sq4(
   total_sum128 = _mm_add_ss(total_sum128, shuffled_sum);
 
   return _mm_cvtss_f32(total_sum128);
+}
+
+void
+decode_sq4(int dim, const uint32_t* code, const SQ4RecPara* rec_para, float* dist, int offset) {
+  assert(dist != NULL);
+  assert(offset % dim == 0);
+
+  for (int d = 0; d < dim; d += 8) {
+    __m256 reconstructed_vec = cal_reconstructed_vec_sq4(d, code, rec_para, offset);
+    _mm256_storeu_ps(dist + d, reconstructed_vec);
+  }
 }
