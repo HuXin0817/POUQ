@@ -28,43 +28,20 @@ main() {
   }
   printf("...]\n");
 
-  float lower[Dim], upper[Dim];
-  for (int i = 0; i < Dim; i++) {
-    lower[i] = data[i];
-    upper[i] = data[i];
-    for (int j = 0; j < (N / Dim); j++) {
-      lower[i] = min(lower[i], data[j * Dim + i]);
-      upper[i] = max(upper[i], data[j * Dim + i]);
-    }
+  SQ4Result sq4_result = train_sq4(Dim, data, N);
+  float mse = 0.0f;
+#pragma omp parallel for reduction(+ : mse)
+  for (int i = 0; i < N; i += Dim) {
+    mse += distance_sq4(Dim, sq4_result.code, sq4_result.rec_para, data + i, i);
   }
-
-  float step_size[Dim];
-  for (int i = 0; i < Dim; i++) {
-    step_size[i] = (upper[i] - lower[i]) / 15.0f;
-  }
-
-  float baseline_mse = 0.0f;
-  for (int i = 0; i < N; i++) {
-    int d = i % Dim;
-    int x = (data[i] - lower[d]) / step_size[d] + 0.5f;
-    float decode = x * step_size[d] + lower[d];
-
-    baseline_mse += (data[i] - decode) * (data[i] - decode);
-  }
-
-  printf("Baseline: %.15f\n", baseline_mse / N);
+  printf("Baseline: %.15f\n", mse / N);
 
   Parameter param;
   set_default_parameter(&param);
 
   Result result = train(Dim, data, N, param);
-  if (!result.code || !result.rec_para) {
-    free(data);
-    printf("train error\n");
-    return 1;
-  }
 
-  float mse = 0.0f;
+  mse = 0.0f;
 #pragma omp parallel for reduction(+ : mse)
   for (int i = 0; i < N; i += Dim) {
     mse += distance(Dim, result.code, result.rec_para, data + i, i);
