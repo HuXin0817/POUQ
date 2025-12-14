@@ -178,7 +178,7 @@ train_impl_sq4(int dim, uint32_t* code, SQ4RecPara* rec_para, const float* data,
 
   int n_samples = size / dim;
 
-  for (int d = 0; d < dim / 8; d += 8) {
+  for (int d = 0; d < dim; d += 8) {
     float lower[8];
     float step_size[8];
 
@@ -218,7 +218,8 @@ train_impl_sq4(int dim, uint32_t* code, SQ4RecPara* rec_para, const float* data,
 SQ4Result
 train_sq4(int dim, const float* data, int size) {
   uint32_t* code = malloc(size / 8 * sizeof(uint32_t));
-  SQ4RecPara* rec_para = malloc(dim / 8 * sizeof(SQ4RecPara));
+  SQ4RecPara* rec_para = NULL;
+  posix_memalign((void**)&rec_para, 32, dim / 8 * sizeof(SQ4RecPara));
 
   train_impl_sq4(dim, code, rec_para, data, size);
 
