@@ -178,6 +178,7 @@ train_impl_sq4(int dim, uint32_t* code, SQ4RecPara* rec_para, const float* data,
 
   int n_samples = size / dim;
 
+#pragma omp parallel for
   for (int d = 0; d < dim; d += 8) {
     float lower[8];
     float step_size[8];
