@@ -16,6 +16,11 @@ typedef struct {
   __m128 step_size;
 } RecPara;
 
+typedef struct {
+  __m256 lower;
+  __m256 step_size;
+} SQ4RecPara;
+
 #define min(A, B) ((A) < (B) ? (A) : (B))
 #define max(A, B) ((A) > (B) ? (A) : (B))
 

@@ -21,3 +21,14 @@ typedef struct {
 
 Result
 train(int dim, const float* data, int size, const Parameter parameter);
+
+typedef struct {
+  uint32_t* code;
+  SQ4RecPara* rec_para;
+} SQ4Result;
+
+void
+train_impl_sq4(int dim, uint32_t* code, SQ4RecPara* rec_para, const float* data, int size);
+
+SQ4Result
+train_sq4(int dim, const float* data, int size);

@@ -168,3 +168,62 @@ train(int dim, const float* data, int size, const Parameter parameter) {
   result.rec_para = rec_para;
   return result;
 }
+
+void
+train_impl_sq4(int dim, uint32_t* code, SQ4RecPara* rec_para, const float* data, int size) {
+  assert(data != NULL);
+  assert(dim % 8 == 0);
+  assert(size > 0);
+  assert(size % dim == 0);
+
+  int n_samples = size / dim;
+
+  for (int d = 0; d < dim / 8; d += 8) {
+    float lower[8];
+    float step_size[8];
+
+    for (int i = 0; i < 8; i++) {
+      lower[i] = data[d + i];
+      step_size[i] = data[d + i];
+
+      for (int j = 1; j < n_samples; j++) {
+        lower[i] = min(lower[i], data[j * dim + d + i]);
+        step_size[i] = max(step_size[i], data[j * dim + d + i]);
+      }
+
+      step_size[i] = (step_size[i] - lower[i]) / 15.0f;
+
+      for (int j = 0; j < n_samples; j++) {
+        int index = j * dim + d + i;
+        uint32_t x = (data[index] - lower[i]) / step_size[i] + 0.5f;
+        code[index / 8] |= x << ((index % 8) * 4);
+      }
+    }
+
+    rec_para[d / 8] = (SQ4RecPara){
+        .lower = _mm256_setr_ps(
+            lower[0], lower[1], lower[2], lower[3], lower[4], lower[5], lower[6], lower[7]),
+        .step_size = _mm256_setr_ps(step_size[0],
+                                    step_size[1],
+                                    step_size[2],
+                                    step_size[3],
+                                    step_size[4],
+                                    step_size[5],
+                                    step_size[6],
+                                    step_size[7]),
+    };
+  }
+}
+
+SQ4Result
+train_sq4(int dim, const float* data, int size) {
+  uint32_t* code = malloc(size / 8 * sizeof(uint32_t));
+  SQ4RecPara* rec_para = malloc(dim / 8 * sizeof(SQ4RecPara));
+
+  train_impl_sq4(dim, code, rec_para, data, size);
+
+  return (SQ4Result){
+      .code = code,
+      .rec_para = rec_para,
+  };
+}
