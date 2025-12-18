@@ -23,10 +23,3 @@ typedef struct {
 
 #define min(A, B) ((A) < (B) ? (A) : (B))
 #define max(A, B) ((A) > (B) ? (A) : (B))
-
-#define swap(A, B)       \
-  do {                   \
-    typeof(A) tmp = (A); \
-    (A) = (B);           \
-    (B) = tmp;           \
-  } while (0)
