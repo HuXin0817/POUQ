@@ -36,11 +36,13 @@ main() {
   }
   printf("Baseline: %.15f\n", mse / N);
 
+  free(sq4_result.code);
+  free(sq4_result.rec_para);
+
   Parameter param;
   set_default_parameter(&param);
 
   Result result = train(Dim, data, N, param);
-
   mse = 0.0f;
 #pragma omp parallel for reduction(+ : mse)
   for (int i = 0; i < N; i += Dim) {
