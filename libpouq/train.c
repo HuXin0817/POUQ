@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 
+#include <cfloat>
+
 void
 train_impl(int dim, CodeUnit* code, RecPara* rec_para, const float* data, int size) {
   assert(data != NULL);
@@ -77,7 +79,7 @@ train_impl(int dim, CodeUnit* code, RecPara* rec_para, const float* data, int si
         upper = bound.upper;
       }
       lowers[d * 4 + i] = lower;
-      if (lower == upper) {
+      if (upper - lower <= FLT_EPSILON) {
         steps[d * 4 + i] = 1.0;
       } else {
         steps[d * 4 + i] = (upper - lower) / 3.0f;
