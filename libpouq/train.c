@@ -158,15 +158,18 @@ train_impl(int dim,
 
 Result
 train(int dim, const float* data, int size, const Parameter parameter) {
-  CodeUnit* code_ = malloc(size / 8 * sizeof(CodeUnit));
-  RecPara* rec_para = malloc(dim * 64 * sizeof(RecPara));
+  CodeUnit* code = NULL;
+  posix_memalign((void**)&code, 32, size / 8 * sizeof(CodeUnit));
 
-  train_impl(dim, code_, rec_para, data, size, parameter);
+  RecPara* rec_para = NULL;
+  posix_memalign((void**)&rec_para, 32, dim * 64 * sizeof(RecPara));
 
-  Result result;
-  result.code = code_;
-  result.rec_para = rec_para;
-  return result;
+  train_impl(dim, code, rec_para, data, size, parameter);
+
+  return (Result){
+      .code = code,
+      .rec_para = rec_para,
+  };
 }
 
 void
@@ -218,7 +221,9 @@ train_impl_sq4(int dim, uint32_t* code, SQ4RecPara* rec_para, const float* data,
 
 SQ4Result
 train_sq4(int dim, const float* data, int size) {
-  uint32_t* code = malloc(size / 8 * sizeof(uint32_t));
+  uint32_t* code = NULL;
+  posix_memalign((void**)&code, 32, size / 8 * sizeof(uint32_t));
+
   SQ4RecPara* rec_para = NULL;
   posix_memalign((void**)&rec_para, 32, dim / 8 * sizeof(SQ4RecPara));
 
