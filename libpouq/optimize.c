@@ -1,18 +1,5 @@
 #include "optimize.h"
 
-void
-set_default_parameter(Parameter* param) {
-  *param = (Parameter){
-      .max_iter = 100,
-      .particle_count = 50,
-      .scale_factor = 0.1f,
-      .init_inertia = 0.9f,
-      .final_inertia = 0.4f,
-      .c1 = 1.5f,
-      .c2 = 1.5f,
-  };
-}
-
 typedef struct {
   float lower;
   float step;
@@ -70,7 +57,6 @@ optimize(float init_lower,
          const float* data_map,
          const int* freq_map,
          int size,
-         const Parameter parameter,
          bool do_count_freq) {
   assert(init_lower <= init_upper);
   assert(size > 0);
@@ -78,31 +64,32 @@ optimize(float init_lower,
   if (do_count_freq) {
     assert(freq_map != NULL);
   }
-  assert(parameter.max_iter >= 0);
-  assert(parameter.particle_count >= 0);
-  assert(parameter.scale_factor >= 0.0f);
-  assert(parameter.init_inertia >= 0.0f);
-  assert(parameter.final_inertia >= 0.0f);
-  assert(parameter.c1 >= 0.0f);
-  assert(parameter.c2 >= 0.0f);
+
+  int max_iter = 100;
+  int particle_count = 50;
+  float scale_factor = 0.1f;
+  float init_inertia = 0.9f;
+  float final_inertia = 0.4f;
+  float c1 = 1.5f;
+  float c2 = 1.5f;
 
   float init_range_width = init_upper - init_lower;
   float init_step = init_range_width / 3.0f;
 
   float v_min = -init_range_width * 0.1f;
   float v_max = init_range_width * 0.1f;
-  float lower_min = init_lower - init_range_width * parameter.scale_factor;
-  float lower_max = init_lower + init_range_width * parameter.scale_factor;
-  float step_min = init_step * (1.0f - parameter.scale_factor);
-  float step_max = init_step * (1.0f + parameter.scale_factor);
+  float lower_min = init_lower - init_range_width * scale_factor;
+  float lower_max = init_lower + init_range_width * scale_factor;
+  float step_min = init_step * (1.0f - scale_factor);
+  float step_max = init_step * (1.0f + scale_factor);
 
   float global_best_lower = init_lower;
   float global_best_step = init_step;
   float global_min_loss = loss(init_lower, init_step, data_map, freq_map, size, do_count_freq);
 
-  Particle* swarm = malloc(parameter.particle_count * sizeof(Particle));
+  Particle* swarm = malloc(particle_count * sizeof(Particle));
 
-  for (int i = 0; i < parameter.particle_count; i++) {
+  for (int i = 0; i < particle_count; i++) {
     float lower = rand_float(lower_min, lower_max);
     float step = rand_float(step_min, step_max);
     float v_lower = rand_float(v_min, v_max);
@@ -126,22 +113,22 @@ optimize(float init_lower,
     }
   }
 
-  for (int iter = 0; iter < parameter.max_iter; ++iter) {
-    float x = (float)iter / (float)parameter.max_iter;
-    float inertia = parameter.init_inertia - (parameter.init_inertia - parameter.final_inertia) * x;
+  for (int iter = 0; iter < max_iter; ++iter) {
+    float x = (float)iter / (float)max_iter;
+    float inertia = init_inertia - (init_inertia - final_inertia) * x;
 
-    for (int i = 0; i < parameter.particle_count; i++) {
+    for (int i = 0; i < particle_count; i++) {
       float r1 = rand_float(0.0f, 1.0f);
       float r2 = rand_float(0.0f, 1.0f);
       Particle* particle = &swarm[i];
 
       particle->v_lower = inertia * particle->v_lower +
-                          parameter.c1 * r1 * (particle->best_lower - particle->lower) +
-                          parameter.c2 * r2 * (global_best_lower - particle->lower);
+                          c1 * r1 * (particle->best_lower - particle->lower) +
+                          c2 * r2 * (global_best_lower - particle->lower);
 
       particle->v_step = inertia * particle->v_step +
-                         parameter.c1 * r1 * (particle->best_step - particle->step) +
-                         parameter.c2 * r2 * (global_best_step - particle->step);
+                         c1 * r1 * (particle->best_step - particle->step) +
+                         c2 * r2 * (global_best_step - particle->step);
 
       particle->lower += particle->v_lower;
       particle->step += particle->v_step;

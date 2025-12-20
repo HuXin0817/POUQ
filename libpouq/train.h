@@ -7,12 +7,7 @@
 #include "util.h"
 
 void
-train_impl(int dim,
-           CodeUnit* code,
-           RecPara* rec_para,
-           const float* data,
-           int size,
-           const Parameter parameter);
+train_impl(int dim, CodeUnit* code, RecPara* rec_para, const float* data, int size);
 
 typedef struct {
   CodeUnit* code;
@@ -20,7 +15,7 @@ typedef struct {
 } Result;
 
 Result
-train(int dim, const float* data, int size, const Parameter parameter);
+train(int dim, const float* data, int size);
 
 typedef struct {
   uint32_t* code;

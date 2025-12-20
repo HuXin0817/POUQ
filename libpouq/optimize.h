@@ -8,19 +8,6 @@
 #include "util.h"
 
 typedef struct {
-  int max_iter;
-  int particle_count;
-  float scale_factor;
-  float init_inertia;
-  float final_inertia;
-  float c1;
-  float c2;
-} Parameter;
-
-void
-set_default_parameter(Parameter* param);
-
-typedef struct {
   float lower;
   float upper;
 } Bound;
@@ -31,5 +18,4 @@ optimize(float init_lower,
          const float* data_map,
          const int* freq_map,
          int size,
-         const Parameter parameter,
          bool do_count_freq);

@@ -3,12 +3,7 @@
 #include <stdlib.h>
 
 void
-train_impl(int dim,
-           CodeUnit* code,
-           RecPara* rec_para,
-           const float* data,
-           int size,
-           const Parameter parameter) {
+train_impl(int dim, CodeUnit* code, RecPara* rec_para, const float* data, int size) {
   assert(data != NULL);
   assert(dim % 8 == 0);
   assert(size > 0);
@@ -77,7 +72,6 @@ train_impl(int dim,
                                data_begin,
                                freq_map + (data_begin - data_map),
                                data_end - data_begin,
-                               parameter,
                                do_count_freq);
         lower = bound.lower;
         upper = bound.upper;
@@ -157,14 +151,14 @@ train_impl(int dim,
 }
 
 Result
-train(int dim, const float* data, int size, const Parameter parameter) {
+train(int dim, const float* data, int size) {
   CodeUnit* code = NULL;
   posix_memalign((void**)&code, 32, size / 8 * sizeof(CodeUnit));
 
   RecPara* rec_para = NULL;
   posix_memalign((void**)&rec_para, 32, dim * 64 * sizeof(RecPara));
 
-  train_impl(dim, code, rec_para, data, size, parameter);
+  train_impl(dim, code, rec_para, data, size);
 
   return (Result){
       .code = code,
