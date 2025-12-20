@@ -25,7 +25,7 @@ partition(float* arr, int low, int high) {
   }
   tmp = arr[i + 1];
   arr[i + 1] = arr[high];
-  arr[high] = tmp; 
+  arr[high] = tmp;
   return i + 1;
 }
 

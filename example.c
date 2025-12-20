@@ -34,7 +34,8 @@ main() {
   for (int i = 0; i < N; i += Dim) {
     mse += distance_sq4(Dim, sq4_result.code, sq4_result.rec_para, data + i, i);
   }
-  printf("Baseline: %.15f\n", mse / N);
+  float baseline_mse = mse / N;
+  printf("Baseline: %.15f\n", baseline_mse);
 
   free(sq4_result.code);
   free(sq4_result.rec_para);
@@ -45,10 +46,16 @@ main() {
   for (int i = 0; i < N; i += Dim) {
     mse += distance(Dim, result.code, result.rec_para, data + i, i);
   }
+  float ours_mse = mse / N;
   printf("Ours:     %.15f\n", mse / N);
 
   free(result.code);
   free(result.rec_para);
   free(data);
+
+  if (ours_mse > baseline_mse) {
+    return 1;
+  }
+
   return 0;
 }
