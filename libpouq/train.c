@@ -2,8 +2,6 @@
 
 #include <stdlib.h>
 
-#include <cfloat>
-
 void
 train_impl(int dim, CodeUnit* code, RecPara* rec_para, const float* data, int size) {
   assert(data != NULL);
