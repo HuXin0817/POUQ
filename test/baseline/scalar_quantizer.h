@@ -1,9 +1,7 @@
 #pragma once
 
-#include <xsimd/xsimd.hpp>
 #include <vector>
-
-#include "../../src/optimizer.h"
+#include <xsimd/xsimd.hpp>
 
 class ScalarQuantizer {
   static constexpr uint32_t kLevel = 15.0f;
