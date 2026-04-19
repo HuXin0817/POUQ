@@ -104,16 +104,16 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data) {
     for (uint32_t j = 0; j < kPackage; j++) {
       auto [x0, x1, x2, x3] = Unpack(j);
       lower_[offset + j] = {
-          lower[dim][x0],
-          lower[dim][x1],
-          lower[dim][x2],
-          lower[dim][x3],
+          lower[dim + 0][x0],
+          lower[dim + 1][x1],
+          lower[dim + 2][x2],
+          lower[dim + 3][x3],
       };
       step_size_[offset + j] = {
-          step_size[dim][x0],
-          step_size[dim][x1],
-          step_size[dim][x2],
-          step_size[dim][x3],
+          step_size[dim + 0][x0],
+          step_size[dim + 1][x1],
+          step_size[dim + 2][x2],
+          step_size[dim + 3][x3],
       };
     }
 
