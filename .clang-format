@@ -1,0 +1,17 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: false
+AlignTrailingComments: true
+
+ColumnLimit: 120
+DerivePointerAlignment: false
+IndentWidth: 2
+
+# Appended Options
+SortIncludes: true
+Standard: Latest
+BinPackParameters: false
+BinPackArguments: false

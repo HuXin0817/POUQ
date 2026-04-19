@@ -1,0 +1,15 @@
+[submodule "deps/xsimd"]
+	path = deps/xsimd
+	url = https://github.com/xtensor-stack/xsimd.git
+	branch = 10.0.0
+	ignore = dirty
+[submodule "deps/tbb"]
+	path = deps/tbb
+	url = https://github.com/uxlfoundation/oneTBB.git
+	branch = v2022.3.0
+	ignore = dirty
+[submodule "deps/nlopt"]
+	path = deps/nlopt
+	url = https://github.com/stevengj/nlopt
+	branch = v2.10.1
+	ignore = dirty
