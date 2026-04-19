@@ -1,6 +1,7 @@
 #pragma once
 
 #include <xsimd/xsimd.hpp>
+#include <vector>
 
 #include "../../src/optimizer.h"
 
