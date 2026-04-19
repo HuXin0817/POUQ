@@ -53,7 +53,7 @@ std::pair<float, float> Optimizer::Optimize(const std::span<float>& data) {
 
   size_t i = 0;
   for (; i < data.size(); i += xsimd::batch<float>::size) {
-    std::get<1>(package).push_back(xsimd::load(data.data() + i));
+    std::get<1>(package).push_back(xsimd::batch<float>::load_unaligned(data.data() + i));
   }
 
   if (i > data.size()) {
