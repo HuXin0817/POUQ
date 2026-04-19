@@ -4,7 +4,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <ranges>
+#include <vector>
 
 #include "clusterer.h"
 
@@ -32,13 +34,13 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data) {
 
   n_padding_dim_ = (n_dim_ + kAligned - 1) / kAligned * kAligned;
 
-  std::vector codebook(n_sample_, std::vector<uint8_t>(n_padding_dim_, 0));
-  std::vector reconstructed_param_index(n_sample_, std::vector<uint8_t>(n_padding_dim_, 0));
-  std::vector lower(n_padding_dim_, std::vector(kClusterNumber, 0.0f));
-  std::vector step_size(n_padding_dim_, std::vector(kClusterNumber, 1.0f));
+  std::vector<std::vector<uint8_t>> codebook(n_sample_, std::vector<uint8_t>(n_padding_dim_, 0));
+  std::vector<std::vector<uint8_t>> reconstructed_param_index(n_sample_, std::vector<uint8_t>(n_padding_dim_, 0));
+  std::vector<std::vector<float>> lower(n_padding_dim_, std::vector<float>(kClusterNumber, 0.0f));
+  std::vector<std::vector<float>> step_size(n_padding_dim_, std::vector<float>(kClusterNumber, 1.0f));
 
   tbb::parallel_for<uint32_t>(0, n_dim_, [&](const uint32_t dim) {
-    std::vector dim_data(n_sample_, 0.0f);
+    std::vector<float> dim_data(n_sample_, 0.0f);
     for (uint32_t i = 0; i < n_sample_; i++) {
       dim_data[i] = data[i][dim];
     }
@@ -94,7 +96,7 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data) {
 
   lower_.resize(kPackage * n_padding_dim_ / kAligned);
   step_size_.resize(kPackage * n_padding_dim_ / kAligned);
-  code_.resize(n_sample_, std::vector(n_padding_dim_ / kAligned, Code(0, 0)));
+  code_.resize(n_sample_, std::vector<Code>(n_padding_dim_ / kAligned, Code(0, 0)));
 
   tbb::parallel_for<uint32_t>(0, n_padding_dim_ / kAligned, [&](const uint32_t i) {
     uint32_t dim = i * kAligned;
