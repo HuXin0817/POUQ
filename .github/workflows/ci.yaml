@@ -32,7 +32,7 @@ jobs:
 
       - name: Build
         run: |
-          bash build.sh Release
+          ./build.sh Release
 
       - name: Run
         run: |
