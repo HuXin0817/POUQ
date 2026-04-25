@@ -23,7 +23,7 @@ static std::array<uint8_t, 4> Unpack(uint8_t code) {
   };
 }
 
-void Quantizer::Train(const std::vector<std::vector<float>>& data) {
+void Quantizer::Train(const std::vector<std::vector<float>>& data, TrainOption option) {
   Clear();
 
   n_sample_ = data.size();
@@ -55,12 +55,12 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data) {
       float& r = rights[i];
       assert(l <= r);
 
-      if (r - l > std::numeric_limits<float>::epsilon()) {
+      if (option.use_optimizer && r - l > std::numeric_limits<float>::epsilon()) {
         const auto l_iter = std::ranges::lower_bound(dim_data, l);
         const auto r_iter = std::ranges::upper_bound(dim_data, r);
         std::span range(l_iter, r_iter);
         assert(range.front() == l && range.back() == r);
-        auto [opt_l, opt_r] = optimizer_.Optimize(range);
+        auto [opt_l, opt_r] = optimizer_.Optimize(range, option.maxeval, option.scale_factor);
         l = opt_l;
         r = opt_r;
       }

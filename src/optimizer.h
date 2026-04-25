@@ -12,12 +12,10 @@ class Optimizer {
 
   ~Optimizer() = default;
 
-  std::pair<float, float> Optimize(const std::span<float>& data);
+  std::pair<float, float> Optimize(const std::span<float>& data, int maxeval, float scale_factor);
 
  private:
   float level_;
-  uint32_t max_iter = 10000;
-  float scale_factor = 0.3f;
 };
 
 }  // namespace pouq::optimize

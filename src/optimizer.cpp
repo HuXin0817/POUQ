@@ -1,5 +1,6 @@
 #include "optimizer.h"
 
+#include <algorithm>
 #include <cmath>
 #include <nlopt.hpp>
 #include <xsimd/xsimd.hpp>
@@ -15,57 +16,66 @@ float Loss(float level,
 
   float step_size = (upper - lower) / level;
 
+  xsimd::batch<float> zero_batch = 0.0f;
+  xsimd::batch<float> level_batch = level;
+  xsimd::batch<float> lower_batch = lower;
+  xsimd::batch<float> step_size_batch = step_size;
+
   for (const xsimd::batch<float>& d : batch_data) {
     xsimd::batch<float> code = xsimd::round((d - lower) / step_size);
-    code = xsimd::clip(code, xsimd::batch{0.0f}, xsimd::batch{level});
-    xsimd::batch<float> qdata = xsimd::fma(code, xsimd::batch{step_size}, xsimd::batch{lower});
-    xsimd::batch<float> diff = qdata - d;
+    code = xsimd::clip(code, zero_batch, level_batch);
+    xsimd::batch<float> rebuild = xsimd::fma(code, step_size_batch, lower_batch);
+    xsimd::batch<float> diff = rebuild - d;
     result += xsimd::reduce_add(diff * diff);
   }
 
   for (const float d : extra) {
     float code = std::roundf((d - lower) / step_size);
     code = std::clamp(code, 0.0f, level);
-    float qdata = lower + step_size * code;
-    float diff = qdata - d;
+    float rebuild = lower + step_size * code;
+    float diff = rebuild - d;
     result += diff * diff;
   }
 
   return result;
 }
 
-using Package = std::tuple<float, std::vector<xsimd::batch<float>>, std::span<float>>;
+struct Context {
+  float level;
+  std::vector<xsimd::batch<float>> batch_data;
+  std::span<float> extra;
+};
 
 double LossWrapper(const std::vector<double>& x, std::vector<double>&, void* data) {
-  const Package& unpack = *static_cast<Package*>(data);
-  return Loss(std::get<0>(unpack), x[0], x[1], std::get<1>(unpack), std::get<2>(unpack));
+  const Context& context = *static_cast<Context*>(data);
+  return Loss(context.level, x[0], x[1], context.batch_data, context.extra);
 }
 
-std::pair<float, float> Optimizer::Optimize(const std::span<float>& data) {
+std::pair<float, float> Optimizer::Optimize(const std::span<float>& data, int maxeval, float scale_factor) {
   float init_lower = data.front();
   float init_upper = data.back();
-  float width = (init_upper - init_lower) * scale_factor;
+  float width = (init_upper - init_lower) * std::clamp(scale_factor, 0.0f, 0.5f);
 
   const std::vector<double> lower_bound = {init_lower - width, init_upper - width};
   const std::vector<double> upper_bound = {init_lower + width, init_upper + width};
 
-  Package package = {level_, {}, {}};
+  Context context{.level = level_};
 
   size_t i = 0;
   for (; i < data.size(); i += xsimd::batch<float>::size) {
-    std::get<1>(package).push_back(xsimd::batch<float>::load_unaligned(data.data() + i));
+    context.batch_data.push_back(xsimd::batch<float>::load_unaligned(data.data() + i));
   }
 
   if (i > data.size()) {
     i -= xsimd::batch<float>::size;
-    std::get<2>(package) = {data.begin() + i, data.end()};
+    context.extra = {data.begin() + i, data.end()};
   }
 
   nlopt::opt opt(nlopt::GN_ISRES, 2);
   opt.set_lower_bounds(lower_bound);
   opt.set_upper_bounds(upper_bound);
-  opt.set_min_objective(LossWrapper, &package);
-  opt.set_maxeval(max_iter);
+  opt.set_min_objective(LossWrapper, &context);
+  opt.set_maxeval(maxeval);
 
   std::vector<double> x = {init_lower, init_upper};
   double minf;

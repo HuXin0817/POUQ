@@ -6,6 +6,7 @@
 
 #include "clusterer.h"
 #include "optimizer.h"
+#include "option.h"
 #include "util.h"
 
 namespace pouq {
@@ -24,7 +25,9 @@ class Quantizer {
 
   ~Quantizer() = default;
 
-  void Train(const std::vector<std::vector<float>>& data);
+  void Train(const std::vector<std::vector<float>>& data) { Train(data, TrainOption{}); }
+
+  void Train(const std::vector<std::vector<float>>& data, TrainOption option);
 
   void ForBatch(uint32_t n, std::function<bool(uint32_t, const m128&)> f);
 
