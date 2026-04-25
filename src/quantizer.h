@@ -17,7 +17,7 @@ class Quantizer {
   static constexpr uint32_t kPackage = 256;  // std::pow(kAligned, kAligned);
   static constexpr float kLevel = 3.0f;
 
-  static constexpr uint32_t kClusterNumber = 4;
+  static constexpr int kClusterNumber = 4;
 
   using Code = std::pair<uint8_t, uint8_t>;
 

@@ -60,7 +60,7 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data, TrainOption o
         const auto r_iter = std::ranges::upper_bound(dim_data, r);
         std::span range(l_iter, r_iter);
         assert(range.front() == l && range.back() == r);
-        auto [opt_l, opt_r] = optimizer_.Optimize(range, option.maxeval, option.scale_factor);
+        auto [opt_l, opt_r] = optimizer_.Optimize(range, option.algorithm, option.maxeval, option.scale_factor);
         l = opt_l;
         r = opt_r;
       }
