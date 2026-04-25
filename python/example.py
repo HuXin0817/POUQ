@@ -52,9 +52,9 @@ def run_impl(quantizer, n_sample: int, n_dim: int, data: List[List[float]]):
             mse += diff * diff
 
     n_size = n_sample * n_dim
-    print(f"    Max Error: {max_error:.3f}")
-    print(f"    MAE: {mae / n_size:.3f}")
-    print(f"    MSE: {mse / n_size:.3f}")
+    print(f"    Max Error:  {max_error:.3f}")
+    print(f"    MAE:        {mae / n_size:.3f}")
+    print(f"    MSE:        {mse / n_size:.3f}")
 
 
 def run(n_sample: int, n_dim: int, data: List[List[float]]):
