@@ -18,7 +18,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake git
+          sudo apt-get install -y build-essential cmake git clang-format
+
+      - name: Check code format
+        run: |
+          find . -name "*.cpp" -o -name "*.h" | grep -v "deps/" | xargs clang-format --dry-run --Werror
 
       - name: Build
         run: |
