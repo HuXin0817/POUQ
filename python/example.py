@@ -69,7 +69,7 @@ if __name__ == "__main__":
     n_dim = 256
 
     unifrom_data = random_data_2d_unifrom(n_sample, n_dim)
-    print(f"Unifrom{{sample={n_sample},dim={n_dim}}}:")
+    print(f"Unifrom(sample={n_sample},dim={n_dim}):")
     run(n_sample, n_dim, unifrom_data)
 
     gmm_cases = [
@@ -83,5 +83,5 @@ if __name__ == "__main__":
     for n_cluster, n_sigma in gmm_cases:
         gmm_data = random_data_2d_gmm(n_sample, n_dim, n_cluster, n_sigma)
         print(
-            f"GMM{{sample={n_sample},dim={n_dim},cluster={n_cluster},sigma={n_sigma}}}:")
+            f"GMM(sample={n_sample},dim={n_dim},cluster={n_cluster},sigma={n_sigma}):")
         run(n_sample, n_dim, gmm_data)
