@@ -26,7 +26,7 @@ class Quantizer {
 
   void Train(const std::vector<std::vector<float>>& data);
 
-  void ForBatch(uint32_t n, std::function<bool(uint32_t, const m128&)> f);
+  void ForBatch(uint32_t n, const std::function<bool(uint32_t, const m128&)>& f);
 
   void Decode(uint32_t n, float* data);
 

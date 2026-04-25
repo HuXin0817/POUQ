@@ -126,7 +126,7 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data) {
   });
 }
 
-void Quantizer::ForBatch(uint32_t n, const std::function<bool(uint32_t, const m128&)> f) {
+void Quantizer::ForBatch(uint32_t n, const std::function<bool(uint32_t, const m128&)>& f) {
   for (uint32_t i = 0; i < n_padding_dim_ / kAligned; i++) {
     uint32_t offset = i * kPackage;
     auto [reconstructed_param_index_package, code_package] = code_[n][i];
