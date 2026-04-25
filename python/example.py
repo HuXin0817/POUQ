@@ -1,13 +1,10 @@
 import math
 import random
-import sys
 from typing import List
 
-from baseline import ScalarQuantizer
-
-sys.path.append("build/python")
-
 from pypouq import Quantizer
+
+from baseline import ScalarQuantizer
 
 
 def random_data_2d_unifrom(x: int, y: int) -> List[List[float]]:
