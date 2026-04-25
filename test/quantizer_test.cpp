@@ -4,7 +4,7 @@
 #include <random>
 #include <vector>
 
-#include "baseline/scalar_quantizer.h"
+#include "baseline/simple_scalar_quantizer.h"
 
 std::vector<std::vector<float>> generateRandom2DFloatUnifrom(uint32_t n, uint32_t m, float k) {
   std::mt19937 gen(42);
@@ -71,14 +71,14 @@ void Benchmark(const char* name, const std::vector<std::vector<float>>& data) {
 }
 
 int main() {
-  static constexpr uint32_t kSample = 10000;
+  static constexpr uint32_t kSample = 100000;
   static constexpr uint32_t kDim = 256;
   static constexpr float kRange = 1000.0f;
 
   std::cout << "=== Uniform U(-" << kRange << ", " << kRange << ") ===" << std::endl;
   {
     std::vector<std::vector<float>> data = generateRandom2DFloatUnifrom(kSample, kDim, kRange);
-    Benchmark<ScalarQuantizer>("Scalar Quantizer", data);
+    Benchmark<SimpleScalarQuantizer>("Scalar Quantizer", data);
     Benchmark<pouq::Quantizer>("POUQ Quantizer", data);
   }
 
@@ -98,7 +98,7 @@ int main() {
     std::cout << std::endl;
     std::cout << "=== GMM (" << c.clusters << " clusters/dim, sigma=" << c.sigma << ") ===" << std::endl;
     std::vector<std::vector<float>> data = generateRandom2DFloatGMM(kSample, kDim, kRange, c.clusters, c.sigma);
-    Benchmark<ScalarQuantizer>("Scalar Quantizer", data);
+    Benchmark<SimpleScalarQuantizer>("Scalar Quantizer", data);
     Benchmark<pouq::Quantizer>("POUQ Quantizer", data);
   }
 }

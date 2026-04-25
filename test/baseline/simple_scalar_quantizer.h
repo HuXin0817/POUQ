@@ -1,15 +1,15 @@
 #pragma once
 
+#include <cassert>
 #include <vector>
-#include <xsimd/xsimd.hpp>
 
-class ScalarQuantizer {
+class SimpleScalarQuantizer {
   static constexpr uint32_t kLevel = 15.0f;
 
  public:
-  ScalarQuantizer() = default;
+  SimpleScalarQuantizer() = default;
 
-  ~ScalarQuantizer() = default;
+  ~SimpleScalarQuantizer() = default;
 
   void Train(const std::vector<std::vector<float>>& data);
 
