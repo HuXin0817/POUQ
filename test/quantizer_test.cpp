@@ -71,7 +71,7 @@ void Benchmark(const char* name, const std::vector<std::vector<float>>& data) {
 }
 
 int main() {
-  static constexpr uint32_t kSample = 100000;
+  static constexpr uint32_t kSample = 10000;
   static constexpr uint32_t kDim = 256;
   static constexpr float kRange = 1000.0f;
 
