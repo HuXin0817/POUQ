@@ -1,10 +1,10 @@
 import math
 import random
+import time
 from typing import List
 
-from pypouq import Quantizer
-
 from baseline import ScalarQuantizer
+from pypouq import Quantizer
 
 
 def random_data_2d_unifrom(x: int, y: int) -> List[List[float]]:
@@ -21,18 +21,23 @@ def box_muller_transform() -> float:
 def random_data_2d_gmm(
     x: int, y: int, n_cluster: int, n_sigma: float
 ) -> List[List[float]]:
-    cluster_centers = [[random.random() for _ in range(y)] for _ in range(n_cluster)]
+    cluster_centers = [[random.random() for _ in range(y)]
+                       for _ in range(n_cluster)]
     data = []
     for _ in range(x):
         cluster = random.randint(0, n_cluster - 1)
         center = cluster_centers[cluster]
-        point = [center[i] + n_sigma * box_muller_transform() for i in range(y)]
+        point = [center[i] + n_sigma * box_muller_transform()
+                 for i in range(y)]
         data.append(point)
     return data
 
 
 def run_impl(quantizer, n_sample: int, n_dim: int, data: List[List[float]]):
+    start_time = time.time()
     quantizer.train(data)
+    train_time = time.time() - start_time
+    print(f"    Train Time: {train_time:.3f}s")
 
     max_error = 0.0
     mae = 0.0
@@ -64,7 +69,7 @@ if __name__ == "__main__":
     n_dim = 256
 
     unifrom_data = random_data_2d_unifrom(n_sample, n_dim)
-    print(f"Unifrom(n_sample={n_sample},n_dim={n_dim}):")
+    print(f"Unifrom{{n_sample={n_sample},n_dim={n_dim}}}:")
     run(n_sample, n_dim, unifrom_data)
 
     gmm_cases = [
@@ -78,6 +83,6 @@ if __name__ == "__main__":
     for n_cluster, n_sigma in gmm_cases:
         gmm_data = random_data_2d_gmm(n_sample, n_dim, n_cluster, n_sigma)
         print(
-            f"GMM(n_sample={n_sample},n_dim={n_dim},n_cluster={n_cluster},n_sigma={n_sigma}):"
+            f"GMM{{n_sample={n_sample},n_dim={n_dim},n_cluster={n_cluster},n_sigma={n_sigma}}}:"
         )
         run(n_sample, n_dim, gmm_data)
