@@ -1,7 +1,6 @@
 #include "clusterer.h"
 
 #include <algorithm>
-#include <cassert>
 #include <limits>
 #include <utility>
 #include <vector>
@@ -10,8 +9,6 @@ namespace pouq::cluster {
 
 std::pair<std::vector<float>, std::vector<float>> Clusterer::Split(const std::vector<float>& data) {
   int n = data.size();
-  assert(n > 0);
-
   int k = std::min(n, n_clusters_);
 
   std::vector<float> dp_prev(n), dp_curr(n);

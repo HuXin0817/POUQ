@@ -27,10 +27,14 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data, TrainOption o
   Clear();
 
   n_sample_ = data.size();
-  assert(n_sample_ > 0);
+  if (n_sample_ == 0) {
+    return;
+  }
 
   n_dim_ = data[0].size();
-  assert(n_dim_ > 0);
+  if (n_dim_ == 0) {
+    return;
+  }
 
   n_padding_dim_ = (n_dim_ + kAligned - 1) / kAligned * kAligned;
 
@@ -47,9 +51,6 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data, TrainOption o
     std::ranges::sort(dim_data);
 
     auto [lefts, rights] = clusterer_.Split(dim_data);
-    assert(lefts.size() == rights.size());
-    assert(lefts.size() <= kClusterNumber);
-
     for (size_t i = 0; i < lefts.size(); i++) {
       float& l = lefts[i];
       float& r = rights[i];
@@ -146,6 +147,7 @@ void Quantizer::ForBatch(uint32_t n, const std::function<bool(uint32_t, const m1
 }
 
 void Quantizer::Decode(uint32_t n, float* data) {
+  assert(data.size() >= n_dim_);
   ForBatch(n, [&](uint32_t i, const m128& decode) -> bool {
     uint32_t dim = i * kAligned;
     if (dim + kAligned <= n_dim_) {
