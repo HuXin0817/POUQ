@@ -20,7 +20,8 @@ std::vector<std::vector<float>> generateRandom2DFloatUnifrom(uint32_t n, uint32_
   return arr;
 }
 
-std::vector<std::vector<float>> generateRandom2DFloatGMM(uint32_t n, uint32_t m, float k, uint32_t n_clusters, float sigma) {
+std::vector<std::vector<float>> generateRandom2DFloatGMM(
+    uint32_t n, uint32_t m, float k, uint32_t n_clusters, float sigma) {
   std::mt19937 gen(42);
   std::uniform_real_distribution<float> center_dist(-k, k);
   std::uniform_int_distribution<uint32_t> cluster_choice(0, n_clusters - 1);
