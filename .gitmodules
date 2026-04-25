@@ -13,3 +13,7 @@
 	url = https://github.com/stevengj/nlopt
 	branch = v2.10.1
 	ignore = dirty
+[submodule "deps/googletest"]
+	path = deps/googletest
+	url = https://github.com/google/googletest
+	branch = v1.14.0
