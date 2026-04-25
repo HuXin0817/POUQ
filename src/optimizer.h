@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nlopt.hpp>
 #include <span>
 #include <utility>
 #include <xsimd/xsimd.hpp>
@@ -12,7 +13,10 @@ class Optimizer {
 
   ~Optimizer() = default;
 
-  std::pair<float, float> Optimize(const std::span<float>& data, int maxeval, float scale_factor);
+  std::pair<float, float> Optimize(const std::span<float>& data,
+                                   nlopt::algorithm algorithm,
+                                   int maxeval,
+                                   float scale_factor);
 
  private:
   float level_;
