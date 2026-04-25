@@ -15,8 +15,8 @@ class Optimizer {
 
  private:
   float level_;
-  int maxeval = 5000;
-  float scale_factor = 0.1f;
+  int maxeval_ = 5000;
+  float scale_factor_ = 0.1f;
 };
 
 }  // namespace pouq::optimize

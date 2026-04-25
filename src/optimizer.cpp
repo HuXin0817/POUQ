@@ -54,7 +54,7 @@ double LossWrapper(const std::vector<double>& x, std::vector<double>&, void* dat
 std::pair<float, float> Optimizer::Optimize(const std::span<float>& data) {
   float init_lower = data.front();
   float init_upper = data.back();
-  float width = (init_upper - init_lower) * std::clamp(scale_factor, 0.0f, 0.5f);
+  float width = (init_upper - init_lower) * std::clamp(scale_factor_, 0.0f, 0.5f);
 
   const std::vector<double> lower_bound = {init_lower - width, init_upper - width};
   const std::vector<double> upper_bound = {init_lower + width, init_upper + width};
@@ -75,7 +75,7 @@ std::pair<float, float> Optimizer::Optimize(const std::span<float>& data) {
   opt.set_lower_bounds(lower_bound);
   opt.set_upper_bounds(upper_bound);
   opt.set_min_objective(LossWrapper, &context);
-  opt.set_maxeval(maxeval);
+  opt.set_maxeval(maxeval_);
 
   std::vector<double> x = {init_lower, init_upper};
   double minf;

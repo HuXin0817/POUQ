@@ -7,10 +7,7 @@ from baseline import ScalarQuantizer
 
 sys.path.append("build/python")
 
-try:
-    from pypouq import Quantizer
-except:
-    print("Libary 'pypouq' not found, run bash build.sh first!")
+from pypouq import Quantizer
 
 
 def random_data_2d_unifrom(x: int, y: int) -> List[List[float]]:
