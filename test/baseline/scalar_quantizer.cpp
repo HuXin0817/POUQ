@@ -2,8 +2,6 @@
 
 #include <tbb/parallel_for.h>
 
-#include <xsimd/xsimd.hpp>
-
 void ScalarQuantizer::Train(const std::vector<std::vector<float>>& data) {
   Clear();
 

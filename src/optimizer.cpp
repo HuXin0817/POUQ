@@ -51,10 +51,7 @@ double LossWrapper(const std::vector<double>& x, std::vector<double>&, void* dat
   return Loss(context.level, x[0], x[1], context.batch_data, context.extra);
 }
 
-std::pair<float, float> Optimizer::Optimize(const std::span<float>& data,
-                                            nlopt::algorithm algorithm,
-                                            int maxeval,
-                                            float scale_factor) {
+std::pair<float, float> Optimizer::Optimize(const std::span<float>& data) {
   float init_lower = data.front();
   float init_upper = data.back();
   float width = (init_upper - init_lower) * std::clamp(scale_factor, 0.0f, 0.5f);
@@ -74,7 +71,7 @@ std::pair<float, float> Optimizer::Optimize(const std::span<float>& data,
     context.extra = {data.begin() + i, data.end()};
   }
 
-  nlopt::opt opt(algorithm, 2);
+  nlopt::opt opt(nlopt::GN_ISRES, 2);
   opt.set_lower_bounds(lower_bound);
   opt.set_upper_bounds(upper_bound);
   opt.set_min_objective(LossWrapper, &context);

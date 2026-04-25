@@ -1,9 +1,7 @@
 #pragma once
 
-#include <nlopt.hpp>
 #include <span>
 #include <utility>
-#include <xsimd/xsimd.hpp>
 
 namespace pouq::optimize {
 
@@ -13,13 +11,12 @@ class Optimizer {
 
   ~Optimizer() = default;
 
-  std::pair<float, float> Optimize(const std::span<float>& data,
-                                   nlopt::algorithm algorithm,
-                                   int maxeval,
-                                   float scale_factor);
+  std::pair<float, float> Optimize(const std::span<float>& data);
 
  private:
   float level_;
+  int maxeval = 5000;
+  float scale_factor = 0.1f;
 };
 
 }  // namespace pouq::optimize

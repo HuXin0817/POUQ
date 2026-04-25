@@ -36,23 +36,25 @@ std::pair<std::vector<float>, std::vector<float>> Clusterer::Split(const std::ve
           best_j = j;
         }
       }
+
       dp_curr[i] = min_val;
       opt[p][i] = best_j;
     }
+
     std::swap(dp_prev, dp_curr);
   }
 
   std::vector<float> lefts(k), rights(k);
-  int cur_i = n - 1;
+  int curr_i = n - 1;
   for (int p = k; p >= 1; --p) {
-    int split_j = (p == 1) ? -1 : opt[p][cur_i];
+    int split_j = (p == 1) ? -1 : opt[p][curr_i];
 
     int l_idx = split_j + 1;
-    int r_idx = cur_i;
+    int r_idx = curr_i;
     lefts[p - 1] = data[l_idx];
     rights[p - 1] = data[r_idx];
 
-    cur_i = split_j;
+    curr_i = split_j;
   }
 
   return {lefts, rights};
