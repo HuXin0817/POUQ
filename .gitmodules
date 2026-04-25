@@ -13,7 +13,8 @@
 	url = https://github.com/stevengj/nlopt
 	branch = v2.10.1
 	ignore = dirty
-[submodule "deps/googletest"]
-	path = deps/googletest
-	url = https://github.com/google/googletest
-	branch = v1.14.0
+[submodule "deps/pybind11"]
+	path = deps/pybind11
+	url = https://github.com/pybind/pybind11
+	branch = v3.0.4
+	ignore = dirty

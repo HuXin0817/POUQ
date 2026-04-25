@@ -27,7 +27,3 @@ jobs:
       - name: Build
         run: |
           ./build.sh Release
-
-      - name: Run
-        run: |
-          ./build/test/pouq_demo
