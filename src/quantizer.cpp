@@ -147,7 +147,6 @@ void Quantizer::ForBatch(uint32_t n, const std::function<bool(uint32_t, const m1
 }
 
 void Quantizer::Decode(uint32_t n, float* data) {
-  assert(data.size() >= n_dim_);
   ForBatch(n, [&](uint32_t i, const m128& decode) -> bool {
     uint32_t dim = i * kAligned;
     if (dim + kAligned <= n_dim_) {

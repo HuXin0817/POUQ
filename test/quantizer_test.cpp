@@ -4,7 +4,7 @@
 #include <random>
 #include <vector>
 
-#include "baseline/simple_scalar_quantizer.h"
+#include "baseline/scalar_quantizer.h"
 
 std::vector<std::vector<float>> generateRandom2DFloatUnifrom(uint32_t n, uint32_t m, float k) {
   std::mt19937 gen(42);
@@ -78,7 +78,7 @@ int main() {
   std::cout << "=== Uniform U(-" << kRange << ", " << kRange << ") ===" << std::endl;
   {
     std::vector<std::vector<float>> data = generateRandom2DFloatUnifrom(kSample, kDim, kRange);
-    Benchmark<SimpleScalarQuantizer>("Scalar Quantizer", data);
+    Benchmark<ScalarQuantizer>("Scalar Quantizer", data);
     Benchmark<pouq::Quantizer>("POUQ Quantizer", data);
   }
 
@@ -98,7 +98,7 @@ int main() {
     std::cout << std::endl;
     std::cout << "=== GMM (" << c.clusters << " clusters/dim, sigma=" << c.sigma << ") ===" << std::endl;
     std::vector<std::vector<float>> data = generateRandom2DFloatGMM(kSample, kDim, kRange, c.clusters, c.sigma);
-    Benchmark<SimpleScalarQuantizer>("Scalar Quantizer", data);
+    Benchmark<ScalarQuantizer>("Scalar Quantizer", data);
     Benchmark<pouq::Quantizer>("POUQ Quantizer", data);
   }
 }

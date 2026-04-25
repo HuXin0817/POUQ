@@ -3,13 +3,13 @@
 #include <cassert>
 #include <vector>
 
-class SimpleScalarQuantizer {
+class ScalarQuantizer {
   static constexpr uint32_t kLevel = 15.0f;
 
  public:
-  SimpleScalarQuantizer() = default;
+  ScalarQuantizer() = default;
 
-  ~SimpleScalarQuantizer() = default;
+  ~ScalarQuantizer() = default;
 
   void Train(const std::vector<std::vector<float>>& data);
 

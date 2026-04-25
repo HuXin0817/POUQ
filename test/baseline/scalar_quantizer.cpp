@@ -1,10 +1,10 @@
-#include "simple_scalar_quantizer.h"
+#include "scalar_quantizer.h"
 
 #include <tbb/parallel_for.h>
 
 #include <xsimd/xsimd.hpp>
 
-void SimpleScalarQuantizer::Train(const std::vector<std::vector<float>>& data) {
+void ScalarQuantizer::Train(const std::vector<std::vector<float>>& data) {
   Clear();
 
   n_sample_ = data.size();
@@ -36,7 +36,7 @@ void SimpleScalarQuantizer::Train(const std::vector<std::vector<float>>& data) {
   });
 }
 
-void SimpleScalarQuantizer::Decode(uint32_t n, float* data) {
+void ScalarQuantizer::Decode(uint32_t n, float* data) {
   for (uint32_t j = 0; j < n_dim_; j++) {
     float code = code_[n][j];
     float lower = lower_[j];
@@ -46,7 +46,7 @@ void SimpleScalarQuantizer::Decode(uint32_t n, float* data) {
   }
 }
 
-float SimpleScalarQuantizer::Distance(uint32_t n, const float* data) {
+float ScalarQuantizer::Distance(uint32_t n, const float* data) {
   float distance = 0.0f;
   for (uint32_t j = 0; j < n_dim_; j++) {
     float d = data[j];
@@ -61,7 +61,7 @@ float SimpleScalarQuantizer::Distance(uint32_t n, const float* data) {
   return distance;
 }
 
-void SimpleScalarQuantizer::Clear() {
+void ScalarQuantizer::Clear() {
   n_sample_ = 0;
   n_dim_ = 0;
 
