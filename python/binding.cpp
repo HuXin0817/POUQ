@@ -10,10 +10,10 @@ namespace py = pybind11;
 
 class PyQuantizerWrapper : public pouq::Quantizer {
  public:
-  using pouq::Quantizer::Quantizer;
+  using Quantizer::Quantizer;
 
-  void Decode(uint32_t n, py::array_t<float>& arr) { pouq::Quantizer::Decode(n, arr.mutable_data()); }
-  void Distance(uint32_t n, const py::array_t<float>& arr) { pouq::Quantizer::Distance(n, arr.data()); }
+  void Decode(uint32_t n, py::array_t<float>& arr) { Quantizer::Decode(n, arr.mutable_data()); }
+  void Distance(uint32_t n, const py::array_t<float>& arr) { Quantizer::Distance(n, arr.data()); }
 };
 
 PYBIND11_MODULE(pypouq, m) {
@@ -22,7 +22,7 @@ PYBIND11_MODULE(pypouq, m) {
   py::class_<PyQuantizerWrapper>(m, "Quantizer")
       .def(py::init<>())
       .def("train", &PyQuantizerWrapper::Train)
-      .def("decode", py::overload_cast<uint32_t, py::array_t<float>&>(&PyQuantizerWrapper::Decode))
-      .def("distance", py::overload_cast<uint32_t, const py::array_t<float>&>(&PyQuantizerWrapper::Distance))
-      .def("clear", &PyQuantizerWrapper::Clear, "Clear the quantizer");
+      .def("decode", &PyQuantizerWrapper::Decode)
+      .def("distance", &PyQuantizerWrapper::Distance)
+      .def("clear", &PyQuantizerWrapper::Clear);
 }
