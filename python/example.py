@@ -1,14 +1,15 @@
 import math
 import random
 import time
-from typing import List
 
-from baseline import ScalarQuantizer
+import numpy as np
 from pypouq import Quantizer
 
+from baseline import ScalarQuantizer
 
-def random_data_2d_unifrom(x: int, y: int) -> List[List[float]]:
-    return [[random.random() for _ in range(y)] for _ in range(x)]
+
+def random_data_2d_unifrom(x: int, y: int) -> np.ndarray:
+    return np.random.random((x, y))
 
 
 def box_muller_transform() -> float:
@@ -18,46 +19,39 @@ def box_muller_transform() -> float:
     return z0
 
 
-def random_data_2d_gmm(
-    x: int, y: int, n_cluster: int, n_sigma: float
-) -> List[List[float]]:
-    cluster_centers = [[random.random() for _ in range(y)]
-                       for _ in range(n_cluster)]
-    data = []
-    for _ in range(x):
+def random_data_2d_gmm(x: int, y: int, n_cluster: int, n_sigma: float) -> np.ndarray:
+    cluster_centers = np.random.random((n_cluster, y))
+    data = np.zeros((x, y))
+    for i in range(x):
         cluster = random.randint(0, n_cluster - 1)
         center = cluster_centers[cluster]
-        point = [center[i] + n_sigma * box_muller_transform()
-                 for i in range(y)]
-        data.append(point)
+        noise = np.array([n_sigma * box_muller_transform() for _ in range(y)])
+        data[i] = center + noise
     return data
 
 
-def run_impl(quantizer, n_sample: int, n_dim: int, data: List[List[float]]):
+def run_impl(quantizer, n_sample: int, n_dim: int, data: np.ndarray):
     start_time = time.time()
     quantizer.train(data)
     train_time = time.time() - start_time
     print(f"    Train Time: {train_time:.3f}s")
 
-    max_error = 0.0
-    mae = 0.0
-    mse = 0.0
-
+    decoded = np.zeros((n_sample, n_dim), dtype=np.float32)
     for i in range(n_sample):
-        decode: List[float] = quantizer.decode(i)
-        for j in range(n_dim):
-            diff = abs(data[i][j] - decode[j])
-            max_error = max(max_error, diff)
-            mae += diff
-            mse += diff * diff
+        quantizer.decode(i, decoded[i])
 
-    n_size = n_sample * n_dim
+    diff = np.abs(data.astype(np.float32) - decoded)
+
+    max_error = np.max(diff)
+    mae = np.sum(diff) / (n_sample * n_dim)
+    mse = np.sum(diff**2) / (n_sample * n_dim)
+
     print(f"    Max Error:  {max_error:.3f}")
-    print(f"    MAE:        {mae / n_size:.3f}")
-    print(f"    MSE:        {mse / n_size:.3f}")
+    print(f"    MAE:        {mae:.3f}")
+    print(f"    MSE:        {mse:.3f}")
 
 
-def run(n_sample: int, n_dim: int, data: List[List[float]]):
+def run(n_sample: int, n_dim: int, data: np.ndarray):
     print("  BaseLine:")
     run_impl(ScalarQuantizer(), n_sample, n_dim, data)
     print("  Ours:")
@@ -83,5 +77,6 @@ if __name__ == "__main__":
     for n_cluster, n_sigma in gmm_cases:
         gmm_data = random_data_2d_gmm(n_sample, n_dim, n_cluster, n_sigma)
         print(
-            f"GMM(sample={n_sample},dim={n_dim},cluster={n_cluster},sigma={n_sigma}):")
+            f"GMM(sample={n_sample},dim={n_dim},cluster={n_cluster},sigma={n_sigma}):"
+        )
         run(n_sample, n_dim, gmm_data)

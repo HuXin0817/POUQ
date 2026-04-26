@@ -1,4 +1,4 @@
-from typing import List
+import numpy as np
 
 
 class ScalarQuantizer:
@@ -6,47 +6,37 @@ class ScalarQuantizer:
         self.k_level: int = k_level
         self.n_dim: int = 0
         self.n_sample: int = 0
-        self.lower: List[float] = []
-        self.step_size: List[float] = []
-        self.code: List[List[int]] = []
+        self.lower: np.ndarray = None
+        self.step_size: np.ndarray = None
+        self.code: np.ndarray = None
 
-    def train(self, data: List[List[float]]) -> None:
-        self.n_sample = len(data)
+    def train(self, data: np.ndarray) -> None:
+        self.n_sample = data.shape[0]
         if self.n_sample == 0:
             return
 
-        self.n_dim = len(data[0])
+        self.n_dim = data.shape[1]
         if self.n_dim == 0:
             return
 
-        if not all(len(vec) == self.n_dim for vec in data):
-            raise ValueError()
-
-        self.lower = [float("inf")] * self.n_dim
-        upper = [float("-inf")] * self.n_dim
+        self.lower = np.full(self.n_dim, np.inf)
+        upper = np.full(self.n_dim, -np.inf)
 
         for vec in data:
-            for i in range(self.n_dim):
-                val = vec[i]
-                if val < self.lower[i]:
-                    self.lower[i] = val
-                if val > upper[i]:
-                    upper[i] = val
+            vec_lower = vec < self.lower
+            vec_upper = vec > upper
+            self.lower = np.where(vec_lower, vec, self.lower)
+            upper = np.where(vec_upper, vec, upper)
 
-        self.step_size = [0.0] * self.n_dim
-        for i in range(self.n_dim):
-            rng = upper[i] - self.lower[i]
-            self.step_size[i] = rng / self.k_level if rng > 0 else 1.0
+        rng = upper - self.lower
+        self.step_size = np.where(rng > 0, rng / self.k_level, 1.0)
 
-        self.code = [[0] * self.n_dim for _ in range(self.n_sample)]
+        self.code = np.zeros((self.n_sample, self.n_dim), dtype=int)
 
         for j, vec in enumerate(data):
-            for i in range(self.n_dim):
-                idx = int((vec[i] - self.lower[i]) / self.step_size[i] + 0.5)
-                self.code[j][i] = max(0, min(self.k_level - 1, idx))
+            idx = ((vec - self.lower) / self.step_size + 0.5).astype(int)
+            idx = np.clip(idx, 0, self.k_level - 1)
+            self.code[j] = idx
 
-    def decode(self, n: int) -> List[float]:
-        return [
-            self.lower[i] + (self.code[n][i] + 0.5) * self.step_size[i]
-            for i in range(self.n_dim)
-        ]
+    def decode(self, n: int, arr: np.ndarray) -> None:
+        arr[:] = self.lower + (self.code[n] + 0.5) * self.step_size

@@ -31,4 +31,5 @@ jobs:
       - name: Run
         run: |
           export PYTHONPATH="$PYTHONPATH:$(pwd)/build/python"
+          python3 -m pip install numpy
           python3 ./python/example.py
