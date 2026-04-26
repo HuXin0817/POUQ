@@ -46,9 +46,9 @@ def run_impl(quantizer, n_sample: int, n_dim: int, data: np.ndarray):
     mae = np.sum(diff) / (n_sample * n_dim)
     mse = np.sum(diff**2) / (n_sample * n_dim)
 
-    print(f"    Max Error:  {max_error:.3f}")
-    print(f"    MAE:        {mae:.3f}")
-    print(f"    MSE:        {mse:.3f}")
+    print(f"    Max Error:  {max_error:.3e}")
+    print(f"    MAE:        {mae:.3e}")
+    print(f"    MSE:        {mse:.3e}")
 
 
 def run(n_sample: int, n_dim: int, data: np.ndarray):
