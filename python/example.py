@@ -34,11 +34,14 @@ def run_impl(quantizer, n_sample: int, n_dim: int, data: np.ndarray):
     start_time = time.time()
     quantizer.train(data)
     train_time = time.time() - start_time
-    print(f"    Train Time: {train_time:.3f}s")
+    print(f"    Train Time:  {train_time:.3f}s")
 
     decoded = np.zeros((n_sample, n_dim), dtype=np.float32)
+    start_time = time.time()
     for i in range(n_sample):
         quantizer.decode(i, decoded[i])
+    decode_time = time.time() - start_time
+    print(f"    Decode Time: {decode_time:.3f}s")
 
     diff = np.abs(data.astype(np.float32) - decoded)
 
@@ -46,9 +49,9 @@ def run_impl(quantizer, n_sample: int, n_dim: int, data: np.ndarray):
     mae = np.sum(diff) / (n_sample * n_dim)
     mse = np.sum(diff**2) / (n_sample * n_dim)
 
-    print(f"    Max Error:  {max_error:.3e}")
-    print(f"    MAE:        {mae:.3e}")
-    print(f"    MSE:        {mse:.3e}")
+    print(f"    Max Error:   {max_error:.3e}")
+    print(f"    MAE:         {mae:.3e}")
+    print(f"    MSE:         {mse:.3e}")
 
 
 def run(n_sample: int, n_dim: int, data: np.ndarray):
