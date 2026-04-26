@@ -10,8 +10,6 @@ namespace py = pybind11;
 
 class PyQuantizerWrapper : public pouq::Quantizer {
  public:
-  using Quantizer::Quantizer;
-
   void Decode(uint32_t n, py::array_t<float>& arr) { Quantizer::Decode(n, arr.mutable_data()); }
   void Distance(uint32_t n, const py::array_t<float>& arr) { Quantizer::Distance(n, arr.data()); }
 };
