@@ -23,15 +23,16 @@ static std::array<uint8_t, 4> Unpack(uint8_t code) {
   };
 }
 
-void Quantizer::Train(const std::vector<std::vector<float>>& data) {
+void Quantizer::Train(uint32_t n_sample, uint32_t n_dim, const float* data) {
   Clear();
 
-  n_sample_ = data.size();
+  n_sample_ = n_sample;
+  n_dim_ = n_dim;
+
   if (n_sample_ == 0) {
     return;
   }
 
-  n_dim_ = data[0].size();
   if (n_dim_ == 0) {
     return;
   }
@@ -46,7 +47,7 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data) {
   tbb::parallel_for<uint32_t>(0, n_dim_, [&](const uint32_t dim) {
     std::vector<float> dim_data(n_sample_, 0.0f);
     for (uint32_t i = 0; i < n_sample_; i++) {
-      dim_data[i] = data[i][dim];
+      dim_data[i] = data[i * n_dim + dim];
     }
     std::ranges::sort(dim_data);
 
@@ -75,7 +76,7 @@ void Quantizer::Train(const std::vector<std::vector<float>>& data) {
     }
 
     for (uint32_t i = 0; i < n_sample_; i++) {
-      float d = data[i][dim];
+      float d = data[i * n_dim + dim];
 
       uint8_t index = 0;
       float min_distance = std::numeric_limits<float>::max();

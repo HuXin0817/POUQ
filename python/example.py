@@ -1,3 +1,4 @@
+import argparse
 import math
 import random
 import time
@@ -62,8 +63,12 @@ def run(n_sample: int, n_dim: int, data: np.ndarray):
 
 
 if __name__ == "__main__":
-    n_sample = 10000
-    n_dim = 256
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n_sample", type=int, default=10000, help="Number of samples")
+    parser.add_argument("--n_dim", type=int, default=256, help="Number of dimensions")
+    args = parser.parse_args()
+    n_sample = args.n_sample
+    n_dim = args.n_dim
 
     unifrom_data = random_data_2d_unifrom(n_sample, n_dim)
     print(f"Unifrom(sample={n_sample},dim={n_dim}):")

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <vector>
 #include <xsimd/xsimd.hpp>
@@ -24,7 +25,7 @@ class Quantizer {
 
   ~Quantizer() = default;
 
-  void Train(const std::vector<std::vector<float>>& data);
+  void Train(uint32_t n_sample, uint32_t n_dim, const float* data);
 
   void ForBatch(uint32_t n, const std::function<bool(uint32_t, const m128&)>& f);
 
