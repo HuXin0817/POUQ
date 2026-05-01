@@ -7,7 +7,7 @@
 
 #include "clusterer.h"
 #include "optimizer.h"
-#include "util.h"
+#include "util/simd.h"
 
 namespace pouq {
 
