@@ -153,7 +153,7 @@ void Quantizer::Decode(uint32_t n, float* data) {
     if (dim + kAligned <= n_dim_) {
       decode.store_unaligned(data + dim);
     } else {
-      for (int j = dim; j < n_dim_; j++) {
+      for (uint32_t j = dim; j < n_dim_; j++) {
         data[j] = decode.get(j - dim);
       }
     }
