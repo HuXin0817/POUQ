@@ -5,7 +5,7 @@
 #include <nlopt.hpp>
 #include <xsimd/xsimd.hpp>
 
-namespace pouq::optimize {
+namespace pouq {
 
 float Loss(float level,
            float lower,
@@ -84,4 +84,4 @@ std::pair<float, float> Optimizer::Optimize(const std::span<float>& data) {
   return {x[0], x[1]};
 }
 
-}  // namespace pouq::optimize
+}  // namespace pouq

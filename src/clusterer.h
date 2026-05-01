@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace pouq::cluster {
+namespace pouq {
 
 class Clusterer {
  public:
@@ -16,4 +16,4 @@ class Clusterer {
   int n_clusters_;
 };
 
-}  // namespace pouq::cluster
+}  // namespace pouq

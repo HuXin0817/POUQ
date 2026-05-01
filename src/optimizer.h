@@ -3,7 +3,7 @@
 #include <span>
 #include <utility>
 
-namespace pouq::optimize {
+namespace pouq {
 
 class Optimizer {
  public:
@@ -19,4 +19,4 @@ class Optimizer {
   float scale_factor_ = 0.1f;
 };
 
-}  // namespace pouq::optimize
+}  // namespace pouq

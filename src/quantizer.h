@@ -52,8 +52,8 @@ class Quantizer {
   void Clear();
 
  private:
-  cluster::Clusterer clusterer_;
-  optimize::Optimizer optimizer_;
+  Clusterer clusterer_;
+  Optimizer optimizer_;
 
   uint32_t n_sample_ = 0;
   uint32_t n_dim_ = 0;

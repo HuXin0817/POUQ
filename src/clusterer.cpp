@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-namespace pouq::cluster {
+namespace pouq {
 
 std::pair<std::vector<float>, std::vector<float>> Clusterer::Split(const std::vector<float>& data) {
   int n = data.size();
@@ -60,4 +60,4 @@ std::pair<std::vector<float>, std::vector<float>> Clusterer::Split(const std::ve
   return {lefts, rights};
 }
 
-}  // namespace pouq::cluster
+}  // namespace pouq
