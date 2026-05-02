@@ -105,10 +105,8 @@ def run(n_sample: int, n_dim: int, data: np.ndarray):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n_sample", type=int,
-                        default=10000, help="Number of samples")
-    parser.add_argument("--n_dim", type=int, default=256,
-                        help="Number of dimensions")
+    parser.add_argument("--n_sample", type=int, default=10000, help="Number of samples")
+    parser.add_argument("--n_dim", type=int, default=256, help="Number of dimensions")
     args = parser.parse_args()
     n_sample = args.n_sample
     n_dim = args.n_dim
