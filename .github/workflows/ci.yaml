@@ -28,8 +28,11 @@ jobs:
         run: |
           ./build.sh Release
 
+      - name: Install numpy
+        run: |
+          python3 -m pip install numpy
+
       - name: Run
         run: |
           export PYTHONPATH="$PYTHONPATH:$(pwd)/build/python"
-          python3 -m pip install numpy
           python3 example.py
