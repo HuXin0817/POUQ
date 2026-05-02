@@ -26,7 +26,7 @@ static std::array<uint8_t, 4> Unpack(uint8_t code) {
 void Quantizer::Train(uint32_t n_sample, uint32_t n_dim, const float* data) {
   Clear();
 
-  if (n_sample_ == 0 || n_dim_ == 0) {
+  if (n_sample == 0 || n_dim == 0) {
     return;
   }
 
