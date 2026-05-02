@@ -49,7 +49,7 @@ class ScalarQuantizer:
 
 
 def random_data_2d_unifrom(x: int, y: int) -> np.ndarray:
-    return np.random.random((x, y))
+    return np.random.random((x, y)).astype(np.float32)
 
 
 def box_muller_transform() -> float:
@@ -60,12 +60,14 @@ def box_muller_transform() -> float:
 
 
 def random_data_2d_gmm(x: int, y: int, n_cluster: int, n_sigma: float) -> np.ndarray:
-    cluster_centers = np.random.random((n_cluster, y))
-    data = np.zeros((x, y))
+    cluster_centers = np.random.random((n_cluster, y)).astype(np.float32)
+    data = np.zeros((x, y), dtype=np.float32)
     for i in range(x):
         cluster = random.randint(0, n_cluster - 1)
         center = cluster_centers[cluster]
-        noise = np.array([n_sigma * box_muller_transform() for _ in range(y)])
+        noise = np.array(
+            [n_sigma * box_muller_transform() for _ in range(y)], dtype=np.float32
+        )
         data[i] = center + noise
     return data
 
