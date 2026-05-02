@@ -26,17 +26,12 @@ static std::array<uint8_t, 4> Unpack(uint8_t code) {
 void Quantizer::Train(uint32_t n_sample, uint32_t n_dim, const float* data) {
   Clear();
 
+  if (n_sample_ == 0 || n_dim_ == 0) {
+    return;
+  }
+
   n_sample_ = n_sample;
   n_dim_ = n_dim;
-
-  if (n_sample_ == 0) {
-    return;
-  }
-
-  if (n_dim_ == 0) {
-    return;
-  }
-
   n_padding_dim_ = (n_dim_ + kAligned - 1) / kAligned * kAligned;
 
   std::vector<std::vector<uint8_t>> codebook(n_sample_, std::vector<uint8_t>(n_padding_dim_, 0));
@@ -58,8 +53,8 @@ void Quantizer::Train(uint32_t n_sample, uint32_t n_dim, const float* data) {
       assert(l <= r);
 
       if (r - l > std::numeric_limits<float>::epsilon()) {
-        const auto l_iter = std::ranges::lower_bound(dim_data, l);
-        const auto r_iter = std::ranges::upper_bound(dim_data, r);
+        auto l_iter = std::ranges::lower_bound(dim_data, l);
+        auto r_iter = std::ranges::upper_bound(dim_data, r);
         std::span<float> range(l_iter, r_iter);
         assert(range.front() == l && range.back() == r);
         auto [opt_l, opt_r] = optimizer_.Optimize(range);
