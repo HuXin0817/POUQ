@@ -7,13 +7,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(deps)
+add_subdirectory(src)
 add_subdirectory(python)
-
-add_library(pouq
-        STATIC
-        src/quantizer.cpp
-        src/clusterer.cpp
-        src/optimizer.cpp
-)
-
-target_link_libraries(pouq PRIVATE xsimd TBB::tbb nlopt)
