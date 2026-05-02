@@ -133,12 +133,11 @@ void Quantizer::ForBatch(uint32_t n, const std::function<bool(uint32_t, const m1
     auto [reconstructed_param_index_package, code_package] = code_[n][i];
     m128 lower = lower_[offset + reconstructed_param_index_package];
     m128 step_size = step_size_[offset + reconstructed_param_index_package];
-    auto [c0, c1, c2, c3] = Unpack(code_package);
     m128 code = {
-        static_cast<float>(c0),
-        static_cast<float>(c1),
-        static_cast<float>(c2),
-        static_cast<float>(c3),
+        static_cast<float>((code_package >> 6) & 0x03),
+        static_cast<float>((code_package >> 4) & 0x03),
+        static_cast<float>((code_package >> 2) & 0x03),
+        static_cast<float>(code_package & 0x03),
     };
     m128 decode = xsimd::fma(code, step_size, lower);
     if (f(i, decode)) {
